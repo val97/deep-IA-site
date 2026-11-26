@@ -1,0 +1,116 @@
+/* DEEP IA · the page frame (H2, approved 26 Nov 2026), shared by every page that opens in the player (play.html).
+   Left, the guide's column: the steps of the question, one speech bubble, reply buttons, the guide below with no background.
+   Right, the desk: what the teacher works on (a video, a slide, a sheet, cards…), with paper objects in a soft shadow.
+   Video, slides, frise and quiz: the guide gives the instruction, steps aside on the first move (body.aside), comes back
+   at the end. Classroom activities: the guide stays. Look: DESIGN.md (« Activity Step Screen »). Code: shared/frame.js. */
+@import url("../fonts/fonts.css");
+:root {
+  --g-deep: #0B514D; --g-main: #77E5B6; --g-tint: #E9FCF4; --g-hell: #BBF2DB;
+  --lilac: #E4CCFF; --lilac-tint: #F4EBFF; --violet: #600FBD;
+  --ink: #1F1F1F; --soft: #4A4A4A; --hair: #E6E6E6; --page: #FBFBF9;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --paper-shadow: 0 6px 18px rgba(11, 81, 77, .12);
+  /* one text unit for the frame and every activity (brief 26 Nov 2026): 15 × --u is the body text, about 17–18 px on a
+     laptop and 21–22 px on a large monitor; the height caps it too, so a screen never needs to scroll */
+  --u: clamp(1.15px, min(calc(.6px + .04vw), calc(.2px + .11vh)), 1.42px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 400 calc(16 * var(--u))/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--page); -webkit-font-smoothing: antialiased; overflow: hidden; }
+:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; border-radius: 6px; }
+h1, h2, h3, p { margin: 0; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* the two halves */
+.stage { height: 100%; display: grid; grid-template-columns: minmax(400px, 32%) 1fr; grid-template-rows: minmax(0, 1fr); transition: grid-template-columns .45s var(--ease); }
+body.narrow .stage { grid-template-columns: minmax(280px, 27%) 1fr; }   /* video and slides: the content is the big thing */
+body.aside .stage { grid-template-columns: 0 1fr; }
+body.aside .tutor { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .stage { transition: none; } }
+
+/* the guide's column */
+.tutor { position: relative; overflow: hidden; display: flex; flex-direction: column; padding: clamp(14px, 2.4vh, 26px) clamp(18px, 2.4vw, 32px) 0; }
+.stepline { position: relative; display: flex; align-items: center; flex-wrap: wrap; margin-bottom: calc(18 * var(--u)); }
+/* the current step's name sits under the dots, so the dots stay on one line in the narrower column (layout brief, 26 Nov 2026) */
+.stepline .on > span:not(.sr) { position: absolute; left: 2px; top: calc(100% - 4px); white-space: nowrap; }
+.stepline > button { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+.stepline > button:hover i { border-color: var(--violet); }
+.stepline > span, .stepline > button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: calc(14 * var(--u)); font-weight: 600; color: var(--g-deep); text-decoration: none; }
+.stepline i { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: calc(15 * var(--u)); color: var(--g-deep); border: 2px dashed var(--g-deep); background: var(--page); }
+.stepline .on i { background: var(--g-main); border-style: solid; }
+.stepline .done i { background: var(--g-deep); color: #fff; border-style: solid; }
+.stepline b { width: 8px; height: 2px; background: var(--g-deep); opacity: .3; margin: 0 3px; }
+body.narrow .stepline .on span { display: none; }
+.stepline.many i { width: 28px; height: 28px; font-size: calc(13 * var(--u)); }   /* more than 7 screens: still one line */
+.stepline.many b { width: 6px; margin: 0 3px; }
+.bubble { position: relative; z-index: 2; margin-top: clamp(10px, 1.8vh, 18px); padding: 16px 20px 14px; border-radius: 18px; background: var(--lilac-tint); }
+.bubble::after { content: ""; position: absolute; left: 46%; bottom: -12px; width: 24px; height: 24px; background: inherit; transform: rotate(45deg); border-radius: 4px; }
+.bubble .who { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--violet); }
+.bubble .say { margin-top: 4px; font-weight: 800; font-size: calc(21 * var(--u)); line-height: 1.2; letter-spacing: -.015em; color: var(--g-deep); text-wrap: balance; }
+body.narrow .bubble .say { font-size: calc(18 * var(--u)); }
+.bubble .say em { font-style: normal; color: var(--violet); }
+.bubble .say u { text-decoration: underline 3px var(--violet); text-underline-offset: .18em; }
+.bubble .more { margin-top: 10px; font-size: calc(15 * var(--u)); line-height: 1.4; }
+.bubble .more:empty, .bubble .keep:empty { display: none; }
+.bubble .more p + p { margin-top: 8px; }
+.bubble .more h4 { margin: 10px 0 2px; font-size: calc(15 * var(--u)); color: var(--violet); }
+.bubble .keep { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.bubble .keep li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: calc(15 * var(--u)); line-height: 1.35; }
+.bubble .keep li::before { content: "✓"; width: 22px; height: 22px; border-radius: 50%; background: var(--g-main); color: var(--g-deep); font-weight: 800; font-size: calc(13 * var(--u)); display: grid; place-items: center; }
+.anim { animation: rise .35s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .anim { animation: none; } }
+.replies { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.replies:empty { display: none; }
+.chip { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--violet); background: #fff; color: var(--violet); font: 600 calc(15 * var(--u)) Inter, sans-serif; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.chip:hover { background: var(--violet); color: #fff; }
+.chip.go { border-color: var(--g-main); background: var(--g-main); color: var(--g-deep); font-weight: 800; }
+.chip.go:hover { background: var(--g-deep); border-color: var(--g-deep); color: #fff; }
+/* what you can say to the guide: a quiet row of chips under her text (the way on is the mint button on the desk) */
+.replies { align-items: center; }
+.replies .lead { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--violet); margin-right: 2px; }
+.replies .chip { min-height: 36px; padding: 0 12px; font-size: calc(14 * var(--u)); border-color: #C9A3FF; }
+.replies .chip:hover { border-color: var(--violet); }
+/* the way on: one mint button, always bottom-right of the desk */
+.f-next { position: fixed; right: clamp(18px, 3vw, 40px); bottom: 16px; z-index: 5; min-height: 52px; padding: 0 20px; border-radius: 10px; border: 0;
+          background: var(--g-main); color: var(--g-deep); font: 800 calc(17 * var(--u)) Inter, sans-serif; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
+.f-next:hover { background: var(--g-deep); color: #fff; }
+.f-next:disabled { background: var(--hair); color: var(--soft); cursor: default; }
+body.aside .f-next { display: none; }
+/* The guide stays in place whatever the pose or the bubble's length (UI review, 26 Nov 2026; user: « guides stay in place »):
+   the figure has a fixed height (not width: the poses have different widths), its top is pinned in the column (not under
+   the bubble, which grows), and it is placed so the body's centre line (--c, measured per pose in frame.js) is the column's middle.
+   A long bubble passes over the figure (the bubble is above it). */
+.guide { position: absolute; left: 0; right: 0; top: 44%; bottom: 0; overflow: hidden; pointer-events: none; }
+.guide img { --h: min(88vh, 760px); position: absolute; top: 6px; height: var(--h); width: auto; max-width: none; left: calc(50% - var(--c, .25) * var(--h)); }
+body.narrow .guide img { --h: min(66vh, 580px); }
+
+/* the desk */
+.desk { position: relative; min-width: 0; min-height: 0; background: #fff; border-left: 1px solid var(--hair); padding: clamp(16px, 2.6vh, 28px) clamp(18px, 3vw, 40px) 76px; }
+.paper { background: #fff; border-radius: 6px; box-shadow: var(--paper-shadow); }
+.card-consigne { padding: 12px 16px 14px; border-radius: 6px; background: var(--g-tint); box-shadow: var(--paper-shadow); rotate: 1.4deg; }
+.card-consigne .lab { font-size: calc(12 * var(--u)); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--g-deep); }
+.card-consigne p { margin-top: 6px; font-size: calc(15 * var(--u)); line-height: 1.4; font-style: italic; }
+.tool { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); font: 600 calc(15 * var(--u)) Inter, sans-serif;
+        display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; }
+.tool:hover { border-color: var(--g-deep); }
+.tool:disabled { opacity: .45; cursor: default; }
+.feedback { font-size: calc(16 * var(--u)); line-height: 1.4; }
+.feedback b { color: var(--g-deep); } .feedback.no b { color: var(--violet); }
+
+/* phones: one column, the guide's bubble above the desk, no figure */
+@media (max-width: 760px) {
+  :root { --u: 1px; }   /* phones keep the sizes they had: the big text is for laptops and monitors */
+  body { overflow: auto; }
+  .stage, body.narrow .stage, body.aside .stage { height: auto; grid-template-columns: 1fr; }
+  body.aside .tutor { display: none; }
+  .guide { display: none; }
+  .tutor { padding-bottom: 14px; }
+  .desk { border-left: 0; border-top: 1px solid var(--hair); padding-bottom: 24px; }
+  .f-next { position: sticky; bottom: 12px; margin: 0 16px 16px auto; display: flex; width: fit-content; }
+}
+
+/* touch screens (UI review, 26 Nov 2026): the reply chips and small tools at least 44 px */
+@media (pointer: coarse) { .replies .chip, .chip, .tool { min-height: 44px; } }

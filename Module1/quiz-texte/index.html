@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz : les fondements de l’IA</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The quiz in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Anne introduces it, steps aside while
+     the teacher answers (the feedback is on the question sheet), and comes back at the end with the summary. */
+  .desk { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; }
+  .qsheet { width: min(100%, 760px); padding: clamp(18px, 3vh, 28px) clamp(18px, 3vw, 30px); rotate: -.4deg; }
+  .qsheet .n { font-size: 14px; font-weight: 700; color: var(--soft); }
+  .qsheet h2 { margin: 6px 0 clamp(14px, 2.4vh, 22px); font-size: clamp(1.2rem, 3vh, 1.55rem); line-height: 1.25; color: var(--g-deep); text-wrap: balance; }
+  .answers { display: grid; gap: 10px; }
+  .ans { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 12px; min-height: 54px; padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--hair);
+         background: #fff; font: 600 16px/1.3 Inter, sans-serif; color: var(--ink); text-align: left; cursor: pointer; }
+  .ans b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--g-tint); color: var(--g-deep); font-weight: 800; }
+  .ans:hover:not(:disabled) { border-color: var(--g-deep); }
+  .ans:disabled { cursor: default; }
+  .ans.wrong { color: var(--soft); border-style: dashed; text-decoration: line-through; }
+  .ans.wrong b { background: var(--hair); color: var(--soft); }
+  .ans.right { background: var(--g-main); border-color: var(--g-main); color: var(--g-deep); }
+  .ans.right b { background: #fff; }
+  .fb { display: flex; align-items: center; gap: 14px; margin-top: 14px; min-height: 48px; }
+  .fb[hidden] { display: none; }
+  .fb p { flex: 1; }
+  .dots { display: flex; gap: 8px; align-items: center; }
+  #dots { display: inline-flex; gap: 8px; align-items: center; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--g-deep); }
+  .dots i.ok { background: var(--g-deep); } .dots i.on { background: var(--g-main); width: 16px; height: 16px; }
+  .dots .prev { margin-right: 10px; }
+  .seen { margin-left: 10px; font-size: 14px; font-weight: 700; color: var(--g-deep); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Le quiz">
+    <div class="qsheet paper">
+      <span class="n" id="count"></span><h2 id="question"></h2>
+      <div class="answers" id="answers"></div>
+      <div class="fb feedback" id="fb" aria-live="polite" hidden><p id="fb-text"></p><button type="button" class="chip go" id="next"></button></div>
+    </div>
+    <div class="dots"><button type="button" class="tool prev" id="prev" aria-label="Question précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><span id="dots" aria-hidden="true"></span><span class="seen" id="seen" hidden>Quiz terminé ✓</span></div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   answers : les quatre réponses (A, B, C, D) ; right : la lettre de la bonne réponse
+   good    : le message quand c'est juste ; bad : le message quand c'est faux
+   (pour un message propre à une mauvaise réponse : badFor: { B: "…" })
+   Le début du message, jusqu'au premier « ! » ou « . », s'affiche en gras.
+   ============================================================ */
+const QUESTIONS = [
+  { question: "Dans l’apprentissage automatique, à quoi sert l’algorithme ?",
+    answers: ["À fournir à la machine la bonne réponse à chaque question.",
+              "À écrire à l’avance toutes les règles que la machine suivra.",
+              "À aider la machine à trouver des règles à partir d’exemples.",
+              "À protéger la machine des erreurs et des virus informatiques."],
+    right: "C",
+    good: "Exact ! En apprentissage automatique, l’algorithme aide la machine à trouver des règles à partir d’exemples. Dans un programme classique, ce sont les humains qui écrivent les règles.",
+    bad: "Pas tout à fait. Relis la question et pense à ce que tu as lu dans le texte. Tu peux réessayer !" },
+
+  { question: "Une machine reçoit une instruction floue. Que se passe-t-il ?",
+    answers: ["Elle devine ce que l’humain voulait dire.",
+              "Elle l’exécute quand même, à la lettre : le résultat peut être inattendu, et il faut corriger l’instruction.",
+              "Elle s’arrête et demande de l’aide.",
+              "Elle remplace l’instruction par une plus logique."],
+    right: "B",
+    good: "Exact ! La machine suit chaque instruction à la lettre, sans rien deviner. Chercher et corriger l’erreur s’appelle déboguer.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as lu dans le texte. Tu peux réessayer !" },
+
+  { question: "Comment une IA apprend-elle à reconnaître un chat sur une photo ?",
+    answers: ["En lisant des descriptions de chats écrites par des humains.",
+              "En demandant à un humain de l’aider pour chaque photo.",
+              "En observant de nombreux exemples et en corrigeant ses erreurs.",
+              "En recevant dès sa fabrication toutes les images de chats."],
+    right: "C",
+    good: "Exact ! L’IA ajuste peu à peu son modèle pour réduire ses erreurs, après des milliers ou des millions d’essais.",
+    bad: "Pas tout à fait. Relis la question et pense à ce que tu as lu dans le texte. Tu peux réessayer !" },
+
+  { question: "Pour produire un texte ou une image, une IA générative :",
+    answers: ["prédit le mot, la forme ou le son le plus probable ensuite.",
+              "invente ses idées grâce à sa propre intention créative.",
+              "comprend le sens de ce qu’elle produit avant de le créer.",
+              "retrouve une réponse toute prête dans une base de textes."],
+    right: "A",
+    good: "Exact ! Une IA générative prédit l’élément le plus probable : elle produit du plausible, mais ne comprend pas comme nous ce qu’elle produit.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as lu dans le texte. Tu peux réessayer !" }
+];
+
+/* Les étapes de la question, en haut de la colonne d'Anne (NOW = celle-ci) */
+const STEPS = ["Le texte", "Le quiz · 5&nbsp;min"];
+const NOW = 2;
+
+/* Ce que dit Anne avant le quiz, et à la fin (✎) */
+const START_Q = "Quatre questions sur le texte.";
+const START_TEXT = "Si tu te trompes, tu réessaies&nbsp;: c’est fait pour ça.";
+const START_LABEL = "C’est parti";
+const END_Q = "Les quatre questions sont faites&nbsp;!";
+const END_TEXT = "Une machine qui suit des instructions, des algorithmes qui apprennent à partir d’exemples, des prédictions&nbsp;: <b>tu as les bases</b> pour comprendre l’IA. Place à ta classe.";
+const NEXT_LABEL = "Ensuite&nbsp;: teste tes connaissances";
+const NEXT_URL = "../../play.html?a=Module1/quiz-fin";
+const AGAIN_LABEL = "Revoir les questions";
+
+/* Les boutons sur la feuille */
+const NEXT_Q = "Question suivante";
+const LAST_Q = "Voir le bilan";
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const LETTERS = ["A", "B", "C", "D"];
+const frame = Frame.init({ guide: "Anne", pose: "anne", steps: STEPS, now: NOW });
+const { scorm } = frame;
+const bold = t => t.replace(/^(.+?[!.])\s/, "<b>$1</b> ");   // « Exact ! … » → the first words in bold
+
+/* ---------- Progress (unchanged): the letters tried for each question, kept in suspend_data ----------
+   Learning data: question_1 … question_4 = the letters tried, e.g. "B > C"; correct if right the first time.
+   Score (cmi.core.score.raw) = % of questions right the first time. */
+let tried = [];
+try { tried = JSON.parse(scorm.get("cmi.suspend_data") || "[]"); } catch {}
+if (!Array.isArray(tried)) tried = [];
+QUESTIONS.forEach((_, i) => { if (!Array.isArray(tried[i])) tried[i] = []; });
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+const solved = i => tried[i].includes(QUESTIONS[i].right);
+let q = Math.max(0, tried.findIndex((_, i) => !solved(i)));
+if (QUESTIONS.every((_, i) => solved(i))) q = 0;
+let shownAt = Date.now();
+
+/* ---------- Anne ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => { frame.aside(true); shownAt = Date.now(); $(".ans")?.focus({ preventScroll: true }); }, true]] });
+const end = () => frame.talk({ pose: "debout", say: END_Q, more: END_TEXT,
+  replies: [...(NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [AGAIN_LABEL, () => { show(0); frame.aside(true); }]] });
+
+/* ---------- The sheet ---------- */
+function show(n) {
+  q = n;
+  const Q = QUESTIONS[q];
+  $("#count").textContent = `Question ${q + 1} sur ${QUESTIONS.length}`;
+  $("#question").innerHTML = Q.question;
+  $("#answers").innerHTML = Q.answers.map((a, k) =>
+    `<button type="button" class="ans" data-letter="${LETTERS[k]}"><b>${LETTERS[k]}</b><span>${a}</span></button>`).join("");
+  tried[q].forEach(l => mark(l));
+  if (solved(q)) feedback(Q.good, true); else $("#fb").hidden = true;
+  $("#dots").innerHTML = QUESTIONS.map((_, i) => `<i class="${i === q ? "on" : solved(i) ? "ok" : ""}"></i>`).join("");
+  $("#prev").disabled = q === 0;
+  $("#seen").hidden = !done;
+  shownAt = Date.now();
+}
+function mark(letter) {
+  const b = $(`.ans[data-letter="${letter}"]`), right = letter === QUESTIONS[q].right;
+  b.classList.add(right ? "right" : "wrong"); b.disabled = true;
+  if (right) document.querySelectorAll(".ans").forEach(x => x.disabled = true);
+}
+function feedback(text, good) {
+  const last = q === QUESTIONS.length - 1;
+  $("#fb").hidden = false; $("#fb").classList.toggle("no", !good);
+  $("#fb-text").innerHTML = bold(text);
+  $("#next").hidden = !good;
+  $("#next").innerHTML = `${last ? LAST_Q : NEXT_Q}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+}
+
+$("#answers").addEventListener("click", e => {
+  const b = e.target.closest(".ans"); if (!b || b.disabled) return;
+  frame.aside(true);
+  const Q = QUESTIONS[q], letter = b.dataset.letter, right = letter === Q.right;
+  tried[q].push(letter);
+  mark(letter);
+  feedback(right ? Q.good : (Q.badFor?.[letter] || Q.bad), right);
+  scorm.record(`question_${q + 1}`, tried[q].join(" > "), {
+    type: "choice", result: right ? (tried[q].length === 1 ? "correct" : "wrong") : "wrong",
+    latency: (Date.now() - shownAt) / 1000 });
+  scorm.set("cmi.suspend_data", JSON.stringify(tried));
+  const firstTry = QUESTIONS.filter((Qi, i) => tried[i][0] === Qi.right).length;
+  scorm.set("cmi.core.score.min", "0"); scorm.set("cmi.core.score.max", "100");
+  scorm.set("cmi.core.score.raw", String(Math.round(firstTry / QUESTIONS.length * 100)));
+  if (!done && QUESTIONS.every((_, i) => solved(i))) { done = true; scorm.set("cmi.core.lesson_status", "completed"); }
+  scorm.commit();
+  $("#dots").innerHTML = QUESTIONS.map((_, i) => `<i class="${i === q ? "on" : solved(i) ? "ok" : ""}"></i>`).join("");
+  $("#seen").hidden = !done;
+  if (right) $("#next").focus({ preventScroll: true });
+});
+$("#prev").addEventListener("click", () => q > 0 && show(q - 1));
+$("#next").addEventListener("click", () => { if (q === QUESTIONS.length - 1) { end(); frame.aside(false); } else show(q + 1); });
+
+/* First visit: Anne introduces; coming back in the middle: straight to the question; already done: her summary */
+show(q);
+if (done) end();
+else { start(); if (tried.some(t => t.length)) frame.aside(true); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

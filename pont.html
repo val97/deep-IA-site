@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP IA · Ton parcours</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="home.css">
+<style>
+  /* The bridge between two questions, and the end of the path (26 Nov 2026; mockup: site/design/mockups/pont.html).
+     pont.html?de=<question> comes after « Question suivante ». In the look of Bienvenue: the guides stay in place on the
+     lilac floor, one screen, few words.
+       1 · the guide who is leaving closes the question: what to keep;
+       2 · the next guide steps forward with her question. Only the light on each guide changes, nobody moves.
+     No next question (all done, or the rest « bientôt »): the end page, the guides of the path together. */
+  body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  .top-in { gap: 24px; }
+  .top .logo { margin-right: 0; }
+  .crumb { margin-right: auto; font-weight: 600; color: var(--soft); }
+  .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 18%; background: var(--lilac); }
+
+  .gd { --h: min(70vh, 620px); position: absolute; bottom: 0; height: var(--h); width: calc(var(--h) * .5); transition: opacity .45s var(--ease), filter .45s var(--ease); }
+  .gd img { position: absolute; bottom: 0; left: 50%; height: 100%; width: auto; max-width: none; transform: translateX(-50%); }
+  .gd.l { left: max(12px, calc(50% - 680px)); } .gd.r { right: max(12px, calc(50% - 680px)); }
+  .gd.dim { opacity: .35; filter: grayscale(.6); }
+  .gd[hidden], .team[hidden], .view[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .gd { transition: none; } }
+
+  .view { position: absolute; inset: 0; z-index: 2; text-align: center; padding: clamp(16px, 4vh, 40px) 24px 0; pointer-events: none; }
+  .view > * { pointer-events: auto; }
+  @media (prefers-reduced-motion: no-preference) { .view.in { animation: fade .4s var(--ease) both; } }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
+  .who { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--violet); }
+  .view h1 { max-width: 16em; margin: 6px auto 0; font-weight: 800; font-size: clamp(2rem, 5.2vh, 2.9rem); line-height: 1.08; letter-spacing: -.03em; color: var(--g-deep); text-wrap: balance; }
+  .lead { margin: 10px auto 0; max-width: 30em; font-size: clamp(18px, 2.2vh, 21px); color: var(--soft); }
+
+  /* 1 · what to keep: a page torn from the notebook */
+  .keep { position: relative; width: min(520px, 46vw); margin: clamp(18px, 3.4vh, 30px) auto 0; padding: 20px 24px 18px; text-align: left; rotate: -1deg;
+          background: var(--lilac-tint) repeating-linear-gradient(transparent 0 33px, #E3D2F8 33px 34px); background-position: 0 16px; border-radius: 4px; box-shadow: 0 6px 16px rgba(96, 15, 189, .14); }
+  .keep::before { content: ""; position: absolute; top: -10px; left: 50%; width: 70px; height: 20px; translate: -50% 0; rotate: 3deg; background: rgba(119, 229, 182, .9); border-radius: 2px; }
+  .keep h2 { margin: 0 0 6px; font-size: 14px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--violet); }
+  .keep ul { margin: 0; padding: 0; list-style: none; }
+  .keep li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; min-height: 34px; align-items: center; font-size: 16px; line-height: 1.3; color: var(--g-deep); }
+  .keep li::before { content: "✓"; font-weight: 800; }
+  .keep[hidden] { display: none; }
+  .note { margin: 14px auto 0; max-width: 34em; font-size: 15px; color: var(--soft); }
+  .note b { color: var(--g-deep); }
+
+  /* 2 · the next guide's line and what her question holds */
+  .bub { display: inline-block; max-width: 520px; margin: clamp(16px, 3vh, 26px) auto 0; padding: 14px 18px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.45;
+         background: var(--lilac-tint); color: var(--ink); }
+  .bub b { display: block; font-size: 14px; color: var(--violet); }
+  .chips { display: flex; justify-content: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .chips span { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--hair); font-size: 15px; font-weight: 600; color: var(--g-deep); }
+  .chips i { width: 24px; height: 24px; margin-left: -6px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 13px; background: var(--g-main); }
+  .chips .soon { color: var(--soft); } .chips .soon i { background: #fff; border: 2px dotted #5E4A78; color: #5E4A78; }
+
+  /* the end: the guides of the path together */
+  .team { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(0px, 1vw, 20px); height: 52%; }
+  .team img { height: 100%; width: auto; }
+
+  /* the bar: the path, the way on in mint */
+  .bar { background: #fff; border-top: 1px solid var(--hair); }
+  .bar-in { display: flex; align-items: center; gap: 16px; height: 76px; }
+  .path { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--soft); }
+  .path span { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .path i { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); border: 2px dashed var(--g-deep); }
+  .path .done i { background: var(--g-deep); color: #fff; border-style: solid; }
+  .path .on { color: var(--g-deep); } .path .on i { background: var(--g-main); border-style: solid; }
+  .path .soon i { border: 2px dotted #5E4A78; color: #5E4A78; }
+  .path b { width: 28px; height: 2px; flex: none; background: var(--hair); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .alt { font-weight: 600; color: var(--g-deep); text-underline-offset: .2em; margin-right: 8px; white-space: nowrap; }
+  .alt[hidden], .bar .btn[hidden] { display: none; }
+  .bar .btn { border: 0; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .bar .btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  @media (max-width: 760px) {
+    body { height: auto; min-height: 100vh; overflow: auto; }
+    .gd, .team { display: none; } .floor { height: 40px; }
+    .stage { padding-bottom: 60px; } .view { position: static; padding-bottom: 24px; }
+    .keep { width: 100%; }
+    .path span:not(.on) { font-size: 0; } .path span:not(.on) i { font-size: 13px; }
+    .bar-in { height: auto; padding-block: 12px; flex-wrap: wrap; }
+    .crumb { display: none; } .top nav a[href="parcours.html"] { display: none; }
+    .path { flex-basis: 100%; } .alt { margin-right: auto; }
+  }
+  /* tablets: the guides stay at the edges, smaller, behind the text (UI review) */
+  @media (min-width: 761px) and (max-width: 1100px) { .gd { --h: min(48vh, 420px); opacity: .9; } .gd.dim { opacity: .2; } .team { height: 36%; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="./" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <span class="crumb" id="crumb">Ton parcours</span>
+    <nav aria-label="Site"><a href="parcours.html">Ton parcours</a><a href="code.html">Mon code</a></nav>
+  </div>
+</header>
+
+<main id="contenu" class="stage">
+  <div class="floor" aria-hidden="true"></div>
+  <div class="gd l" id="gl"><img id="gl-img" src="bienvenue/images/anne-salue.png" alt=""></div>
+  <div class="gd r" id="gr"><img id="gr-img" src="bienvenue/images/claudia-salue.png" alt=""></div>
+  <div class="team" id="team" hidden></div>
+
+  <!-- 1 · the guide who is leaving closes the question -->
+  <section class="view" id="v1" aria-labelledby="t1" hidden>
+    <p class="who" id="who1"></p>
+    <h1 id="t1"></h1>
+    <div class="keep" id="keep"><h2 id="keep-t"></h2><ul id="keep-l"></ul></div>
+    <p class="note" id="note1"></p>
+  </section>
+
+  <!-- 2 · the next guide steps forward -->
+  <section class="view" id="v2" aria-labelledby="t2" hidden>
+    <p class="who" id="who2"></p>
+    <h1 id="t2"></h1>
+    <div class="bub" id="hello"></div>
+    <div class="chips" id="holds"></div>
+  </section>
+
+  <!-- the end of the path -->
+  <section class="view" id="vend" aria-labelledby="t3" hidden>
+    <h1 id="t3"></h1>
+    <p class="lead" id="lead3"></p>
+    <div class="chips" id="qs"></div>
+  </section>
+</main>
+
+<footer class="bar">
+  <div class="wrap bar-in">
+    <nav class="path" id="path" aria-label="Ton parcours"></nav>
+    <a class="alt" id="alt" hidden></a>
+    <button type="button" class="btn" id="go"><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <a class="btn" id="start" hidden><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+</footer>
+
+<script src="parcours.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   Les guides, les questions, ce qu'on emporte (keep) et la phrase d'accueil (hello) sont dans parcours.js.
+   ============================================================ */
+const T = {
+  crumb: (k, n) => `Ton parcours · question ${k} sur ${n}`,
+  crumbEnd: "Ton parcours",
+  doneAll: short => `${short}, c’est fait&nbsp;!`,     // le guide qui part, quand toutes les parties sont faites
+  donePart: "On passe à la suite&nbsp;!",               // … quand il en reste
+  keep: "Ce que tu emportes",
+  backAny: short => `Tu peux revenir sur <b>${short}</b> quand tu veux&nbsp;: les activités restent là pour ta classe.`,
+  next: "Et maintenant&nbsp;?",
+  who2: (host, k, n) => `Avec ${host} · question ${k} sur ${n}`,
+  forMe: "Pour toi&nbsp;: une vidéo ou un texte",
+  forClass: n => `Pour ta classe&nbsp;: ${n} activité${n > 1 ? "s" : ""}`,
+  start: host => `Commencer avec ${host}`,
+  later: "Pas maintenant",
+  endAll: "Ton parcours est terminé&nbsp;!",
+  endSoon: "Pour l’instant, c’est tout&nbsp;!",
+  leadAll: "Tes questions, à ton rythme. Les activités restent ici pour ta classe&nbsp;: reviens quand tu veux.",
+  leadSoon: "Les questions marquées «&nbsp;bientôt&nbsp;» arrivent prochainement. Les activités restent ici pour ta classe&nbsp;: reviens quand tu veux.",
+  soon: "bientôt",
+  review: "Ton parcours",
+  backTo: short => `Retour : ${short}`,
+  other: "Choisir d’autres questions"
+};
+/* ============================================================ */
+
+const $ = id => document.getElementById(id);
+const fr = t => t.replace(/ ([?!:;])/g, "&nbsp;$1");
+const p = DEEP.load(), from = DEEP.byId(new URLSearchParams(location.search).get("de") || "");
+const ok = from && p.questions.includes(from.id);
+if (!ok) location.replace("parcours.html");   // nothing to bridge from (a direct link, a question not in the path)
+const next = from && DEEP.current({ ...p, done: p.done.concat(from.id) }), n = p.questions.length, at = id => p.questions.indexOf(id) + 1;
+const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+/* the path in the bar: done, the one shown now, later, bientôt */
+function drawPath(now) {
+  $("path").innerHTML = p.questions.map((id, i) => {
+    const q = DEEP.byId(id), st = id === now ? "on" : p.done.includes(id) ? "done" : q.open ? "" : "soon";
+    return `${i ? "<b></b>" : ""}<span class="${st}"${st === "on" ? ' aria-current="step"' : ""}><i>${st === "done" ? "✓" : i + 1}</i>${st === "on" ? q.short : `<span class="sr">${q.short}${st === "done" ? " (fait)" : st === "soon" ? " (bientôt)" : ""}</span>`}</span>`;
+  }).join("");
+}
+function view(id) {
+  ["v1", "v2", "vend"].forEach(v => { $(v).hidden = v !== id; $(v).classList.toggle("in", v === id); });
+}
+const setBtn = (el, label, href) => {   // the button's text (the arrow, if any, stays), its address, shown
+  const t = label.replace(/&nbsp;/g, "\u00a0");
+  if (el.firstChild && el.firstChild.nodeType === 1) el.firstChild.textContent = t; else el.textContent = t;
+  if (href) el.href = href; el.hidden = false;
+};
+
+if (ok && next) {
+  /* the bridge: from → next */
+  const parts = from.parts || [], all = parts.length && parts.every(DEEP.isDone);
+  $("gl-img").src = from.pose || from.img; $("gl-img").alt = from.host || "";
+  $("gr-img").src = next.pose || next.img; $("gr-img").alt = next.host || "";
+  $("crumb").textContent = T.crumb(at(from.id), n);
+  // 1
+  $("who1").textContent = from.host || "";
+  $("t1").innerHTML = all ? T.doneAll(from.short) : T.donePart;
+  $("keep").hidden = !from.keep;
+  if (from.keep) { $("keep-t").textContent = T.keep; $("keep-l").innerHTML = from.keep.map(k => `<li>${fr(k)}</li>`).join(""); }
+  $("note1").innerHTML = T.backAny(from.short);
+  // 2
+  $("who2").textContent = T.who2(next.host, at(next.id), n);
+  $("t2").innerHTML = fr(next.title);
+  $("hello").innerHTML = `<b>${next.host}</b>${fr(next.hello || next.obj?.[0] || "")}`;
+  const np = next.parts || [], nClass = np.filter(x => x.side === "class").length;
+  $("holds").innerHTML = np.length ? `<span>${T.forMe}</span>${nClass ? `<span>${T.forClass(nClass)}</span>` : ""}` : "";
+
+  const beat1 = () => { view("v1"); drawPath(from.id); $("gl").classList.remove("dim"); $("gr").classList.add("dim");
+    setBtn($("go"), T.next); $("start").hidden = true; $("alt").hidden = true; $("go").focus({ preventScroll: true }); };
+  const beat2 = () => { view("v2"); drawPath(next.id); $("gl").classList.add("dim"); $("gr").classList.remove("dim");
+    $("go").hidden = true; setBtn($("start"), T.start(next.host), next.board); setBtn($("alt"), T.later, "parcours.html");
+    $("crumb").textContent = T.crumb(at(next.id), n); $("start").focus({ preventScroll: true }); DEEP.log("pont", `${from.id}>${next.id}`); };
+  $("go").addEventListener("click", beat2);
+  beat1();
+} else if (ok) {
+  /* the end: no next question on the site */
+  const soon = p.questions.some(id => !p.done.includes(id));
+  $("gl").hidden = $("gr").hidden = true;
+  const hosts = [...new Set(p.questions.map(DEEP.byId).filter(q => q.pose).map(q => q.pose))];
+  $("team").innerHTML = hosts.map(src => `<img src="${src}" alt="">`).join(""); $("team").hidden = false;
+  $("crumb").textContent = T.crumbEnd;
+  $("t3").innerHTML = soon ? T.endSoon : T.endAll;
+  $("lead3").innerHTML = soon ? T.leadSoon : T.leadAll;
+  $("qs").innerHTML = p.questions.map(DEEP.byId).map(q => p.done.includes(q.id)
+    ? `<span><i>✓</i>${q.short}<span class="sr"> (fait)</span></span>` : `<span class="soon"><i>…</i>${q.short} · ${T.soon}</span>`).join("");
+  drawPath(null);
+  view("vend");
+  $("go").hidden = true;
+  if (from.open) setBtn($("start"), T.backTo(from.short), from.board); else setBtn($("start"), T.review, "parcours.html");
+  setBtn($("alt"), T.review, "parcours.html");
+  DEEP.log("pont", `${from.id}>fin`);
+}
+</script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

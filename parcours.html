@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP IA · Ton parcours</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="home.css">
+<link rel="stylesheet" href="parcours.css">
+</head>
+<body>
+
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="./" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <nav aria-label="Site">
+      <a href="./#projet">Le projet</a>
+      <a href="code.html">Mon code</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenu" class="path-page">
+  <div class="wrap path-in">
+    <div class="path-main">
+      <h1 class="path-title">Ton parcours</h1>
+      <p class="path-lead" id="lead"></p>
+
+      <ol class="stations" id="stations" aria-label="Tes questions, dans ton ordre"></ol>
+
+      <div class="path-actions">
+        <a class="btn" id="go" href="#">C’est parti
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="link" href="choisir.html">Modifier mes questions</a>
+      </div>
+      <p class="path-note">Dans chaque question, tu commences où tu veux&nbsp;: la vidéo ou le texte, le test, les activités pour ta classe.</p>
+    </div>
+
+    <figure class="guide" id="guide" hidden>
+      <div class="field" aria-hidden="true"></div>
+      <figcaption id="guide-cap"></figcaption>
+    </figure>
+  </div>
+</main>
+
+<script src="parcours.js"></script>
+<script>
+const p = DEEP.load();
+if (!p.questions.length) location.replace("choisir.html");
+
+const list = document.getElementById("stations"), go = document.getElementById("go"), lead = document.getElementById("lead");
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ARROW = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d === "up" ? "M12 19V5M6 11l6-6 6 6" : "M12 5v14M6 13l6 6 6-6"}"/></svg>`;
+
+function render() {
+  const now = DEEP.current(p), n = p.questions.length;
+  list.innerHTML = p.questions.map((id, i) => {
+    const q = DEEP.byId(id), done = p.done.includes(id), isNow = now && now.id === id;
+    const state = isNow ? "now" : done ? "done" : q.open ? "later" : "soon";
+    const label = { now: "Maintenant", done: "Explorée", later: "Ensuite", soon: "Bientôt disponible" }[state];
+    return `<li class="st ${state}"${isNow ? ' aria-current="step"' : ""}>
+      <span class="dot" aria-hidden="true">${state === "done" ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : i + 1}</span>
+      <span class="st-text"><b>${q.open ? `<a href="${q.board}">${esc(q.title)}</a>` : esc(q.title)}</b><span>${q.host ? `Avec ${q.host} · ` : ""}${label}</span></span>
+      <span class="move">
+        <button type="button" data-i="${i}" data-d="-1" aria-label="Monter « ${esc(q.short)} »" ${i === 0 ? "disabled" : ""}>${ARROW("up")}</button>
+        <button type="button" data-i="${i}" data-d="1" aria-label="Descendre « ${esc(q.short)} »" ${i === n - 1 ? "disabled" : ""}>${ARROW("down")}</button>
+      </span>
+    </li>`;
+  }).join("");
+
+  const opens = p.questions.filter(id => DEEP.byId(id).open).length;
+  if (now) {
+    lead.textContent = p.done.length
+      ? `Tu reprends avec «\u00a0${now.title}\u00a0».`
+      : `${n} questions, dans ton ordre. Tu commences avec «\u00a0${now.title}\u00a0».`;
+    go.href = now.board;
+    go.firstChild.textContent = p.done.length ? "Reprendre " : "C’est parti ";
+    go.hidden = false;
+  } else {
+    lead.textContent = opens
+      ? "Tu as exploré toutes tes questions disponibles. Les autres arrivent bientôt."
+      : "Tes questions ne sont pas encore disponibles. Ajoute une question ouverte pour commencer.";
+    // nothing left to start: the way back to the last open question (its parts stay there; 26 Nov 2026, usability review)
+    const back = [...p.questions].reverse().map(DEEP.byId).find(q => q.open);
+    if (back) { go.href = back.board; go.firstChild.textContent = `Revoir : ${back.short} `; go.hidden = false; }
+    else go.hidden = true;
+  }
+
+  const g = document.getElementById("guide");
+  if (now && now.img) {
+    g.hidden = false;
+    let img = document.getElementById("guide-img");
+    if (!img) { img = document.createElement("img"); img.id = "guide-img"; g.insertBefore(img, g.querySelector("figcaption")); }
+    img.src = now.img; img.alt = now.host;
+    document.getElementById("guide-cap").textContent = `${now.host} t’accompagne dans cette question.`;
+  } else g.hidden = true;
+}
+
+list.addEventListener("click", e => {
+  const b = e.target.closest(".move button"); if (!b || b.disabled) return;
+  const i = +b.dataset.i, j = i + +b.dataset.d;
+  [p.questions[i], p.questions[j]] = [p.questions[j], p.questions[i]];
+  DEEP.save(p); DEEP.log("ordre", p.questions.join(","));
+  render();
+  const again = list.querySelector(`.move button[data-i="${j}"][data-d="${b.dataset.d}"]`) || list.querySelector(`.move button[data-i="${j}"]:not([disabled])`);
+  if (again) again.focus();
+});
+
+render();
+</script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

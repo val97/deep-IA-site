@@ -1,0 +1,156 @@
+/* DEEP IA · Bienvenue (look E, 26 Nov 2026): three moments, one screen each, each with its own composition; few words;
+   the guides react. Move with the button, a swipe (touch, trackpad) or the arrow keys. Texts: bienvenue.js (CONTENU).
+   Builds on home.css tokens (DESIGN.md). Version C is in site/design/old/bienvenue-c/. */
+.bv-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.bv-top { gap: 24px; }
+.bv-top .logo { margin-right: 0; }
+.bv-crumb { margin-right: auto; font-weight: 600; color: var(--soft); }
+
+.stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: pan-y; }
+.m { position: absolute; inset: 0; display: none; }
+.m.on { display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .m.on.from-r { animation: inR .45s var(--ease) both; }
+  .m.on.from-l { animation: inL .45s var(--ease) both; }
+}
+@keyframes inR { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes inL { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.head { position: relative; z-index: 2; text-align: center; padding-top: clamp(16px, 4vh, 40px); }
+.head h1 { max-width: none; font-weight: 800; font-size: clamp(2rem, 5.4vh, 3rem); line-height: 1.05; letter-spacing: -.03em; color: var(--g-deep); }
+.head p { margin: 10px auto 0; font-size: clamp(18px, 2.2vh, 22px); color: var(--soft); max-width: 36em; }
+
+/* the guides: one layer for the three moments, Claudia always left, Léo always right (user, 26 Nov 2026);
+   only the content of the moments slides. They react with a new pose and a small lift. */
+.floor { position: absolute; left: 0; right: 0; bottom: 0; height: 18%; background: var(--lilac); z-index: 0; }
+.m { z-index: 2; pointer-events: none; }
+.m button, .m a, .m .bub { pointer-events: auto; }
+/* each guide is a fixed box; the picture is placed so the centre of the feet always lands on the same point (--at), whatever the pose */
+.gd { --h: min(74vh, 640px); position: absolute; bottom: 0; z-index: 1; height: var(--h); width: calc(var(--h) * .5); padding: 0; border: 0; background: none; cursor: default; pointer-events: none;
+      transition: transform .35s var(--ease), filter .35s var(--ease); }
+.gd img { position: absolute; bottom: 0; height: 100%; width: auto; max-width: none; left: calc(var(--at) - var(--feet, .25) * var(--h)); }
+.gd.l { left: max(12px, calc(50% - 700px)); --at: calc(var(--h) * .25); }
+.gd.r { right: max(12px, calc(50% - 700px)); --at: calc(var(--h) * .33); }
+.gd .q { left: var(--at); transform: translateX(-50%); }
+.stage:not(.m3) .gd .q { display: none; }
+.stage.m3 .gd { pointer-events: auto; cursor: pointer; z-index: 3; }
+.stage.m3 .gd .q { display: flex; }
+@media (prefers-reduced-motion: no-preference) { .gd img.pop { animation: swap .3s ease-out; } }   /* a new pose fades in; no hop (user, 26 Nov 2026) */
+@keyframes swap { from { opacity: .4; } }
+@keyframes lift { 40% { translate: 0 -10px; } }
+
+/* speech: a short line in a panel */
+.bub { display: inline-block; max-width: 560px; margin: 12px auto 0; padding: 12px 16px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.4;
+       color: var(--ink); background: #fff; border: 1px solid var(--hair); }
+.bub b { display: block; font-size: 15px; color: var(--g-deep); }
+.bub.guide { background: var(--lilac-tint); border-color: transparent; }
+.bub.guide b { color: var(--violet); }
+@media (prefers-reduced-motion: no-preference) { .bub.new { animation: fade .35s var(--ease) both; } }
+
+/* polls: one row of buttons */
+.poll { position: relative; z-index: 2; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px auto 0; font-weight: 600; color: var(--g-deep); }
+.poll[hidden] { display: none; }
+.opt { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1.5px solid var(--g-deep); background: #fff; color: var(--g-deep); font: 600 16px Inter, system-ui, sans-serif; cursor: pointer; }
+.opt:hover { background: var(--g-tint); }
+.opt[aria-pressed="true"] { background: var(--g-deep); color: #fff; }
+/* moment 1, first beat: the poll alone, large; second beat: the task line in deep green */
+#m1.hello .head { padding-top: clamp(40px, 12vh, 120px); }
+#m1.hello .poll { margin-top: clamp(20px, 4vh, 36px); gap: 14px; }
+#m1.hello .opt { min-height: 60px; padding: 0 26px; font-size: 20px; border-radius: 12px; }
+.grid1[hidden] { display: none; }
+.wall[hidden] { display: none; }
+#poll1b { margin-top: 10px; }
+.head p .task { display: block; margin-top: 10px; font-weight: 700; color: var(--g-deep); }
+.head p .bub { display: inline-block; margin-top: 0; font-size: 17px; }
+.bv-crumb small { font-size: inherit; font-weight: 400; }
+
+/* 1 · the six cards: picture cards straight on the page (no board: user, 26 Nov 2026) */
+.grid1 { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 1.6vh, 16px); width: min(760px, 92vw);
+         margin: clamp(14px, 3vh, 26px) auto 0; }
+.gc { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0;
+      min-height: clamp(96px, 15vh, 136px); padding: 14px 12px 12px; border-radius: 16px; background: #fff; border: 1.5px solid var(--hair);
+      font: 600 16px/1.3 Inter, system-ui, sans-serif; color: var(--ink); text-align: center; cursor: pointer;
+      transition: transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease); }
+.gc .ic { display: grid; place-items: center; width: clamp(40px, 6vh, 52px); height: clamp(40px, 6vh, 52px); border-radius: 50%; background: var(--g-tint); }
+.gc svg { width: 26px; height: 26px; fill: none; stroke: var(--g-deep); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.gc:hover { border-color: var(--g-main); transform: translateY(-2px); }
+.gc[aria-pressed="true"] { background: var(--g-main); border-color: var(--g-deep); color: var(--g-deep); transform: translateY(-4px); }
+.gc[aria-pressed="true"] .ic { background: #fff; }
+.gc[aria-pressed="true"]::after { content: ""; position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--g-deep)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 14px no-repeat; }
+@media (prefers-reduced-motion: reduce) { .gc { transition: none; } .gc:hover, .gc[aria-pressed="true"] { transform: none; } }
+.gc.shown { cursor: default; gap: 4px; }
+.gc.shown:hover { transform: none; border-color: var(--hair); }
+.gc.shown .v { font-size: 15px; font-weight: 800; padding: 2px 10px; border-radius: 6px; background: var(--g-main); color: var(--g-deep); }
+.gc.shown.no .v { background: var(--hair); color: var(--soft); }
+.gc.shown.wrong { border-color: #C9A3FF; }
+.gc.shown .why { font-weight: 400; font-size: 15px; line-height: 1.3; color: var(--soft); }
+
+/* 2 · three sheets taped to the wall; they turn over */
+.wall { position: relative; z-index: 2; display: flex; justify-content: center; gap: clamp(16px, 3vw, 40px); margin: clamp(14px, 3vh, 30px) auto 0; }
+.sheet { position: relative; width: min(15vw, 22vh, 220px); aspect-ratio: 3 / 4; perspective: 900px; border: 0; padding: 0; background: none; cursor: pointer; font: inherit; }
+.sheet:disabled { cursor: default; }
+.sheet:nth-child(2) { rotate: 1.5deg; } .sheet:nth-child(3) { rotate: -1deg; }
+.sheet .in { position: absolute; inset: 0; transition: transform .6s var(--ease); transform-style: preserve-3d; }
+.sheet.open .in { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .sheet .in { transition: none; } }
+.sheet .fa { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 6px; background: #fff; border: 1px solid var(--hair); display: grid; place-items: center; overflow: hidden; }
+.sheet .back { background: var(--lilac-tint); color: var(--violet); font: 800 56px Inter, system-ui, sans-serif; }
+.sheet:not(:disabled):not(.open) .back { border: 2px solid var(--violet); }
+.sheet .front { transform: rotateY(180deg); color: var(--soft); font-size: 15px; }
+.sheet .front img { width: 100%; height: 100%; object-fit: cover; }
+.sheet .tape { position: absolute; top: -10px; left: 50%; width: 70px; height: 20px; transform: translateX(-50%) rotate(-3deg); background: var(--lilac); z-index: 2; border-radius: 6px; }
+.cap { position: absolute; left: 0; right: 0; top: calc(100% + 10px); font-size: 14px; line-height: 1.3; color: var(--ink); text-align: left; }
+.cap[hidden] { display: none; }
+.closing { position: relative; z-index: 2; text-align: center; margin: clamp(84px, 13vh, 116px) auto 0; font-size: clamp(18px, 2.4vh, 22px); font-weight: 600; color: var(--g-deep); }
+.closing[hidden] { display: none; }
+
+/* 3 · the team in a row; tap one, they step forward and speak */
+.teamsay { position: relative; z-index: 3; min-height: 72px; display: flex; justify-content: center; align-items: center; margin-top: 10px; }
+.team { position: relative; z-index: 2; display: flex; justify-content: center; align-items: flex-end; gap: clamp(8px, 2vw, 40px); height: 56%; margin-top: 4px; }
+.member { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; border: 0; background: none; padding: 0; cursor: pointer;
+          transition: transform .35s var(--ease), filter .35s var(--ease); }
+.member img { height: 88%; width: auto; }
+.member .q, .gd .q { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; font: 400 15px/1.25 Inter, system-ui, sans-serif; color: var(--g-deep); background: #fff; border-radius: 10px; padding: 6px 10px; white-space: nowrap; }
+.member .q b, .gd .q b { font-weight: 800; }
+.stage.picked .member:not(.on), .stage.m3.picked .gd:not(.on) { filter: saturate(.5) opacity(.6); }
+.member.on, .stage.m3 .gd.on { transform: translateY(-14px) scale(1.04); }
+@media (prefers-reduced-motion: reduce) { .member, .gd { transition: none; } }
+.path3 { position: absolute; left: 0; right: 0; bottom: 3%; z-index: 3; display: flex; justify-content: center; }
+.path3 p { max-width: min(560px, 52vw); text-align: center; margin: 0; font-weight: 600; color: var(--g-deep); background: #fff; padding: 10px 16px; border-radius: 10px; }
+
+/* the bar: 1 · 2 · 3 and one action */
+.bar3 { background: #fff; border-top: 1px solid var(--hair); }
+.bar3-in { display: flex; align-items: center; gap: 16px; height: 76px; }
+.steps3 { flex: 1; display: flex; gap: 10px; align-items: center; }
+.steps3 button, .steps3 span { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; border: 0; background: none; font: 600 15px Inter, system-ui, sans-serif; color: var(--soft); }
+.steps3 button { cursor: pointer; }
+.steps3 i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 15px; color: var(--g-deep); border: 2px dashed var(--g-deep); }
+.steps3 .on { color: var(--g-deep); } .steps3 .on i { background: var(--g-main); border-style: solid; }
+.steps3 .done i { background: var(--g-deep); color: #fff; border-style: solid; }
+.steps3 b.sep { width: 28px; height: 2px; background: var(--hair); }
+.steps3 .hint { margin-left: 12px; font-weight: 400; color: var(--soft); }
+.steps3 .hint[hidden] { display: none; }
+.bar3 .btn { border: 0; cursor: pointer; font-family: inherit; }
+.bar3 .btn:disabled { background: var(--hair); color: var(--soft); cursor: not-allowed; }
+.bar3 .btn[hidden] { display: none; }
+.bar3 .btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+
+@media (max-width: 1100px) { .stage:not(.m3) .gd img { opacity: .25; } }
+@media (max-width: 640px) {
+  .bv-page { height: auto; overflow: auto; }
+  .stage { overflow: visible; }
+  .m { position: relative; inset: auto; min-height: calc(100vh - 140px); padding: 0 16px 24px; }
+  .guides, .floor { display: none; }
+  .grid1 { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; }
+  .gc .ic { display: none; }
+  .wall { flex-wrap: wrap; } .sheet { width: 40vw; margin-bottom: 72px; }
+  .team { flex-wrap: wrap; height: auto; } .member { height: 200px; width: 45%; }
+  .path3 { position: static; margin-top: 16px; }
+  .steps3 em, .steps3 .hint { display: none; }
+}
+
+/* 26 Nov 2026 (UI review): on a phone the header crumb keeps its title only */
+@media (max-width: 640px) { .bv-crumb small { display: none; } .bv-crumb { font-size: 14px; } }

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartes – Les trois personnages de la vidéo</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The cards in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Claudia introduces them, steps aside
+     on the first card turned (nothing in the middle), and comes back after « Terminer » with the key points.
+     Two pages of three cards: the three characters, then three questions. */
+  .desk { display: flex; flex-direction: column; gap: 14px; }
+  .deck { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, min(100%, 600px)); align-content: center; gap: clamp(14px, 2vw, 28px); }
+  .deck[hidden] { display: none; }
+  .card { perspective: 1800px; min-height: 0; }
+  .card-inner { position: relative; display: grid; height: 100%; transform-style: preserve-3d; transition: transform .6s var(--ease); cursor: pointer; border-radius: 12px; }
+  .card.is-flipped .card-inner { transform: rotateY(180deg); }
+  @media (prefers-reduced-motion: reduce) { .card-inner { transition: none; } }
+  .face { grid-area: 1 / 1; position: relative; overflow: hidden; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: var(--paper-shadow); }
+  .front { background: #fff; padding: clamp(12px, 1.8vh, 18px) clamp(12px, 1.2vw, 18px) 0; display: flex; flex-direction: column; }
+  .back { background: var(--g-tint); transform: rotateY(180deg); display: flex; flex-direction: column; padding: clamp(14px, 2.4vh, 24px) clamp(14px, 1.4vw, 22px) 64px; font-size: 17px; line-height: 1.42; }
+  .card:nth-child(1) .face { rotate: -.6deg; } .card:nth-child(3) .face { rotate: .5deg; }
+  .card-inner:hover .face { box-shadow: 0 10px 26px rgba(11, 81, 77, .18); }
+  .front img { display: block; width: 100%; min-height: 0; flex: 0 1 auto; max-height: 55%; aspect-ratio: 9 / 8; object-fit: cover; border-radius: 8px; background: var(--g-tint); }
+  .front .name { margin-top: clamp(10px, 2vh, 18px); font-size: clamp(1.2rem, 3vh, 1.6rem); font-weight: 800; line-height: 1.15; color: var(--g-deep); }
+  .front .ask { margin-top: 6px; padding-right: 56px; font-size: clamp(1.05rem, 2.6vh, 1.35rem); font-weight: 700; line-height: 1.25; color: var(--g-deep); text-wrap: balance; }
+  .front .name + .ask { color: var(--soft); font-weight: 400; font-size: clamp(.95rem, 2.2vh, 1.1rem); }
+  .back-in { margin: auto 0; }
+  .back h3 { margin: 0 0 .5em; font-size: 1.15em; font-weight: 800; color: var(--g-deep); }
+  .back p { margin: 0 0 .6em; } .back p:last-child { margin-bottom: 0; }
+  .back strong { color: var(--g-deep); }
+  /* turned: a small mark on the picture */
+  .seen { position: absolute; left: 22px; top: 22px; display: none; align-items: center; gap: 4px; padding: 3px 10px 3px 6px; border-radius: 999px;
+          background: #fff; color: var(--g-deep); font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+  .seen .i { width: 16px; height: 16px; }
+  .card.is-seen .seen { display: inline-flex; }
+  /* the quarter circle in the bottom-right corner */
+  .flip { position: absolute; right: 0; bottom: 0; width: 60px; height: 60px; border-radius: 60px 0 12px 0; background: var(--g-main); color: var(--g-deep);
+          display: grid; place-items: center; padding: 10px 0 0 10px; transition: background .2s, color .2s; }
+  .card-inner:hover .flip { background: var(--g-deep); color: #fff; }
+  .card-inner:focus-visible { outline-offset: 4px; border-radius: 12px; }
+  /* under the cards: ‹ page › what to do, « Terminer » */
+  .nav { display: flex; align-items: center; gap: 12px; padding-right: 0; }
+  .arr { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); display: grid; place-items: center; cursor: pointer; }
+  .arr:disabled { opacity: .35; cursor: default; }
+  .arr.go { background: var(--g-main); border-color: var(--g-main); }
+  .count { font-weight: 700; color: var(--g-deep); min-width: 84px; text-align: center; font-variant-numeric: tabular-nums; }
+  .todo { flex: 1; font-size: 15px; color: var(--soft); }
+  .todo b { color: var(--g-deep); }
+  .seen-all { font-size: 14px; font-weight: 700; color: var(--g-deep); white-space: nowrap; }
+  .seen-all[hidden] { display: none; }
+  .chip.fin { min-height: 48px; font-size: 16px; }
+  body:not(.aside) .nav .chip.fin, body:not(.aside) .todo { visibility: hidden; }   /* Claudia is there: her mint button is the way on */
+  .chip.fin:disabled { background: var(--hair); border-color: var(--hair); color: var(--soft); cursor: default; }
+  .desk { padding-bottom: clamp(16px, 2.6vh, 28px); }   /* no mint button on the desk while the teacher works: Claudia is aside */
+  body:not(.aside) .desk { padding-bottom: 76px; }      /* her way on sits bottom-right */
+  @media (max-width: 760px) {
+    .deck { display: flex; flex-direction: column; }
+    .card-inner { min-height: 340px; }
+    .front img { max-height: 200px; }
+    .todo { flex-basis: 100%; order: 9; }
+    .nav { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Les cartes">
+    <div class="deck" id="roles" aria-label="Les trois personnages"></div>
+    <div class="deck" id="questions" aria-label="Questions de réflexion" hidden></div>
+    <div class="nav">
+      <button type="button" class="arr" id="prev" aria-label="Page précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count"></span>
+      <p class="todo" id="todo" aria-live="polite"></p>
+      <span class="seen-all" id="seen-all" hidden>Terminé ✓</span>
+      <button type="button" class="arr" id="next"></button>
+    </div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   id     : identifiant unique de la carte (sert au suivi : ne le changez pas)
+   image  : chemin de l'image du recto (vide = pas d'image)
+   name   : le nom en gros sur le recto (facultatif)
+   title  : la question du recto
+   heading: titre du verso (facultatif)
+   back   : texte HTML du verso (court : environ 60 mots, sinon le texte devient plus petit)
+   ============================================================ */
+/* Titre (dans la barre du lecteur) */
+const TITLE = "Cartes : les trois personnages de la vidéo";
+
+/* Page 1 : les trois personnages. Chaque verso dit ce que montre la vidéo, puis ce qui se passe dans une vraie machine
+   (les mêmes mots que Claudia à la fin de la vidéo, le texte à trous et le Parcours) */
+const ROLES = [
+  { id: "r1", image: "images/role1.jpg", name: "L’Encodeur", title: "Quel est son rôle ?", heading: "L’Encodeur",
+    back: `<p><strong>Dans la vidéo&nbsp;:</strong> l’Encodeur découpe la question en petits morceaux, les tokens,
+      et les passe au Calculateur.</p>
+      <p><strong>Dans une vraie machine&nbsp;:</strong> c’est bien ce qui se passe. Chaque token (un mot ou un morceau
+      de mot) devient une suite de nombres. Des mots qui apparaissent dans des phrases semblables reçoivent des nombres
+      proches (les embeddings), sans que la machine en comprenne le sens. À la fin, les tokens produits redeviennent des mots.</p>` },
+  { id: "r2", image: "images/role2.jpg", name: "Le Calculateur", title: "Quel est son rôle ?", heading: "Le Calculateur",
+    back: `<p><strong>Dans la vidéo&nbsp;:</strong> le Calculateur travaille dur pour trouver une réponse. C’est une
+      belle image de l’énorme calcul qui se fait à cette étape.</p>
+      <p><strong>Dans une vraie machine&nbsp;:</strong> un réseau de neurones calcule quels mots sont les plus probables
+      après ceux déjà écrits, puis en tire un au sort. Ses nombres (les paramètres) viennent de l’entraînement sur
+      d’énormes quantités de textes. C’est l’étape qui consomme le plus d’énergie.</p>` },
+  { id: "r3", image: "images/role3.jpg", name: "Le Rédacteur", title: "Quel est son rôle ?", heading: "Le Rédacteur",
+    back: `<p><strong>Dans la vidéo&nbsp;:</strong> le Rédacteur rend la réponse fluide, polie et convaincante.</p>
+      <p><strong>Dans une vraie machine&nbsp;:</strong> ce n’est pas une étape à part&nbsp;: le même calcul produit le
+      contenu et le style. Le ton poli vient de personnes qui ont noté des réponses pendant l’entraînement, et des
+      filtres peuvent bloquer certaines réponses. Bien écrit ne veut pas dire compris.</p>` }
+];
+
+/* Page 2 : trois questions de réflexion */
+const QUESTIONS = [
+  { id: "q1", image: "images/card1.jpg", title: "Pourquoi des acteurs humains pour représenter l’IA ?",
+    back: `<p>Comme le film <em>Vice-Versa</em> ou la série <em>Il était une fois… la vie</em>, la vidéo rend concret
+      un système abstrait. L’image est imparfaite, mais on la retient, grâce à l’humour. C’est un choix pédagogique&nbsp;:
+      une image marquante, que l’on déconstruit ensuite (c’est le rôle des cartes de la page 1).</p>` },
+  { id: "q3", image: "images/card3.jpg", title: "Nous, les humains, est‑ce qu’on «&nbsp;prend sans comprendre&nbsp;» parfois aussi ?",
+    back: `<p>Oui. Par exemple en répétant un mème, en partageant une rumeur sur les réseaux, ou en récitant une leçon
+      par cœur sans y réfléchir. La grande différence, c’est que l’humain peut <em>choisir</em> de comprendre.</p>` },
+  { id: "q4", image: "images/card4.jpg", title: "As-tu remarqué l’éléphant&nbsp;?",
+    back: `<p>«&nbsp;L’éléphant dans la pièce&nbsp;», c’est ce que tout le monde voit mais dont personne ne parle.
+      Ici, c’est le travail humain caché derrière les chatbots&nbsp;: des «&nbsp;travailleurs du clic&nbsp;» souvent
+      sous-payés, surtout en Asie et en Afrique, notent les réponses et sont exposés à des contenus violents ou toxiques.</p>` }
+];
+
+/* Sous les cartes : ce qu'il faut faire, puis quand tout est retourné (END_BUTTON : le bouton qui fait revenir Claudia) */
+const TODO = "Clique sur une carte pour la retourner.";
+const TODO_COUNT = "cartes retournées";
+const DONE_TODO = "Toutes les cartes sont retournées.";
+const END_BUTTON = "Terminer";
+
+/* Ce que dit Claudia à la fin (après « Terminer ») : 2 ou 3 idées clés, puis le guide (un bouton dans sa bulle) et la suite */
+const END_Q = "Ce que disent les cartes, en bref";
+const KEEP = [
+  "Les trois personnages rendent visible le trajet d’une question&nbsp;; dans une vraie machine, un seul calcul produit le contenu et le style, mot après mot.",
+  "Là où le Calculateur «&nbsp;cherche&nbsp;», la machine calcule les mots les plus probables, puis en tire un au sort.",
+  "Derrière le ton poli du chatbot, il y a des personnes, souvent mal payées, qui ont noté ses réponses."
+];
+const FURTHER_INTRO = "Pour aller plus loin";
+const FURTHER_TEXT = "Un guide pour réfléchir aux limites de l’IA et aux enjeux qu’elle soulève.";
+const FURTHER_LABEL = "Ouvrir le guide";
+/* Le guide (Google Docs, nouvel onglet) */
+const GUIDE_URL = "https://docs.google.com/document/d/1nQ7fWQDKecaxcjsmfq35UpxmHzdRQ5IP/edit?usp=share_link&rtpof=true&sd=true";
+const NEXT_LABEL = "Retour à la question";   /* same words on every page (usability review, 26 Nov 2026; Moodle: « Retour à l’accueil du module ») */   // (sur le site : NEXT_TEST, plus bas)
+const NEXT_URL = "../../play.html?a=Module2/intro-module";   // la section du module, avec l’introduction en haut
+const AGAIN_LABEL = "Revoir les cartes";
+
+/* (Plus utilisés dans le cadre H2 : FURTHER_INTRO, FURTHER_TEXT, INTRO, LINKS) */
+const INTRO = "";
+const LINKS = [];   /* pas de boutons sous l'activité : on avance avec la barre du bas et Claudia */
+
+/* ---------- Nouveaux textes du cadre H2 (26 nov. 2026, brouillons de Claude) ---------- */
+/* Les étapes de la question, en haut de la colonne de Claudia (NOW = celle-ci) */
+const STEPS = ["La vidéo", "Les cartes · 5&nbsp;min"];                                    //
+const NOW = 2;
+/* Ce que dit Claudia avant les cartes ; « Pourquoi ? » */
+const START_Q = "Ces trois personnages, <em>c’est une image</em>.";                        //
+const START_TEXT = "Retourne les six cartes&nbsp;: d’abord ce que chacun représente dans une vraie machine, puis trois questions pour réfléchir.";   //
+const START_LABEL = "Commencer";                                                          //
+const WHY_LABEL = "Pourquoi ces cartes ?";                                                //
+const WHY_Q = "Parce qu’une image <em>simplifie</em>.";                                    //
+const WHY_TEXT = "La vidéo se retient bien. Les cartes disent ce qu’elle montre juste… et ce qu’elle arrange.";   //
+const BACK_LABEL = "D’accord";                                                            //
+/* La suite, à la fin : « Teste tes connaissances » (sur Moodle : la même adresse que sur l'accueil du module) */
+const NEXT_TEST_LABEL = "Ensuite&nbsp;: teste tes connaissances";                           //
+const NEXT_TEST_URL = "../../play.html?a=Module2/quiz-fin";
+const PAGE_LABEL = n => `Page ${n} / 2`;                                                   //
+/* ============================================================ */
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Claudia", pose: "claudia", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+const CHECK = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const TURN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4.5h4.5"/></svg>';
+
+/* ---------- Progress (unchanged): the cards turned are kept in suspend_data; completed once every card has been turned ----------
+   Learning data: carte_r1 … carte_q4 = seconds between opening the activity and turning that card,
+   cartes_ordre = the order the cards were turned in, doc_1 / plus_loin_ouvert = the guide was opened */
+const ALL = [...ROLES, ...QUESTIONS];
+const ALL_IDS = ALL.map(c => c.id);
+const seen = new Set((scorm.get("cmi.suspend_data") || "").split(",").filter(id => ALL_IDS.includes(id)));
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+const t0 = Date.now();
+let page = 1;
+
+function markSeen(id) {
+  if (seen.has(id)) return;
+  seen.add(id);
+  const sec = Math.round((Date.now() - t0) / 1000);
+  scorm.record(`carte_${id}`, sec, { type: "numeric", latency: sec });
+  scorm.record("cartes_ordre", [...seen].join(" "));
+  scorm.set("cmi.suspend_data", [...seen].join(","));
+  if (seen.size === ALL_IDS.length && !done) { done = true; scorm.set("cmi.core.lesson_status", "completed"); }
+  scorm.commit();
+  drawBar();
+}
+
+/* ---------- Claudia: the start, « Pourquoi ? », the end (after « Terminer ») ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => { frame.aside(true); $(".deck:not([hidden]) .card-inner")?.focus({ preventScroll: true }); }, true], [WHY_LABEL, why]] });
+const why = () => frame.talk({ pose: "pense", say: WHY_Q, more: WHY_TEXT, replies: [[BACK_LABEL, start]] });
+const openGuide = () => { scorm.record("doc_1", "ouvert"); scorm.record("plus_loin_ouvert", "oui"); scorm.commit(); window.open(GUIDE_URL, "_blank", "noopener"); };
+const end = () => frame.talk({ pose: "ouvre", say: END_Q, keep: KEEP,
+  replies: [...(NEXT_TEST_URL ? [[NEXT_TEST_LABEL, NEXT_TEST_URL, true]] : []),
+            ...(GUIDE_URL ? [[`${FURTHER_LABEL} ↗`, openGuide]] : []),
+            [AGAIN_LABEL, () => { show(1); frame.aside(true); }]] });
+
+/* ---------- Cards ---------- */
+function renderDeck(el, cards) {
+  cards.forEach(c => {
+    const label = (c.name || c.title).replace(/&nbsp;/g, " ");
+    const card = document.createElement("article");
+    card.className = "card" + (seen.has(c.id) ? " is-seen" : "");
+    card.innerHTML = `
+      <div class="card-inner" role="button" tabindex="0" aria-label="Retourner la carte : ${label}" aria-pressed="false">
+        <div class="face front">
+          ${c.image ? `<img src="${c.image}" alt="">` : ""}
+          <span class="seen">${CHECK}Retournée</span>
+          ${c.name ? `<p class="name">${c.name}</p>` : ""}
+          <p class="ask">${c.title}</p>
+          <span class="flip" aria-hidden="true">${TURN}</span>
+        </div>
+        <div class="face back">
+          <div class="back-in">${c.heading ? `<h3>${c.heading}</h3>` : ""}${c.back}</div>
+          <span class="flip" aria-hidden="true">${TURN}</span>
+        </div>
+      </div>`;
+    const inner = card.querySelector(".card-inner");
+    const turn = () => {
+      const flipped = card.classList.toggle("is-flipped");
+      inner.setAttribute("aria-pressed", flipped);
+      frame.aside(true);                                     // the first move: Claudia steps aside
+      if (flipped) { card.classList.add("is-seen"); markSeen(c.id); }
+    };
+    inner.addEventListener("click", turn);
+    inner.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); turn(); } });
+    el.appendChild(card);
+  });
+}
+renderDeck($("#roles"), ROLES);
+renderDeck($("#questions"), QUESTIONS);
+
+/* Card backs get the largest text that fits (19 → 13 px), the same size on the three cards of a page */
+function fitBacks() {
+  document.querySelectorAll(".deck").forEach(deck => {
+    const wasHidden = deck.hidden;
+    if (wasHidden) { deck.hidden = false; deck.style.visibility = "hidden"; }
+    const backs = [...deck.querySelectorAll(".back")];
+    if (getComputedStyle(deck).display === "flex") { backs.forEach(b => b.style.fontSize = ""); }   // phones: the cards grow with their text
+    else {
+      const fits = size => backs.every(b => (b.style.fontSize = `${size}px`, b.scrollHeight <= b.clientHeight + 1));
+      let size = 19;
+      while (!fits(size) && size > 13) size--;
+    }
+    if (wasHidden) { deck.hidden = true; deck.style.visibility = ""; }
+  });
+}
+
+/* ---------- Under the cards: page 1 / 2, how many cards are turned, « Terminer » on page 2 ---------- */
+function drawBar() {
+  const all = seen.size === ALL_IDS.length;
+  $("#todo").innerHTML = all ? DONE_TODO : `${TODO} <b>${seen.size} / ${ALL_IDS.length}</b> ${TODO_COUNT}.`;
+  $("#seen-all").hidden = !done;
+  const next = $("#next");
+  if (page === 1) {
+    next.className = "arr"; next.disabled = false; next.setAttribute("aria-label", "Page suivante");
+    next.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    next.classList.toggle("go", ROLES.every(c => seen.has(c.id)) && !QUESTIONS.every(c => seen.has(c.id)));
+  } else {
+    next.className = "chip go fin"; next.disabled = !all; next.removeAttribute("aria-label");
+    next.innerHTML = `${END_BUTTON}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+  }
+}
+function show(n) {
+  page = n;
+  $("#roles").hidden = n !== 1;
+  $("#questions").hidden = n !== 2;
+  $("#count").textContent = PAGE_LABEL(n);
+  $("#prev").disabled = n === 1;
+  drawBar();
+}
+$("#prev").addEventListener("click", () => show(1));
+$("#next").addEventListener("click", () => { if (page === 1) show(2); else { end(); frame.aside(false); } });
+
+/* First visit: Claudia introduces; coming back with cards turned: straight to the cards; all turned: her key points */
+show(seen.size && ROLES.every(c => seen.has(c.id)) && !done ? 2 : 1);
+if (done) end(); else { start(); if (seen.size) frame.aside(true); }
+fitBacks();
+document.fonts?.ready.then(fitBacks);
+window.addEventListener("resize", fitBacks);
+$(".stage").addEventListener("transitionend", e => { if (e.propertyName === "grid-template-columns") fitBacks(); });
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

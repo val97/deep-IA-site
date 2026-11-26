@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP IA · Choisis tes questions</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="home.css">
+<link rel="stylesheet" href="choisir.css">
+</head>
+<body class="choose-page">
+
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="./" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <nav aria-label="Site">
+      <a href="./#projet">Le projet</a>
+      <a href="code.html">Mon code</a>
+    </nav>
+  </div>
+</header>
+<div class="first-bar"><div class="wrap"><nav class="first" id="first" aria-label="Premiers pas" hidden></nav></div></div>
+
+<main id="contenu" class="choose">
+  <div class="wrap">
+    <h1 class="choose-title">Choisis tes questions</h1>
+    <p class="choose-lead">Clique sur une question pour voir ce qu’elle contient, puis ajoute-la à ton parcours. Choisis-en au moins trois, dans l’ordre où tu veux les explorer&nbsp;: le numéro sur la carte, c’est ta place dans le parcours.</p>
+    <ul class="facts" id="facts"></ul>
+
+    <ul class="qgrid" id="questions" aria-describedby="count"></ul>
+  </div>
+</main>
+
+<aside class="tray" aria-label="Ton parcours">
+  <div class="wrap tray-in">
+    <div class="tray-path">
+      <p class="tray-title"><b>Ton parcours</b> <span id="count" aria-live="polite">0 question choisie · encore 3</span></p>
+      <ol class="tray-list" id="path"></ol>
+    </div>
+    <button type="button" class="btn" id="go" disabled>Voir mon parcours
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+</aside>
+
+<dialog class="ov" id="ov" aria-labelledby="ov-t"><div class="ov-in" id="ov-in"></div></dialog>
+
+<script src="parcours.js"></script>
+<script>
+const Q = DEEP.Q, saved = DEEP.load();
+let picked = saved.questions.slice();
+
+const grid = document.getElementById("questions"), path = document.getElementById("path"),
+      count = document.getElementById("count"), go = document.getElementById("go");
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+grid.innerHTML = Q.map(q => `
+  <li><button type="button" class="q${q.open ? "" : " soon"}" data-id="${q.id}" aria-pressed="false">
+    <span class="n" aria-hidden="true"></span>
+    <span class="q-title">${esc(q.title).replace(/-/g, "\u2011")}</span>
+    <span class="q-meta">${q.host ? `Avec ${q.host} · ` : ""}${q.open ? "≈ 45 min" : "<i>bientôt</i>"}</span>
+    <span class="more">Voir ce qu’elle contient</span>
+    ${q.img ? `<img src="${q.img}" alt="" class="q-host" loading="lazy">` : ""}
+  </button></li>`).join("");
+
+function render() {
+  grid.querySelectorAll(".q").forEach(b => {
+    const i = picked.indexOf(b.dataset.id);
+    b.setAttribute("aria-pressed", i >= 0);
+    b.querySelector(".n").textContent = i >= 0 ? i + 1 : "";
+    b.setAttribute("aria-label", b.querySelector(".q-title").textContent + (i >= 0 ? `, choisie en position ${i + 1}` : ""));
+  });
+  path.innerHTML = picked.map((id, i) => {
+    const q = Q.find(x => x.id === id);
+    return `<li class="${q.open ? "" : "soon"}"><b>${i + 1}</b> ${esc(q.title.replace(/ \?$/, " ?"))}${q.open ? "" : " <i>(bientôt)</i>"}</li>`;
+  }).join("");
+  const n = picked.length, left = Math.max(0, 3 - n);
+  const anyOpen = picked.some(id => DEEP.byId(id).open), openNames = Q.filter(q => q.open).map(q => `«\u00a0${q.short}\u00a0»`).join(", ");
+  count.textContent = `${n} question${n > 1 ? "s" : ""} choisie${n > 1 ? "s" : ""}` + (left ? ` · encore ${left}`
+    : anyOpen ? " · c’est bon !" : ` · ajoute aussi une question prête pour commencer : ${openNames}`);   // why the button stays grey (usability review)
+  go.disabled = n < 3 || !picked.some(id => DEEP.byId(id).open);
+  const start = picked.map(DEEP.byId).find(q => q.open);
+  if (typeof first !== "undefined" && first) go.firstChild.textContent = n >= 3 && start ? `Commencer : ${start.short} ` : "Commencer ";
+  document.body.classList.toggle("has-path", n > 0);
+}
+
+/* A click on a card opens its overview; the choice is made there (« Ajouter à mon parcours »). */
+const OV = {   /* drafts: why, what you understand (from parcours.js), what the pupils discover, what's inside */
+  fondements: { time: "≈ 45 min",
+    why: "Pour parler d’IA en classe, il faut d’abord savoir ce qu’elle est&nbsp;: une machine qui suit des instructions et apprend à partir d’exemples. Pas de la magie.",
+    pupils: ["Une machine suit des instructions à la lettre&nbsp;: une instruction floue donne un résultat inattendu.", "Une machine peut apprendre à partir d’exemples… et des exemples qu’on lui donne."],
+    me: [["Une vidéo puis une frise", "≈ 10 min"], ["ou un texte puis un quiz", "≈ 15 min"]],
+    cl: [["Robot dessine 1 et 2", "4–6P · 20 min chacune"], ["Robot apprend à dessiner", "4–6P · 20 min"]] },
+  generative: { time: "≈ 45 min",
+    why: "Tes élèves l’utilisent déjà ou en entendent parler. Comprendre qu’elle prédit sans comprendre comme nous aide à garder un regard critique.",
+    pupils: ["Une IA générative choisit la suite parmi les mots les plus probables, sans comprendre comme nous ce qu’elle écrit.", "Ce qui se passe entre une question et sa réponse."],   /* wording aligned on the activities (« parmi les plus probables ») */
+    me: [["Une vidéo puis des cartes", "≈ 8 min"], ["ou des diapositives puis un texte à trous", "≈ 18 min"]],
+    cl: [["La Machine à Histoires", "4–6P · 45 min"], ["Parcours d’une requête", "4–6P · 20 min"]] },
+  quand: { time: "≈ 45 min",   /* from Module3/site.json */
+    why: "L’IA est déjà dans la classe et dans ta préparation. Savoir quand elle aide, et quand elle fait à ta place, t’aide à garder la main.",
+    pupils: ["Toutes les machines n’ont pas d’IA : beaucoup suivent une règle.", "Une machine peut nous aider, ou faire à notre place."],
+    me: [["Une vidéo puis des cartes", "≈ 7 min"], ["ou des diapositives puis deux exercices", "≈ 20 min"]],
+    cl: [["Identif’IA", "4–6P · 45 min"]] }
+};
+const dlg = document.getElementById("ov");
+function openOv(id) {
+  const q = DEEP.byId(id), o = OV[id], i = picked.indexOf(id);
+  const li = a => a.map(([t, m]) => `<li>${t}${m ? ` <small>· ${m}</small>` : ""}</li>`).join("");
+  document.getElementById("ov-in").innerHTML = `<button class="ov-close" type="button" aria-label="Fermer" onclick="dlg.close()">×</button>
+    <div class="ov-head"><div><p class="ov-meta">${q.host ? `Avec ${q.host} · ` : ""}${q.open ? (o?.time || "") : "bientôt"}</p><h2 id="ov-t">${esc(q.title).replace(/ \?$/, "&nbsp;?")}</h2>
+      ${o ? `<p class="ov-why"><b>Pourquoi cette question&nbsp;?</b> ${o.why}</p>` : ""}</div>
+      ${q.img ? `<img class="ov-host" src="${q.img}" alt="">` : "<span></span>"}</div>
+    ${o ? `<div class="ov-cols">
+      <div class="ov-col"><h3>Pour toi</h3><p class="lab">Tu vas comprendre</p><ul>${q.obj.map(x => `<li>${esc(x)}</li>`).join("")}</ul><p class="lab">Avec</p><ul class="plain">${li(o.me)}</ul></div>
+      <div class="ov-col cl"><h3>Pour ta classe</h3><p class="lab">Tes élèves découvrent</p><ul>${o.pupils.map(x => `<li>${x}</li>`).join("")}</ul><p class="lab">Avec</p><ul class="plain">${li(o.cl)}</ul></div></div>`
+      : `<p class="ov-soon">${q.obj.length ? `<b>Tu vas voir&nbsp;:</b> ${q.obj.map(esc).join(" ")}<br><br>` : ""}Cette question est en préparation. Tu peux déjà la mettre dans ton parcours&nbsp;: elle s’ouvrira quand elle sera prête.</p>`}
+    <div class="ov-foot"><button class="link" type="button" onclick="dlg.close()">Retour aux questions</button>
+      ${i >= 0 ? `<span class="ov-in-path"><b>Dans ton parcours · n°&nbsp;${i + 1} ✓</b> <button class="link" type="button" id="ov-add">Retirer</button></span>`
+               : `<button class="btn" type="button" id="ov-add">Ajouter à mon parcours · n°&nbsp;${picked.length + 1}</button>`}</div>`;
+  document.getElementById("ov-add").addEventListener("click", () => { const k = picked.indexOf(id); if (k >= 0) picked.splice(k, 1); else picked.push(id); render(); dlg.close(); });
+  dlg.showModal();
+}
+grid.addEventListener("click", e => { const b = e.target.closest(".q"); if (b) openOv(b.dataset.id); });
+dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });   // a click outside closes it
+
+/* (until 26 Nov 2026 a switch showed either side; both are now on every card) */
+document.querySelectorAll(".view [role=radio]").forEach(r => r.addEventListener("click", () => {
+  /* (until 26 Nov 2026 a switch showed either side; both are now on every card) */
+document.querySelectorAll(".view [role=radio]").forEach(x => x.setAttribute("aria-checked", x === r));
+  document.body.dataset.view = r.dataset.view;
+}));
+document.querySelector(".view")?.addEventListener("keydown", e => {
+  if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  const rs = [...document.querySelectorAll(".view [role=radio]")], j = rs.indexOf(document.activeElement);
+  const k = rs[(j + (e.key === "ArrowRight" ? 1 : rs.length - 1)) % rs.length]; k.focus(); k.click();
+});
+
+/* Save the path (keeping what is already done), record the choice with the participant code, then show the path. */
+go.addEventListener("click", () => {
+  DEEP.save({ questions: picked, done: saved.done.filter(id => picked.includes(id)), chosen: new Date().toISOString() });
+  DEEP.log("choix", picked.join(","));
+  location.href = first ? DEEP.resume() : "parcours.html";   // first visit: straight to the first question (its short tour follows)
+});
+
+/* Three facts under the title: the time, what « bientôt » means (counted from parcours.js), that the choice can change */
+const ready = Q.filter(q => q.open).length;
+document.getElementById("facts").innerHTML = [
+  "Environ 45&nbsp;minutes par question, en petites étapes.",
+  `${ready === 1 ? "Une question est prête" : `${ready} questions sont prêtes`}, les autres arrivent bientôt&nbsp;: tu peux déjà les choisir.`,
+  "Tu pourras changer ton choix plus tard."
+].map(t => `<li>${t}</li>`).join("");
+document.body.dataset.view = "toi";
+const first = DEEP.firstSteps(document.getElementById("first"), 3);   // no path yet: the « premiers pas » line, and the way on names the first question
+render();
+</script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* DEEP IA · « Choisis tes questions ». Builds on home.css tokens (DESIGN.md). */
+.choose { padding: clamp(40px, 6vw, 72px) 0 180px; }
+.choose-title { font-weight: 800; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1; letter-spacing: -.04em; color: var(--g-deep); }
+.choose-lead { font-size: clamp(19px, 1.6vw, 22px); color: var(--soft); max-width: 40em; margin: 18px 0 14px; }
+/* the facts under the title (26 Nov 2026): time, « bientôt », the choice can change */
+.facts { list-style: none; margin: 0 0 26px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; max-width: 72em; }
+.facts li { padding: 8px 14px; border-radius: 10px; background: var(--white); border: 1px solid var(--hair); font-size: 15px; line-height: 1.4; color: var(--ink); max-width: 44em; }
+.facts li:first-child { background: var(--g-tint); border-color: transparent; color: var(--g-deep); font-weight: 600; }
+.view-lab { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--soft); }
+
+/* The switch: the same 8 cards, seen from the teacher's side or the pupils' side */
+.view { display: inline-flex; padding: 4px; gap: 4px; border-radius: 10px; background: var(--white); border: 1px solid var(--hair); margin-bottom: 28px; }
+.view button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: transparent; font: 600 16px/1 Inter, system-ui, sans-serif;
+               color: var(--soft); cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease); }
+.view button:hover { color: var(--ink); }
+.view [data-view="toi"][aria-checked="true"] { background: var(--lilac-tint); color: var(--violet); }
+.view [data-view="eleves"][aria-checked="true"] { background: var(--g-deep); color: var(--white); }
+
+/* The cards */
+.qgrid { list-style: none; margin: 0; padding: 14px 0 0 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.qgrid li { display: flex; }
+.q { position: relative; display: flex; flex-direction: column; gap: 8px; width: 100%; min-height: 260px; padding: 22px 20px 0;
+     text-align: left; font: inherit; color: var(--ink); background: var(--white); border: 2px solid var(--hair); border-radius: 16px; cursor: pointer;
+     transition: border-color .2s var(--ease), background .2s var(--ease); }
+.q:hover { border-color: var(--g-main); }
+.q[aria-pressed="true"] { border-color: var(--g-deep); background: var(--g-tint); }
+.q .n { position: absolute; top: -14px; left: -14px; width: 40px; height: 40px; z-index: 1; border-radius: 50%; display: grid; place-items: center;
+        font-weight: 800; font-size: 18px; color: var(--g-deep); background: var(--g-main); border: 3px solid var(--page); transform: scale(0); transition: transform .25s var(--ease); }
+.q[aria-pressed="true"] .n { transform: scale(1); }
+.q-title { font-weight: 800; font-size: 18px; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
+.q-meta { font-size: 15px; color: #5E4A78; }
+.q-toi, .q-eleves { display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.4; color: var(--soft); padding-bottom: 20px; }
+.q-toi .none, .q-eleves .none { font-style: italic; }
+.q-eleves { display: none; color: var(--g-deep); font-weight: 600; }
+body[data-view="eleves"] .q-toi { display: none; }
+body[data-view="eleves"] .q-eleves { display: flex; }
+.q-host { margin-top: auto; align-self: flex-end; width: 104px; height: 120px; border-bottom-right-radius: 14px; object-fit: cover; object-position: top center; margin-right: -4px; }
+.q.soon .q-title { color: var(--ink); }
+
+/* The tray: the path in order, and the one action */
+.tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; background: var(--white); border-top: 1px solid var(--hair);
+        transform: translateY(calc(100% - 76px)); transition: transform .35s var(--ease); }
+body.has-path .tray { transform: none; }
+.tray-in { display: flex; align-items: center; gap: 24px; padding-top: 14px; padding-bottom: 14px; }
+.tray-path { flex: 1; min-width: 0; }
+.tray-title { font-size: 16px; margin: 0; }
+.tray-title span { color: var(--soft); margin-left: 8px; }
+.tray-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.tray-list:empty { display: none; }
+.tray-list li { font-size: 15px; padding: 6px 12px; border-radius: 10px; background: var(--g-tint); color: var(--g-deep); }
+.tray-list li b { margin-right: 4px; }
+.tray-list li.soon { background: var(--lilac-tint); color: #5E4A78; }
+.btn:disabled { background: var(--hair); color: var(--soft); cursor: not-allowed; }
+.btn:disabled svg { transform: none; }
+
+@media (prefers-reduced-motion: reduce) { .q .n, .tray { transition: none; } }
+
+@media (max-width: 1100px) { .qgrid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) {
+  .qgrid { grid-template-columns: 1fr; }
+  .q { min-height: 0; }
+  .q-host { position: absolute; right: 0; bottom: 0; width: 64px; height: 76px; }
+  .q-toi, .q-eleves { padding-right: 56px; }
+  .view { display: flex; }
+  .view button { flex: 1; padding: 0 10px; font-size: 15px; line-height: 1.2; }
+  .tray-in { flex-direction: column; align-items: stretch; gap: 10px; }
+  .tray .btn { justify-content: center; }
+  .tray-list { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 6px; }
+  .tray-list li { font-size: 15px; white-space: nowrap; }
+  .tray .btn { min-height: 50px; white-space: nowrap; }
+  .tray-in { padding-top: 10px; padding-bottom: 12px; }
+}
+
+/* The overview pop-up (26 Nov 2026). A click on a card opens what the question holds:
+     why it matters, what you will understand, what your pupils discover, and the button to add it to the path (✎ = drafts). */
+  .q .more { align-self: flex-start; margin-top: 2px; font-size: 14px; font-weight: 700; color: var(--violet); text-decoration: underline; text-underline-offset: .2em; }
+  dialog.ov { width: min(820px, 92vw); max-height: 88vh; padding: 0; border: 0; border-radius: 20px; box-shadow: 0 24px 60px rgba(11, 81, 77, .25); overflow: auto; }
+  dialog.ov::backdrop { background: rgba(20, 30, 28, .45); }
+  .ov-in { position: relative; padding: 26px 30px 24px; }
+  .ov-head { display: grid; grid-template-columns: 1fr 120px; gap: 18px; align-items: start; }
+  .ov-meta { font-size: 14px; font-weight: 700; color: var(--violet); }
+  .ov h2 { margin-top: 4px; font-weight: 800; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.12; letter-spacing: -.02em; color: var(--g-deep); text-wrap: balance; }
+  .ov-host { width: 120px; height: 120px; object-fit: cover; object-position: 50% 4%; border-radius: 14px; background: var(--lilac-tint); }
+  .ov-why { margin-top: 12px; font-size: 16px; line-height: 1.45; } .ov-why b { color: var(--violet); }
+  .ov-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  .ov-col { padding: 14px 16px; border-radius: 12px; background: var(--lilac-tint); } .ov-col.cl { background: var(--g-tint); }
+  .ov-col h3 { font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--violet); } .ov-col.cl h3 { color: var(--g-deep); }
+  .ov-col .lab { margin: 10px 0 0; font-size: 13px; font-weight: 700; color: var(--soft); }
+  .ov-col ul { margin: 4px 0 0; padding: 0 0 0 18px; display: grid; gap: 5px; font-size: 15px; line-height: 1.35; }
+  .ov-col ul.plain { list-style: none; padding: 0; } .ov-col small { color: var(--soft); }
+  .ov-soon { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #F4F4F2; color: var(--soft); }
+  .ov-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
+  .ov-in-path { display: inline-flex; align-items: center; gap: 14px; color: var(--g-deep); }
+  .ov-close { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: #fff; font-size: 22px; cursor: pointer; color: var(--soft); }
+  .ov-close:hover { background: var(--g-tint); }
+  .ov-foot .link { font-weight: 600; color: var(--g-deep); background: none; border: 0; cursor: pointer; font: 600 16px Inter, sans-serif; text-decoration: underline; text-underline-offset: .2em; }
+.top-in { gap: 24px; } .top .logo { margin-right: 0; }
+
+/* Both sides on every card (26 Nov 2026): « Pour toi » then « Pour tes élèves », each with a small label; no switch */
+.q-toi, .q-eleves { padding-bottom: 0; }
+.q-eleves, body[data-view="eleves"] .q-eleves { display: flex; color: var(--g-deep); font-weight: 600; padding-bottom: 14px; }
+body[data-view="eleves"] .q-toi { display: flex; }
+.q-lab { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--violet); }
+.q-eleves .q-lab { color: var(--g-deep); }
+.q-eleves { padding-top: 8px; border-top: 1px dashed var(--hair); }
+.q-host { width: 84px; height: 96px; }
+
+/* 26 Nov 2026: short cards (title, guide, time, « Voir ce qu'elle contient »), the summary in the pop-up only: all 8 on one screen */
+.q { min-height: 0; padding-bottom: 0; }
+.qgrid { gap: 14px; }
+.q .more { margin-top: auto; padding-bottom: 14px; }
+.q-host { position: absolute; right: 0; bottom: 0; width: 78px; height: 92px; }
+.q-title { padding-right: 0; } .q-meta, .q .more { padding-right: 72px; }
+.q { min-height: 150px; }
+.choose { padding-top: clamp(28px, 4vw, 52px); }
+.choose { padding-bottom: 140px; }
+.choose-title { font-size: clamp(2rem, 3.2vw, 2.6rem); }
+.choose-lead { margin-top: 10px; }
+/* the facts as one quiet line (26 Nov 2026), so the 8 cards and the path fit on one screen */
+.facts { gap: 4px 0; margin-bottom: 20px; }
+.facts li, .facts li:first-child { padding: 0; border: 0; background: none; font-size: 15px; font-weight: 400; color: var(--soft); max-width: none; }
+.facts li + li::before { content: "·"; margin: 0 10px; color: var(--soft); }
+.facts li:first-child { color: var(--g-deep); font-weight: 600; }
+.q { min-height: 132px; }
+.choose-title { max-width: none; }
+/* the facts: each with its own small dot, so a wrapped line never starts with a separator */
+.facts { gap: 4px 22px; }
+.facts li + li::before { content: none; }
+.facts li { position: relative; padding-left: 14px; }
+.facts li::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 6px; border-radius: 50%; background: var(--g-main); }
+.facts li:first-child { padding-left: 14px; }
+
+/* 26 Nov 2026 (UI review): phones */
+@media (max-width: 640px) {
+  dialog.ov { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; }
+  .ov-in { padding: 20px 18px 24px; }
+  .ov-head { grid-template-columns: 1fr 72px; } .ov-host { width: 72px; height: 72px; }
+  .ov-cols { grid-template-columns: 1fr; }
+  .ov-foot { flex-wrap: wrap; } .ov-foot .btn { width: 100%; justify-content: center; }
+  .tray, body.has-path .tray { transform: none; }
+  .choose { padding-bottom: 200px; }
+}

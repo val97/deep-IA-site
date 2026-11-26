@@ -1,0 +1,427 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+Histoire d'algorithmes
+
+00:00:03.440 --> 00:00:07.000
+Les algorithmes sont partout autour de nous.
+
+00:00:07.000 --> 00:00:09.000
+Recommandations de contenu sur Facebook.
+
+00:00:09.000 --> 00:00:10.000
+Algorithme.
+
+00:00:10.000 --> 00:00:13.000
+Localisation GPS qui m'informe des embouteillages.
+
+00:00:13.000 --> 00:00:14.000
+Algorithme.
+
+00:00:14.000 --> 00:00:16.000
+Reconnaissance des visages.
+
+00:00:16.000 --> 00:00:17.000
+Algorithme.
+
+00:00:17.000 --> 00:00:18.000
+Bien.
+
+00:00:18.000 --> 00:00:20.000
+Oui mais les algorithmes c'est quoi en fait ?
+
+00:00:20.000 --> 00:00:22.000
+Alors commençons par le commencement.
+
+00:00:22.000 --> 00:00:23.000
+L'informatique.
+
+00:00:23.000 --> 00:00:27.000
+L'informatique a pour objet le traitement de l'information de manière automatique.
+
+00:00:27.000 --> 00:00:28.000
+D'où son nom.
+
+00:00:28.000 --> 00:00:32.000
+Elle s'appuie sur des machines capables de traiter des données grâce à des...
+
+00:00:32.000 --> 00:00:33.000
+Algorithmes.
+
+00:00:33.000 --> 00:00:34.000
+Bien Théo.
+
+00:00:34.000 --> 00:00:35.000
+C'est bien ça.
+
+00:00:35.000 --> 00:00:36.000
+Tu suis ?
+
+00:00:36.000 --> 00:00:37.000
+Ça fait plaisir.
+
+00:00:37.000 --> 00:00:38.000
+Maintenant, les algorithmes.
+
+00:00:38.000 --> 00:00:39.000
+Arrêtez-moi si je me trompe.
+
+00:00:39.000 --> 00:00:41.000
+C'est un petit peu comme...
+
+00:00:41.000 --> 00:00:43.000
+Une recette de cuisine.
+
+00:00:43.000 --> 00:00:46.000
+C'est une série d'instructions à suivre dans un certain ordre
+
+00:00:46.000 --> 00:00:48.000
+pour effectuer une tâche de manière automatique.
+
+00:00:48.000 --> 00:00:51.000
+Qui dit de manière automatique, dit sans avoir besoin de comprendre
+
+00:00:51.000 --> 00:00:52.000
+ou de réfléchir.
+
+00:00:52.000 --> 00:00:54.000
+Et c'est parfait pour une machine.
+
+00:00:54.000 --> 00:00:56.000
+Une fois qu'on a cette liste d'instructions,
+
+00:00:56.000 --> 00:00:59.000
+on la traduit en langage compréhensible par un ordinateur
+
+00:00:59.000 --> 00:01:02.000
+et on obtient un programme informatique.
+
+00:01:02.000 --> 00:01:06.000
+Les ordinateurs exécutent parfaitement et très rapidement
+
+00:01:06.000 --> 00:01:08.000
+tout programme qui décrit un algorithme.
+
+00:01:08.000 --> 00:01:10.000
+Et c'est très puissant.
+
+00:01:10.000 --> 00:01:13.000
+D'ailleurs, dans les années 50, les chercheurs se sont mis à rêver.
+
+00:01:13.000 --> 00:01:15.000
+Ils ont imaginé des algorithmes
+
+00:01:15.000 --> 00:01:19.000
+qui rendraient les ordinateurs aussi intelligents que l'humain.
+
+00:01:19.000 --> 00:01:20.000
+L'approche symbolique
+
+00:01:20.000 --> 00:01:22.000
+essaie d'imiter comment l'humain raisonne logiquement
+
+00:01:22.000 --> 00:01:24.000
+et utilise ses connaissances.
+
+00:01:24.000 --> 00:01:26.000
+Comme nous l'explique Thalita Firmo Drumond,
+
+00:01:26.000 --> 00:01:27.000
+doctorante Inria,
+
+00:01:27.000 --> 00:01:29.000
+un certain nombre de savoirs
+
+00:01:29.000 --> 00:01:31.000
+nous sont transmis par un ensemble de connaissances,
+
+00:01:31.000 --> 00:01:33.000
+de règles, de procédures.
+
+00:01:33.000 --> 00:01:36.000
+C'est la manière privilégiée par les savoirs scolaires
+
+00:01:36.000 --> 00:01:38.000
+comme apprendre à poser une addition, par exemple.
+
+00:01:38.000 --> 00:01:39.000
+Lorsque je pose une addition,
+
+00:01:39.000 --> 00:01:41.000
+je peux expliquer comment je m'y prends,
+
+00:01:41.000 --> 00:01:42.000
+étape par étape.
+
+00:01:42.000 --> 00:01:44.000
+Il est donc ensuite possible d'écrire un programme
+
+00:01:44.000 --> 00:01:46.000
+expliquant à la machine comment procéder,
+
+00:01:46.000 --> 00:01:48.000
+étape par étape.
+
+00:01:48.000 --> 00:01:50.000
+La machine pourra ensuite l'exécuter
+
+00:01:50.000 --> 00:01:52.000
+beaucoup plus rapidement que moi
+
+00:01:52.000 --> 00:01:54.000
+et sans étourderie.
+
+00:01:54.000 --> 00:01:56.000
+Cette approche a donné les systèmes experts
+
+00:01:56.000 --> 00:01:58.000
+qui essaient de reproduire le raisonnement d'un spécialiste
+
+00:01:58.000 --> 00:02:00.000
+comme un médecin ou un juriste
+
+00:02:00.000 --> 00:02:02.000
+pour résoudre un problème.
+
+00:02:02.000 --> 00:02:03.000
+C'est cette approche-là
+
+00:02:03.000 --> 00:02:06.000
+qui a eu le vent en poupe dans les années 80.
+
+00:02:06.000 --> 00:02:08.000
+D'autres savoirs naissent de l'expérience
+
+00:02:08.000 --> 00:02:10.000
+pour lesquels il est beaucoup plus difficile
+
+00:02:10.000 --> 00:02:12.000
+d'expliquer comment on s'y prend,
+
+00:02:12.000 --> 00:02:13.000
+comme par exemple faire du vélo
+
+00:02:13.000 --> 00:02:15.000
+ou reconnaître un chat.
+
+00:02:15.000 --> 00:02:17.000
+J'aurais beau vous expliquer comment faire du vélo,
+
+00:02:17.000 --> 00:02:19.000
+c'est en pédalant que vous saurez pédaler.
+
+00:02:19.000 --> 00:02:21.000
+Il faut que vous en fassiez l'expérience.
+
+00:02:21.000 --> 00:02:23.000
+Ça, c'est l'autre approche,
+
+00:02:23.000 --> 00:02:25.000
+l'approche numérique ou connexionniste qui, elle,
+
+00:02:25.000 --> 00:02:27.000
+tente d'imiter comment l'humain apprend
+
+00:02:27.000 --> 00:02:29.000
+par essais et erreurs
+
+00:02:29.000 --> 00:02:31.000
+à partir de ses expériences.
+
+00:02:31.000 --> 00:02:32.000
+C'est cette approche-là
+
+00:02:32.000 --> 00:02:34.000
+qui est sur le devant de la scène aujourd'hui.
+
+00:02:34.000 --> 00:02:36.000
+Comme l'explique Nicolas Rougier,
+
+00:02:36.000 --> 00:02:37.000
+chercheur Inria,
+
+00:02:37.000 --> 00:02:38.000
+il y a eu de belles avancées
+
+00:02:38.000 --> 00:02:40.000
+jusqu'à la fin des années 70,
+
+00:02:40.000 --> 00:02:42.000
+puis on a déchanté.
+
+00:02:42.000 --> 00:02:44.000
+Les résultats promis n'arrivaient pas.
+
+00:02:44.000 --> 00:02:46.000
+Les fonds pour la recherche ont cessé d'affluer
+
+00:02:46.000 --> 00:02:48.000
+et on a connu un premier hiver de l'IA.
+
+00:02:48.000 --> 00:02:49.000
+Dix ans plus tard,
+
+00:02:49.000 --> 00:02:50.000
+on connaît un sursaut
+
+00:02:50.000 --> 00:02:51.000
+avec les systèmes experts
+
+00:02:51.000 --> 00:02:52.000
+qui tentent de reproduire
+
+00:02:52.000 --> 00:02:54.000
+le raisonnement d'un spécialiste
+
+00:02:54.000 --> 00:02:55.000
+comme un médecin.
+
+00:02:55.000 --> 00:02:56.000
+Mais il fallait entrer
+
+00:02:56.000 --> 00:02:58.000
+les connaissances des hommes dans les machines
+
+00:02:58.000 --> 00:02:59.000
+alors que ce qu'on voulait,
+
+00:02:59.000 --> 00:03:01.000
+c'était que les machines apprennent toutes seules.
+
+00:03:01.000 --> 00:03:03.000
+Un deuxième hiver de l'IA se produit.
+
+00:03:03.000 --> 00:03:05.000
+À la fin des années 90,
+
+00:03:05.000 --> 00:03:06.000
+coup de tonnerre,
+
+00:03:06.000 --> 00:03:08.000
+Deep Blue, le superordinateur d'IBM,
+
+00:03:08.000 --> 00:03:10.000
+bat le champion du monde d'échecs,
+
+00:03:10.000 --> 00:03:11.000
+Gary Kasparov.
+
+00:03:11.000 --> 00:03:13.000
+Et en 2016,
+
+00:03:13.000 --> 00:03:14.000
+nouveau coup de tonnerre,
+
+00:03:14.000 --> 00:03:15.000
+un algorithme de Google
+
+00:03:15.000 --> 00:03:17.000
+bat un des meilleurs joueurs du monde de go
+
+00:03:17.000 --> 00:03:19.000
+alors que l'on n'imaginait pas ça possible
+
+00:03:19.000 --> 00:03:20.000
+avant plusieurs années.
+
+00:03:20.000 --> 00:03:21.000
+En fait,
+
+00:03:21.000 --> 00:03:23.000
+l'histoire de l'intelligence artificielle
+
+00:03:23.000 --> 00:03:25.000
+est une alternance de progrès
+
+00:03:25.000 --> 00:03:26.000
+très médiatiques
+
+00:03:26.000 --> 00:03:28.000
+mais aussi de grosses déceptions.
+
+00:03:28.000 --> 00:03:29.000
+Là, nous sommes de nouveau
+
+00:03:29.000 --> 00:03:30.000
+en phase de boom.
+
+00:03:30.000 --> 00:03:31.000
+L'intelligence artificielle
+
+00:03:31.000 --> 00:03:32.000
+est sortie des laboratoires.
+
+00:03:32.000 --> 00:03:34.000
+Elle infuse et impacte désormais
+
+00:03:34.000 --> 00:03:36.000
+tous les domaines de la société.
+
+00:03:36.000 --> 00:03:38.000
+De la finance à l'agriculture,
+
+00:03:38.000 --> 00:03:39.000
+en passant par la médecine
+
+00:03:39.000 --> 00:03:40.000
+ou l'éducation,
+
+00:03:40.000 --> 00:03:41.000
+jusqu'à nos maisons.
+
+00:03:41.000 --> 00:03:43.000
+Dans notre monde devenu numérique,
+
+00:03:43.000 --> 00:03:44.000
+nous fréquentons
+
+00:03:44.000 --> 00:03:46.000
+et utilisons chaque jour, sans le savoir,
+
+00:03:46.000 --> 00:03:47.000
+de l'intelligence artificielle
+
+00:03:47.000 --> 00:03:48.000
+dans nos objets du quotidien.
+
+00:03:48.000 --> 00:03:49.000
+Appareil photo,
+
+00:03:49.000 --> 00:03:51.000
+mécanisme de recommandation
+
+00:03:51.000 --> 00:03:52.000
+sur les réseaux sociaux,
+
+00:03:52.000 --> 00:03:53.000
+enceintes connectées.
+
+00:03:53.000 --> 00:03:55.000
+Un monde d'algorithmes.
+
+00:03:55.000 --> 00:03:57.000
+Mais c'est bien nous humains
+
+00:03:57.000 --> 00:03:58.000
+qui devons décider
+
+00:03:58.000 --> 00:04:00.000
+de ce que les systèmes peuvent faire pour nous.
+
+00:04:00.000 --> 00:04:01.000
+Et non l'inverse.
+
+00:04:01.000 --> 00:04:03.000
+Et comme ces technologies
+
+00:04:03.000 --> 00:04:04.000
+façonnent profondément
+
+00:04:04.000 --> 00:04:05.000
+notre société,
+
+00:04:05.000 --> 00:04:06.000
+il est fondamental
+
+00:04:06.000 --> 00:04:08.000
+de comprendre comment elles marchent.

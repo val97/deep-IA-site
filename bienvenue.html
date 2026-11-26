@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP IA · Bienvenue</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="home.css">
+<style>
+  /* Bienvenue (26 Nov 2026; before: the three moments, now pourquoi.html, optional). One screen that only welcomes:
+     who we are, how DEEP IA works in three points, then the choice of questions. Claudia left, Léo right, as before. */
+  body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  .top-in { gap: 24px; } .top .logo { margin-right: 0; }
+  .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 18%; background: var(--lilac); }
+  .gd { position: absolute; bottom: 0; height: min(66vh, 580px); width: auto; }
+  .gd.l { left: max(12px, calc(50% - 690px)); } .gd.r { right: max(12px, calc(50% - 690px)); }
+  .bv { position: relative; z-index: 2; text-align: center; padding: clamp(20px, 4.5vh, 44px) 24px 0; }
+  .who { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--violet); }
+  .bv h1 { margin: 8px auto 0; max-width: 15em; font-weight: 800; font-size: clamp(2rem, 5vh, 2.8rem); line-height: 1.08; letter-spacing: -.03em; color: var(--g-deep); text-wrap: balance; }
+  .bv .lead { margin: 10px auto 0; max-width: 34em; font-size: clamp(17px, 2.2vh, 20px); line-height: 1.4; color: var(--soft); }
+  .bv .note { margin: 16px auto 0; max-width: 44em; font-size: 15px; line-height: 1.45; color: var(--soft); }
+  .how { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: min(860px, 62vw); margin: clamp(16px, 3vh, 28px) auto 0; text-align: left; }
+  .how li { padding: 18px 18px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--hair); box-shadow: 0 4px 12px rgba(11, 81, 77, .06); }
+  .how i { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; background: var(--g-main); color: var(--g-deep); }
+  .how b { display: block; margin-top: 10px; font-size: 18px; line-height: 1.2; color: var(--g-deep); }
+  .how span { display: block; margin-top: 6px; font-size: 15px; line-height: 1.4; color: var(--soft); }
+  .why { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 14px; border-radius: 999px; background: #fff; border: 1.5px solid #C9A3FF; color: var(--violet); font-weight: 600; font-size: 15px; text-decoration: none; }
+  .why:hover { background: var(--lilac-tint); }
+  .why small { color: var(--soft); font-weight: 400; font-size: 14px; }
+  .go { position: absolute; right: clamp(18px, 3vw, 40px); bottom: 20px; z-index: 3; }
+  .go svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  @media (max-width: 900px) {
+    body { height: auto; min-height: 100vh; overflow: auto; }
+    .gd { display: none; } .floor { height: 60px; }
+    .how { grid-template-columns: 1fr; width: min(520px, 100%); }
+    .stage { padding-bottom: 120px; } .go { left: 24px; right: 24px; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="./" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <nav aria-label="Site"><a href="code.html">Mon code</a></nav>
+  </div>
+</header>
+<div class="first-bar"><div class="wrap"><nav class="first" id="first" aria-label="Premiers pas" hidden></nav></div></div>
+
+<main id="contenu" class="stage">
+  <div class="floor" aria-hidden="true"></div>
+  <img class="gd l" src="bienvenue/images/claudia-salue.png" alt="">
+  <img class="gd r" src="bienvenue/images/leo-ouvre.png" alt="">
+  <section class="bv" aria-labelledby="t">
+    <p class="who" id="who"></p>
+    <h1 id="t"></h1>
+    <p class="lead" id="lead"></p>
+    <ol class="how" id="how"></ol>
+    <p class="note" id="note"></p>
+    <a class="why" id="why" href="pourquoi.html"></a>
+  </section>
+  <a class="btn go" id="go" href="choisir.html"><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+</main>
+
+<script src="parcours.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   ============================================================ */
+const WHO = "Claudia et Léo, enseignant·e·s";
+const TITLE = "Bienvenue dans DEEP IA&nbsp;!";
+const LEAD = "Un parcours en ligne pour te préparer à enseigner l’intelligence artificielle en 4–6P. Pas besoin d’être informaticien·ne.";
+const HOW = [   /* the same facts as the home page (index.html) */
+  ["8 questions sur l’IA", "Environ 45&nbsp;minutes chacune, en petites étapes. Tu en choisis au moins trois, dans ton ordre."],
+  ["Pour toi&nbsp;: comprendre", "Une vidéo ou un texte, puis un petit test pour faire le point. Chaque question a son guide, une enseignante ou un enseignant comme toi."],
+  ["Pour ta classe&nbsp;: enseigner", "Des activités sans écran pour des élèves de 7 à 10&nbsp;ans, avec le guide et les fiches à imprimer. En les préparant, tu apprends aussi."]
+];
+const NOTE = "DEEP IA est conçu avec des enseignant·e·s et accompagné d’une recherche sur la manière dont on se prépare à enseigner l’IA. Ton parcours est gardé dans ce navigateur&nbsp;: tu reviens quand tu veux.";
+const WHY = "Pourquoi parler d’IA à l’école&nbsp;? <small>· 3 min, quand tu veux</small>";   // the optional part (pourquoi.html)
+const GO = "Choisir mes questions";
+/* ============================================================ */
+
+const $ = id => document.getElementById(id);
+$("who").textContent = WHO;
+$("t").innerHTML = TITLE;
+$("lead").innerHTML = LEAD;
+$("note").innerHTML = NOTE;
+$("how").innerHTML = HOW.map(([b, t], i) => `<li><i>${i + 1}</i><b>${b}</b><span>${t}</span></li>`).join("");
+$("why").innerHTML = WHY;
+$("go").firstChild.textContent = GO;
+DEEP.firstSteps($("first"), 2);
+DEEP.log("bienvenue", "vue", "bienvenue");
+$("why").addEventListener("click", () => DEEP.log("pourquoi", "ouvert", "bienvenue"));
+$("go").addEventListener("click", () => DEEP.log("vers_choix", "1", "bienvenue"));
+</script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

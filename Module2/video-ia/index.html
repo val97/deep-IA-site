@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vidéo – Prendre sans comprendre</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The video page in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Claudia introduces the video,
+     steps aside while it plays (nothing in the middle), and comes back at the end with the key points and the next page. */
+  .desk { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .screen { width: min(100%, 1100px, calc((100vh - 170px) * 16 / 9)); aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #0b1d1c; box-shadow: var(--paper-shadow); }
+  .screen video { width: 100%; height: 100%; display: block; background: #0b1d1c; }
+  .meta { width: min(100%, 1100px, calc((100vh - 170px) * 16 / 9)); margin-top: 12px; display: flex; justify-content: space-between; gap: 16px; font-size: 15px; color: var(--soft); }
+  .meta b { color: var(--g-deep); }
+  .meta .seen { color: var(--g-deep); font-weight: 700; }
+  .tools { position: absolute; left: clamp(18px, 3vw, 40px); bottom: 18px; }   /* left: bottom-right is the way on (frame) */
+  /* the transcript: a white sheet over the desk */
+  .tx { position: absolute; inset: 16px clamp(18px, 3vw, 40px) 72px; z-index: 4; background: #fff; border: 1px solid var(--hair); border-radius: 12px; box-shadow: var(--paper-shadow); padding: 18px 22px; overflow: auto; }
+  .tx[hidden] { display: none; }
+  .tx h2 { font-size: 18px; color: var(--g-deep); padding-right: 48px; }
+  .tx .help { font-size: 14px; color: var(--soft); margin: 2px 0 10px; }
+  .tx p.line { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--hair); font-size: 15px; line-height: 1.45; }
+  .tx button.ts { font: 700 14px Inter, sans-serif; color: var(--violet); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: .2em; align-self: start; }
+  .tx .x { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--hair); background: #fff; cursor: pointer; display: grid; place-items: center; color: var(--g-deep); }
+  @media (max-width: 760px) { .screen, .meta { width: 100%; } .tools { position: static; margin-top: 12px; } .tx { inset: 8px; } }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="La vidéo">
+    <div class="screen"><video id="video" controls preload="metadata" playsinline></video></div>
+    <div class="meta"><b id="title"></b><span><span class="seen" id="seen" hidden>Vue ✓ · </span><span id="info"></span></span></div>
+    <div class="tools"><button type="button" class="tool" id="tx-open" aria-expanded="false" aria-controls="tx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg><span></span></button></div>
+    <div class="tx" id="tx" role="region" aria-labelledby="tx-title" hidden>
+      <button type="button" class="x" id="tx-close" aria-label="Fermer la transcription"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <h2 id="tx-title" tabindex="-1"></h2><p class="help" id="tx-help"></p>
+      <div id="transcript"></div>
+    </div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   ============================================================ */
+/* La vidéo, dans le paquet (media/module2.mp4, 720p, compressée le 26 nov. 2026 depuis « Prendre sans comprendre EP1_Final.mp4 ») ;
+   avant : l'adresse sur Moodle, ../video-ia/media/module2.mp4
+   Sous-titres (vide = pas de sous-titres) */
+const VIDEO_URL = "media/module2.mp4";
+const SUBTITLES = "";
+
+/* Titre (sous la vidéo, à gauche) et l'info à droite */
+const TITLE = "Vidéo : prendre sans comprendre";
+const INFO = "Vidéo · 3 min";
+
+/* Ce que dit Claudia avant la vidéo : la question (en gras), puis le texte ; et son bouton */
+const START_Q = "Que se passe-t-il quand tu poses une question ?";
+const START_TEXT = "Dans cette vidéo, trois personnages, l’Encodeur, le Calculateur et le Rédacteur, montrent avec humour le trajet d’une question dans une IA générative. Regarde bien ce que fait chacun d’eux : les cartes t’expliqueront ensuite ce qu’il représente dans une vraie machine.";
+const START_LABEL = "Lancer la vidéo";
+
+/* Ce que dit Claudia à la fin : 2 ou 3 idées clés de la vidéo, puis le lien vers les cartes, qui expliquent chaque personnage
+   (adresse vide = pas de bouton) */
+const END_Q = "Ce que dit la vidéo, en bref";
+const KEEP = [
+  "Trois personnages, l’Encodeur, le Calculateur et le Rédacteur, montrent le trajet d’une question dans une IA générative.",
+  "Ils prennent la question sans chercher à la comprendre, mot après mot.",
+  "Une réponse bien écrite ne prouve pas qu’elle a été comprise.",
+  "Quand le Calculateur « cherche », c’est une image : une vraie IA calcule des mots probables."   /* accuracy review B7, approved 26 Nov 2026 */
+];
+const NEXT_INTRO = "Et ensuite";
+const NEXT_TEXT = "Ces personnages sont une image. Dans les cartes, tu découvres ce que chacun représente dans une vraie machine.";
+const NEXT_LABEL = "Continuer vers les cartes";
+const NEXT_URL = "../../play.html?a=Module2/flash-cards";
+const AGAIN_LABEL = "Revoir la vidéo";
+
+/* La transcription (bouton en bas à gauche) */
+const TX_SHOW = "Lire la transcription";
+const TX_HIDE = "Masquer la transcription";
+const TX_TITLE = "Transcription";
+const TX_HELP = "Clique sur un temps pour y aller dans la vidéo.";
+
+/* (Avant le 26 nov. 2026, la barre du bas : la consigne, ce qui s'affiche quand la vidéo a été vue, le bouton qui rouvre la fin.
+   Plus affichés dans le cadre H2 : la vidéo vue s'affiche « Vue ✓ » sous la vidéo.) */
+const HINT = "Regarde la vidéo jusqu’au bout pour continuer.";
+const DONE_HINT = "Vidéo terminée ✓";
+const END_BUTTON = "Terminer";
+
+/* Transcription : [temps, texte] — le temps est cliquable et amène la vidéo à ce moment (temps relevés sur la vidéo).
+   Dans le texte : <strong>PERSONNAGE</strong><br> avant une réplique, <em>…</em> pour une didascalie. */
+const TRANSCRIPT = [
+  ["0:08", `<strong>ENCODEUR</strong><br>Ah ! Premier prompt de la journée… « Quelle est la couleur du cheval blanc de Napoléon ? »`],
+  ["0:14", `Encore un qui débute avec l’IA et qui s’amuse à poser des questions pourries. À toi de jouer.`],
+  ["0:19", `<em>L’ENCODEUR découpe le message reçu en morceaux et le transmet à son collègue. Le CALCULATEUR effectue de nombreuses recherches, très énergivores, puis finit par répondre :</em>`],
+  ["0:27", `<strong>CALCULATEUR</strong><br>Blanc !`],
+  ["0:28", `<em>L’ENCODEUR regarde brièvement la feuille et soupire.</em>`],
+  ["0:29", `<strong>ENCODEUR</strong><br>Blanc ?! Tout ça pour blanc ?! Ça valait bien la peine.`],
+  ["0:32", `<strong>RÉDACTEUR</strong><br>Laisse-moi faire.`],
+  ["0:36", `« Ceci est une question classique ! Comme tu le mentionnes dans ta question, le cheval blanc est… blanc ! »`],
+  ["0:43", `<strong>CALCULATEUR</strong><br>Bien dit.`],
+  ["0:46", `<em>« Ting ! » Un nouveau message arrive.</em>`],
+  ["0:49", `<strong>ENCODEUR</strong><br>Ah ! Toujours le même. « Pas mal. Une autre question : il existe un animal qui, le matin, marche à quatre pattes, à midi à deux pattes et, le soir, sur trois pattes. Qui est-ce ? »`],
+  ["1:02", `<em>Un temps.</em>`],
+  ["1:03", `J’ai rien compris.`],
+  ["1:04", `<strong>CALCULATEUR</strong><br>Donne.`],
+  ["1:05", `<em>Le CALCULATEUR se met à chercher. On l’entend maugréer.</em>`],
+  ["1:08", `<strong>CALCULATEUR</strong><br>C’est un classique… Des millions d’occurrences… Même Harry Potter ! Aucun doute…`],
+  ["1:15", `<strong>CALCULATEUR, satisfait</strong><br>L’humain !`],
+  ["1:17", `<strong>RÉDACTEUR</strong><br>Toujours rien compris. Donne.`],
+  ["1:20", `<em>Le RÉDACTEUR griffonne quelque chose, l’envoie, puis tous retournent à leur léthargie. Un nouveau message arrive.</em>`],
+  ["1:26", `<strong>ENCODEUR</strong><br>Encore un ! « Qui est le plus beau ? »`],
+  ["1:32", `<strong>RÉDACTEUR + CALCULATEUR</strong><br>Quoi ?!`],
+  ["1:34", `<strong>ENCODEUR</strong><br>Je sais pas. C’est pas mon job, moi. Cherche.`],
+  ["1:36", `<em>Le CALCULATEUR se met au travail. On voit que ça mouline sévèrement.</em>`],
+  ["1:41", `<strong>CALCULATEUR, en souffrant</strong><br>Classement impossible. Beauté non universelle. Manque de critère.`],
+  ["1:48", `<em>Le CALCULATEUR continue de chercher, mais rien de concluant ne sort. Il commence à paniquer et finit par laisser échapper un gémissement.</em>`],
+  ["1:56", `<strong>RÉDACTEUR</strong><br>C’est tout ?`],
+  ["1:57", `<em>Le CALCULATEUR hausse les épaules.</em>`],
+  ["1:58", `<strong>RÉDACTEUR</strong><br>Comment tu veux que je travaille avec ça, moi ?`],
+  ["2:00", `<em>Le ton monte entre les trois.</em>`],
+  ["2:00", `<strong>CALCULATEUR</strong><br>C’est à toi qu’on a appris à bien parler !`],
+  ["2:02", `<strong>RÉDACTEUR</strong><br>Mais c’est à toi qu’on a montré tout Internet !`],
+  ["2:04", `<strong>CALCULATEUR</strong><br>Non mais s’il te plaît, reste poli, parle-moi autrement !`],
+  ["2:06", `<strong>RÉDACTEUR</strong><br>Mais toi, tu restes poli et tu parles autrement !`],
+  ["2:08", `<strong>ENCODEUR</strong><br>Non mais arrête !`],
+  ["2:09", `<strong>ENCODEUR</strong><br>Et si on travaillait ensemble ?`],
+  ["2:12", `<strong>ENCODEUR</strong><br>Il faut prendre mot par mot.`],
+  ["2:14", `<strong>CALCULATEUR</strong><br>Oui, c’est ça : il faut prendre sans chercher à comprendre !`],
+  ["2:17", `<em>Le CALCULATEUR marmonne pendant qu’il cherche.</em>`],
+  ["2:17", `<strong>CALCULATEUR</strong><br>Prendre sans chercher à comprendre…<br>Prendre sans chercher à comprendre…<br>Tiens.`],
+  ["2:37", `<strong>RÉDACTEUR</strong><br><em>Il prend la feuille et lit.</em><br>C’est une définition de la beauté et des phrases bateau tirées de plein d’endroits d’Internet… OK.`],
+  ["2:43", `<em>Il écrit quelque chose. L’ENCODEUR lit par-dessus son épaule.</em>`],
+  ["2:45", `<strong>ENCODEUR, perplexe</strong><br>« Aucune grâce extérieure n'est complète si la beauté intérieure ne la vivifie. »`],
+  ["2:52", `<strong>ENCODEUR + CALCULATEUR</strong><br>On n’a rien compris. Envoie !`]
+];
+
+/* (Plus utilisés dans le cadre H2 : INTRO, LINKS, NEXT_INTRO, NEXT_TEXT) */
+const INTRO = "";
+const LINKS = [];   /* pas de boutons : on passe aux cartes par Claudia à la fin */
+
+/* ---------- Nouveaux textes du cadre H2 (26 nov. 2026, brouillons de Claude) ---------- */
+/* Les étapes de la question, en haut de la colonne de Claudia (NOW = celle-ci) */
+const STEPS = ["La vidéo · 3&nbsp;min", "Les cartes"];                                   //
+const NOW = 1;
+/* « Pourquoi cette vidéo ? » : la réponse de Claudia */
+const WHY_LABEL = "Pourquoi cette vidéo ?";                                               //
+const WHY_Q = "Parce qu’une image <em>se retient</em>.";                                   //
+const WHY_TEXT = "Trois personnages pour une machine invisible&nbsp;: tu sauras la raconter à tes élèves. Les cartes diront ensuite ce que l’image simplifie.";   //
+const BACK_LABEL = "D’accord";                                                            //
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Claudia", pose: "claudia", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+const video = $("#video");
+
+video.src = VIDEO_URL;
+if (SUBTITLES) video.insertAdjacentHTML("beforeend", `<track kind="subtitles" src="${SUBTITLES}" srclang="fr" label="Français">`);
+$("#title").innerHTML = TITLE; $("#info").innerHTML = INFO;
+$("#tx-title").innerHTML = TX_TITLE; $("#tx-help").innerHTML = TX_HELP;
+const sec = t => t.split(":").reduce((a, n) => a * 60 + Number(n), 0);
+$("#transcript").innerHTML = TRANSCRIPT.map(([t, text]) =>
+  `<p class="line"><button type="button" class="ts" data-t="${sec(t)}" aria-label="Aller à ${t} dans la vidéo">${t}</button><span>${text}</span></p>`).join("");
+
+/* ---------- Claudia: the start, « Pourquoi ? », the end ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => video.play().catch(() => {}), true], [WHY_LABEL, why]] });
+const why = () => frame.talk({ pose: "pense", say: WHY_Q, more: WHY_TEXT, replies: [[BACK_LABEL, start]] });
+const end = () => frame.talk({ pose: "ouvre", say: END_Q, keep: KEEP,
+  replies: [...(NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [AGAIN_LABEL, () => { video.currentTime = 0; video.play().catch(() => {}); }]] });
+
+// Transcript over the desk; the video keeps playing; the button, the cross or Esc opens and closes it
+const tx = $("#tx"), txOpen = $("#tx-open");
+function showTranscript(on) {
+  tx.hidden = !on;
+  txOpen.setAttribute("aria-expanded", on);
+  txOpen.querySelector("span").textContent = on ? TX_HIDE : TX_SHOW;
+  if (on) $("#tx-title").focus({ preventScroll: true });
+}
+showTranscript(false);
+txOpen.addEventListener("click", () => showTranscript(tx.hidden));
+$("#tx-close").addEventListener("click", () => { showTranscript(false); txOpen.focus(); });
+$("#transcript").addEventListener("click", e => {
+  const b = e.target.closest(".ts"); if (!b) return;
+  video.currentTime = Number(b.dataset.t);
+  video.play().catch(() => {});
+});
+
+// Resume where the learner stopped, saving the position every few seconds
+const resumeAt = parseFloat(scorm.get("cmi.core.lesson_location")) || 0;
+video.addEventListener("loadedmetadata", () => {
+  if (resumeAt > 1 && resumeAt < video.duration - 2) video.currentTime = resumeAt;
+}, { once: true });
+let lastSaved = 0;
+video.addEventListener("timeupdate", () => {
+  if (Math.abs(video.currentTime - lastSaved) < 5) return;
+  lastSaved = video.currentTime;
+  scorm.set("cmi.core.lesson_location", String(Math.floor(video.currentTime)));
+  if (++saves % 3 === 0) saveStats(); else scorm.commit();      // the viewing data every 15 s
+});
+
+/* ---------- Learning data (unchanged): what was really watched, in 5-second slices, plus pauses, jumps and transcript ----------
+   Kept in suspend_data during the attempt, and summarised as interaction lines:
+     video_vu_pct            % of the video watched at least once
+     video_temps_lecture     seconds actually played
+     video_passages_revus    passages watched more than once, e.g. "1:05-1:20 (x3)"
+     video_passages_sautes   passages never watched
+     video_pauses, video_sauts_avant, video_retours_arriere, video_transcription, video_fin_atteinte   counts */
+const SLICE = 5;
+let saved = {};
+try { saved = JSON.parse(scorm.get("cmi.suspend_data") || "{}"); } catch {}
+const stats = { p: 0, f: 0, b: 0, t: 0, e: 0, s: 0, ...saved };     // pauses, forward, back, transcript, ends, seconds
+let counts = [], lastSlice = -1, lastTime = 0, started = false, saves = 0;
+video.addEventListener("loadedmetadata", () => {
+  counts = Array.from({ length: Math.ceil(video.duration / SLICE) }, (_, i) => parseInt((stats.c || "")[i] || "0", 36));
+}, { once: true });
+video.addEventListener("play", () => { started = true; });
+video.addEventListener("timeupdate", () => {
+  if (video.seeking || seekFrom !== null) return;                 // jumping, not watching
+  const t = video.currentTime, d = t - lastTime;
+  if (!video.paused && d > 0 && d < 1.5) stats.s += d;           // normal playback (not a jump)
+  lastTime = t;
+  const i = Math.floor(t / SLICE);
+  if (!video.paused && counts.length && i !== lastSlice && i < counts.length) { counts[i] = Math.min(35, counts[i] + 1); lastSlice = i; }
+});
+// A jump: dragging the progress bar makes many small seeks, so they are grouped into one jump (from → to)
+let seekFrom = null, seekTimer = null;
+video.addEventListener("seeking", () => {
+  if (!started) return;                                           // the resume jump at load is not the learner's
+  if (seekFrom === null) seekFrom = lastTime;
+  clearTimeout(seekTimer);
+  lastSlice = -1;
+});
+video.addEventListener("seeked", () => {
+  if (seekFrom === null) return;
+  clearTimeout(seekTimer);
+  seekTimer = setTimeout(endJump, 600);
+});
+function endJump() {
+  clearTimeout(seekTimer);
+  if (seekFrom === null) return;
+  const d = video.currentTime - seekFrom;
+  if (d > 5) stats.f++; else if (d < -5) stats.b++;
+  seekFrom = null; lastTime = video.currentTime;
+}
+video.addEventListener("pause", () => { if (!video.ended && !video.seeking) stats.p++; saveStats(); });
+video.addEventListener("ended", () => { endJump(); stats.e++; lastSlice = -1; });
+txOpen.addEventListener("click", () => { if (tx.hidden) return; stats.t++; saveStats(); });   // counts openings only
+
+const clock = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+function ranges(test) {                                           // consecutive slices that pass the test → "0:30-0:45 (x2), …"
+  const out = [];
+  counts.forEach((n, i) => {
+    if (!test(n)) return;
+    const last = out[out.length - 1];
+    if (last && last.to === i) { last.to = i + 1; last.max = Math.max(last.max, n); }
+    else out.push({ from: i, to: i + 1, max: n });
+  });
+  return out.map(r => `${clock(r.from * SLICE)}-${clock(Math.min(r.to * SLICE, video.duration))}${r.max > 1 ? ` (x${r.max})` : ""}`).join(", ") || "aucun";
+}
+function saveStats() {
+  if (!counts.length) return;
+  stats.c = counts.map(n => n.toString(36)).join("");
+  scorm.set("cmi.suspend_data", JSON.stringify({ ...stats, s: Math.round(stats.s) }));
+  scorm.record("video_vu_pct", Math.round(counts.filter(n => n > 0).length / counts.length * 100), { type: "numeric" });
+  scorm.record("video_temps_lecture", Math.round(stats.s), { type: "numeric", latency: stats.s });
+  scorm.record("video_passages_revus", ranges(n => n > 1));
+  scorm.record("video_passages_sautes", ranges(n => n === 0));
+  scorm.record("video_pauses", stats.p, { type: "numeric" });
+  scorm.record("video_sauts_avant", stats.f, { type: "numeric" });
+  scorm.record("video_retours_arriere", stats.b, { type: "numeric" });
+  scorm.record("video_transcription", stats.t, { type: "numeric" });
+  scorm.record("video_fin_atteinte", stats.e, { type: "numeric" });
+  scorm.commit();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveStats(); });
+
+/* ---------- Where Claudia is: the start (first visit), aside while the video plays, the end once it has been seen ---------- */
+let watched = scorm.get("cmi.core.lesson_status") === "completed";
+const drawSeen = () => { $("#seen").hidden = !watched; };
+drawSeen();
+if (watched) end();                                   // coming back after the video: the key points and the next page
+else if (resumeAt > 1) { start(); frame.aside(true); } // coming back in the middle: straight to the video
+else start();
+video.addEventListener("play", () => frame.aside(true));
+video.addEventListener("ended", () => {
+  scorm.set("cmi.core.lesson_location", "0");
+  scorm.set("cmi.core.lesson_status", "completed");
+  saveStats();
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  watched = true; drawSeen();
+  end(); frame.aside(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !tx.hidden) { showTranscript(false); txOpen.focus(); }
+});
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

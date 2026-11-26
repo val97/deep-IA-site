@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction du module</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The question's page (version C, since 26 Nov 2026; before: old/index-avant-h2.html, the classroom board; Module 2's page, with Léo).
+     Léo small beside his question in a band across the top (the cut-out figure, no circle); below, the full width:
+     « Pour toi », the teacher's notebook (two ways in: watch or read), and « Pour ta classe », the class board.
+     A tick when a part is done, a mint highlighter on the suggested next one, the way on bottom-right. */
+  .stage { display: flex; flex-direction: column; }
+  .tutor { flex: none; flex-direction: row; align-items: flex-end; gap: 6px; padding: 10px clamp(22px, 3vw, 44px) 0; overflow: visible; }
+  .mini { flex: none; position: relative; width: clamp(90px, 8.5vw, 120px); height: clamp(96px, 13vh, 124px); overflow: hidden; }
+  .mini img { position: absolute; left: 50%; top: 0; width: 150%; height: auto; transform: translateX(-50%); }
+  .bubble { flex: 1; min-width: 0; margin: 0 0 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; padding: 14px 20px; }
+  .bubble::after { left: -8px; bottom: auto; top: 50%; margin-top: -12px; }
+  .bubble .who { flex: none; }
+  .bubble .say { flex: 1 1 360px; margin: 0; font-size: clamp(1.15rem, 2.9vh, 1.45rem); }
+  .bubble .more { flex: 1 1 100%; order: 3; margin: 0; }
+  .bubble .more p + p { margin-top: 6px; }
+  .bubble .replies { flex: none; margin: 0; }
+
+  .desk { flex: 1; min-height: 0; border-left: 0; background: var(--page); --rule: clamp(36px, 5.6vh, 46px);
+          display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: clamp(24px, 3vw, 44px);
+          padding: clamp(14px, 2.6vh, 28px) clamp(22px, 3vw, 44px) clamp(20px, 3.4vh, 36px); }
+  /* the notebook: « Pour toi », a scrapbook page (26 Nov 2026): the two ways in, each as two pictures taped on the page and
+     joined by a drawn arrow (watch: the video then the frise; read: the text then the quiz), « ou » between them, and
+     « Teste tes connaissances » as a taped index card. Done: a round mint stamp. Next: mint tape / mint highlighter.
+     Since 26 Nov 2026 only the first part of each way is shown (the video, the text): the frise and the quiz follow from them. */
+  .notebook { position: relative; display: flex; flex-direction: column; min-height: 0; border-radius: 6px 16px 16px 6px; padding: 4px 26px 20px 76px; rotate: -.8deg; overflow: hidden;
+              background: var(--lilac-tint) repeating-linear-gradient(transparent 0 calc(var(--rule) - 1px), #E3D2F8 calc(var(--rule) - 1px) var(--rule)); box-shadow: var(--paper-shadow); }
+  .notebook::before { content: ""; position: absolute; top: 0; bottom: 0; left: 58px; width: 2px; background: #C9A3FF; }
+  .rings { position: absolute; left: 12px; top: calc(var(--rule) / 2 - 7px); bottom: 0; width: 14px;
+           background: radial-gradient(circle, var(--page) 5px, #B993E8 5.5px 7px, transparent 7.5px) 0 0 / 14px var(--rule) repeat-y; }
+  /* the two headings: « Pour toi » / « Pour ta classe » large, what it is for lighter after it */
+  .notebook h2, .board h2 { margin: 0; font-size: clamp(22px, 3.2vh, 28px); font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
+  .notebook h2 span, .board h2 span { margin-left: .3em; font-weight: 500; opacity: .8; }
+  .notebook h2 { flex: none; height: calc(var(--rule) * 2); display: flex; align-items: flex-end; padding-bottom: 8px; color: var(--violet); }
+  #mine { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+  .ways { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: clamp(10px, 1.6vw, 22px); }
+  .way { height: 100%; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .way-name { flex: none; margin: 0 0 14px; font-size: 15px; font-style: italic; color: var(--violet); }
+  .or { flex: none; align-self: center; margin: 2px 0; padding: 2px 14px; border-radius: 999px; background: #fff; font-size: 15px; font-weight: 700; font-style: italic; color: var(--violet); rotate: -2deg; }
+  /* a picture taped on the page */
+  .snap { position: relative; display: grid; width: min(100%, 280px); justify-self: center; padding: 12px 12px 0; background: #fff;
+          border-radius: 3px; box-shadow: 0 4px 12px rgba(96, 15, 189, .14); text-decoration: none; color: var(--g-deep); rotate: -2deg;
+          transition: rotate .25s var(--ease), translate .25s var(--ease), box-shadow .25s var(--ease); }
+  .way + .or + .way .snap { rotate: 1.6deg; }
+  .snap .pic { aspect-ratio: 16 / 10; overflow: hidden; background: #fff; }
+  .snap .pic img { width: 100%; height: 100%; object-fit: contain; display: block; }   /* the whole picture, never cut */
+  .snap .cap { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 7px 4px 8px; }
+  .snap .cap b { font-size: clamp(15px, 2.1vh, 18px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .snap .cap small { flex: none; font-size: 13px; color: var(--soft); }
+  .snap::before { content: ""; position: absolute; top: -9px; left: 50%; width: 64px; height: 20px; translate: -50% 0; rotate: -4deg;
+                  background: rgba(201, 163, 255, .55); border-radius: 2px; }                                 /* the tape */
+  .snap:hover { rotate: 0deg; translate: 0 -3px; box-shadow: 0 10px 22px rgba(96, 15, 189, .2); }
+  .snap.next { box-shadow: 0 0 0 3px var(--g-main), 0 10px 22px rgba(11, 81, 77, .18); }
+  .snap.next::before { background: rgba(119, 229, 182, .9); }
+  .snap.done .pic { opacity: .55; }
+  .stamp { position: absolute; top: -12px; right: -12px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; rotate: -12deg;
+           background: var(--g-main); color: var(--g-deep); font-size: 22px; font-weight: 800; box-shadow: 0 0 0 3px #fff; }
+  /* « pour finir »: an index card taped on the page, like the pictures */
+  .note { position: relative; flex: none; align-self: center; display: flex; align-items: center; gap: 14px; margin: 22px 0 6px; padding: 14px 22px 12px; background: #fff;
+          border-top: 4px solid #C9A3FF; border-radius: 3px; box-shadow: 0 4px 12px rgba(96, 15, 189, .14); rotate: .8deg; text-decoration: none; color: var(--g-deep);
+          transition: rotate .25s var(--ease), translate .25s var(--ease), box-shadow .25s var(--ease); }
+  .note::before { content: ""; position: absolute; top: -12px; left: 50%; width: 64px; height: 20px; translate: -50% 0; rotate: 3deg; background: rgba(201, 163, 255, .55); border-radius: 2px; }
+  .note small { display: block; font-size: 13px; font-style: italic; color: var(--violet); }
+  .note b { font-size: clamp(17px, 2.4vh, 20px); }
+  .note:hover { rotate: 0deg; translate: 0 -3px; box-shadow: 0 10px 22px rgba(96, 15, 189, .2); }
+  .note.next { box-shadow: 0 0 0 3px var(--g-main), 0 10px 22px rgba(11, 81, 77, .18); }
+  .note.next::before { background: rgba(119, 229, 182, .9); }
+  .note .stamp { position: static; width: 32px; height: 32px; font-size: 17px; box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { .snap, .note { transition: none; } }
+  /* the board: « Pour ta classe » */
+  .board { position: relative; display: flex; flex-direction: column; border-radius: 16px; padding: 18px 22px 26px; margin-bottom: 22px; background: var(--g-deep); color: #fff; border: 12px solid #D9B48A; rotate: .5deg; }
+  .board h2 { padding: 8px 0 4px; color: var(--g-hell); }
+  .ledge { position: absolute; left: -12px; right: -12px; bottom: -24px; height: 12px; border-radius: 6px; background: #C89D6E; }
+  .ledge b { position: absolute; top: -7px; height: 8px; border-radius: 6px; }
+  .ledge b:nth-child(1) { left: 60%; width: 40px; background: #fff; }
+  .ledge b:nth-child(2) { left: calc(60% + 52px); width: 34px; background: #C9A3FF; }
+  .ledge b:nth-child(3) { left: calc(60% + 98px); width: 34px; background: var(--g-main); }
+  /* each activity: a row, as on the page « Activités pour ta classe »: the picture taped on the left (same paper as the notebook),
+     the name, its time and level, a short description, « Voir l'activité » */
+  .acts { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-evenly; gap: 6px; padding-top: 6px; }
+  .row { min-height: 0; display: grid; grid-template-columns: clamp(96px, 9vw, 150px) 1fr; align-items: center; gap: clamp(14px, 1.6vw, 24px); text-decoration: none; color: #fff; }
+  .row .snap { width: 100%; padding: 7px; box-shadow: 0 6px 16px rgba(0, 0, 0, .28); }
+  .row:nth-child(2) .snap { rotate: 1.8deg; }
+  .row .snap .pic { aspect-ratio: 1; }
+  .row .snap::before { width: 44px; height: 14px; top: -7px; background: rgba(255, 255, 255, .6); }
+  .row .stamp { top: -10px; right: -10px; width: 30px; height: 30px; font-size: 16px; }
+  .row h3 { margin: 0; font-size: clamp(18px, 2.6vh, 22px); line-height: 1.2; color: #fff; }
+  .row h3 small { font-size: 14px; font-weight: 500; color: var(--g-hell); white-space: nowrap; }
+  .row p { margin: 4px 0 6px; font-size: clamp(14px, 1.9vh, 16px); line-height: 1.4; color: rgba(255, 255, 255, .86);
+           display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .go { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--g-main); border-bottom: 2px solid var(--g-main); }
+  .row .go svg { width: 16px; height: 16px; }
+  .row:hover .snap { rotate: 0deg; translate: 0 -3px; }
+  .row:hover .go { color: #fff; border-color: #fff; }
+  .row.next .snap { box-shadow: 0 0 0 3px var(--g-main), 0 10px 22px rgba(0, 0, 0, .3); }
+  .row.done .snap .pic { opacity: .7; }
+  .row:focus-visible { outline: 3px solid #C9A3FF; outline-offset: 4px; border-radius: 4px; }
+  /* short screens (laptops at 720 px): smaller pictures, 2 lines of description, the whole row stays the link */
+  @media (max-height: 820px) {
+    .board { padding: 10px 18px 16px; }
+    .row { grid-template-columns: clamp(72px, 7vw, 96px) 1fr; gap: 14px; }
+    .row h3 { font-size: 17px; } .row p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.35; -webkit-line-clamp: 2; }
+    .row .go { display: none; }
+    .row .stamp { width: 24px; height: 24px; font-size: 13px; top: -8px; right: -8px; }
+  }
+  /* Module 3 has one activity (26 Nov 2026): its row is larger, the description whole */
+  .acts:has(> .row:only-child) { justify-content: center; }
+  .row:only-child { grid-template-columns: clamp(150px, 15vw, 240px) 1fr; gap: clamp(18px, 2vw, 30px); }
+  .row:only-child h3 { font-size: clamp(20px, 3vh, 26px); }
+  .row:only-child p { font-size: clamp(15px, 2.1vh, 18px); -webkit-line-clamp: unset; display: block; margin: 8px 0 12px; }
+  @media (max-height: 820px) { .row:only-child .go { display: inline-flex; } }
+  .snap:focus-visible, .note:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }   /* the board's rows keep the light ring: it is on dark green */
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* the heading wraps cleanly (« Pour toi » then « · comprendre »); the pictures' titles may take two lines */
+  .notebook h2, .board h2 { flex-wrap: wrap; align-content: flex-end; column-gap: .3em; }
+  .notebook h2 span, .board h2 span { margin-left: 0; }
+  .snap .cap b { white-space: normal; overflow: visible; }
+  /* tablets and phones (UI review, 26 Nov 2026): one column, the page scrolls; the notebook's two pictures stay side by side */
+  @media (max-width: 1100px) {
+    body { overflow: auto; } .stage { height: auto; min-height: 100vh; }
+    .desk { grid-template-columns: 1fr; grid-template-rows: auto; padding-bottom: 28px; }
+    .notebook, .board { rotate: 0deg; }
+    .notebook { min-height: 0; } .ways { min-height: 0; }
+    .way .snap { width: min(100%, 300px); }
+  }
+  @media (max-width: 760px) {
+    .mini { display: none; } .bubble::after { display: none; }
+    .notebook { padding: 0 16px 18px 56px; } .notebook::before { left: 44px; } .rings { left: 8px; }
+    .ways { grid-template-columns: 1fr; gap: 10px; } .or { justify-self: center; }
+    .row { grid-template-columns: 76px 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" aria-label="Léo">
+    <span class="mini" aria-hidden="true"><img id="guide" src="../../bienvenue/images/leo-ouvre.png" alt=""></span>
+    <div class="bubble" aria-live="polite"><span class="who">Léo</span><h1 class="say" id="say"></h1><div class="more" id="more"></div><div class="replies" id="replies"></div></div>
+  </section>
+  <section class="desk" aria-label="La question">
+    <nav class="notebook" aria-labelledby="h-me"><span class="rings" aria-hidden="true"></span><h2 id="h-me">Pour toi <span>· comprendre</span></h2><div id="mine"></div></nav>
+    <nav class="board" aria-labelledby="h-class"><h2 id="h-class">Pour ta classe <span>· enseigner</span></h2><div id="class" style="display:contents"></div><div class="ledge" aria-hidden="true"><b></b><b></b><b></b></div></nav>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   PARTS : les parties du module au tableau.
+     title : nom de l'activité (en haut du résumé) — sum : résumé (au survol) — time : durée (vide = pas affichée)
+     href  : lien Moodle ("" = « Bientôt disponible »)
+   ============================================================ */
+const MODULE_TITLE = "Quand et comment utiliser l’IA judicieusement ?";
+const WALL_TEXT = "Commence où tu veux : il n’y a pas d’ordre.";
+const OPTIONAL = "… ou les deux !";      // sous « Vidéo ou Texte », au tableau
+// Les deux colonnes du tableau : pour qui, et pour quoi faire
+const COLUMNS = [["Pour l’enseignant·e", "Comprendre l’IA"], ["Pour les élèves", "Enseigner l’IA"]];
+
+const PARTS = {
+  video:   { title: "Vidéo", time: "≈ 10 min", href: "../../play.html?a=Module3/video-usages",
+             sum: "Un sketch avec l’Encodeur, le Calculateur et le Rédacteur : faut-il demander tout et n’importe quoi à l’IA ?" },
+  texte:   { title: "Texte", time: "≈ 10 min", href: "../../play.html?a=Module3/texte-usages",
+             sum: "Quelles tâches déléguer à l’IA, comment bien formuler sa demande, et pourquoi l’humain reste le chef d’orchestre." },
+  checkup: { title: "Teste tes connaissances", time: "", href: "",
+             sum: "Quelques questions pour faire le point sur ce que tu as appris dans ce module." },
+  classe:  { title: "Identif’IA", time: "20 min · 4-9P", href: "../../play.html?a=Module3/intro-module",
+             sum: "Une activité clé en main : tes élèves classent des situations du quotidien et découvrent ce que l’IA sait faire… ou pas." }
+};
+
+/* « ? » : les diapos 19-20 de Bienvenue (x, y, w : position et largeur de la bulle) */
+const HELP = [
+  [{ who: "leo", text: "Dans chaque module, il y a deux choses : pour toi, l’enseignant·e, de quoi comprendre l’IA à ton rythme ; et pour tes élèves, des activités en classe pour leur enseigner l’IA.", x: 650, y: 700, w: 840 }],
+  [{ who: "claudia", text: "Et je dois tout faire : la vidéo, le texte… ?", x: 700, y: 590, w: 520 },
+   { who: "leo", text: "Non ! La vidéo et les diapositives se complètent : prends l’un, l’autre ou les deux. Ensuite, les activités sont prêtes pour tes élèves.", x: 650, y: 715, w: 840 }]
+];
+
+const INTRO = "";
+const LINKS = [];
+
+/* ---------- La page de la question (version C, comme les modules 1 et 2 ; 26 nov. 2026). Les textes de l'ancien tableau ci-dessus
+   ne sont plus affichés, sauf ceux repris plus bas. Sur le site, la page lit les parties dans site/src/parcours.js (parts de « quand »). ---------- */
+const QUESTION = "quand";
+
+/* Ce que dit Léo : la première fois, quand on revient, quand tout est fait */
+const FIRST_SAY = "Quand utilise-t-on l’IA&nbsp;?";                                       // le titre de la question sur le site (site/src/parcours.js)
+const FIRST_MORE = "Dans ton cahier, ce qui est pour toi. Au tableau, ce qui est pour ta classe.";   // (comme aux modules 1 et 2)
+const BACK_SAY = "Bon retour&nbsp;! On reprend là où tu en étais.";                        //
+const BACK_MORE = (n, total) => `${n} sur ${total} faits.`;                               //
+const ALL_SAY = "Tu as fait le tour de cette question.";                                  //
+const ALL_MORE = "Ta classe a une activité prête. Tu peux revenir ici quand tu veux.";     //
+
+/* Le cahier : le nom des deux chemins, le mot entre eux, le petit mot de la fiche ; les images des parties.
+   Chaque chemin montre seulement sa première partie (la vidéo, les diapositives) : les cartes et les exercices viennent après.
+   Pas de « Teste tes connaissances » au module 3 pour l'instant (choix du 26 nov. 2026). */
+const WAYS = ["À regarder", "À lire"];                                                    //
+const OR = "ou";
+const LAST = "Pour finir";                                                                //
+const PICS = { video: "images/part-video.jpg", texte: "images/part-texte.jpg" };          // une image de la vidéo (0:20), la diapositive 2
+
+/* Le tableau : une image de chaque activité, son temps et son niveau, et sa description
+   (la description de la page « Activités pour ta classe », textseite-activites.html ; le temps : le plan de l'activité, 5 étapes · 45 min) */
+const ACT_META = { identifia: "45&nbsp;min · 4–6P" };                                      //
+const ACT_TEXT = {
+  identifia: "Les élèves associent des images de machines à leur légende, puis en discutent&nbsp;: que fait la machine pour nous&nbsp;? Est-elle intelligente&nbsp;? Quels usages sont les plus utiles&nbsp;?"
+};
+const SEE = "Voir l’activité";
+const ACT_PICS = { identifia: "../images-catalogue/identifia-carre.jpg" };                // quatre cartes du jeu (les cartes d'un groupe, étape 1)
+
+/* « Je dois tout faire ? » : la question, puis la réponse de Léo (l'ancienne aide « ? », diapos 19-20 de Bienvenue) */
+const WHY_ASK = "Je dois tout faire&nbsp;?";                                              // (de la réplique de Claudia)
+const WHY = "<p>Non&nbsp;! La vidéo et les diapositives se complètent&nbsp;: prends l’un, l’autre ou les deux.</p><p>Ensuite, les activités sont prêtes pour tes élèves.</p>";   // l'ancienne réponse de Léo, en deux paragraphes
+const WHY_BACK = "Merci&nbsp;!";                                                          //
+/* ============================================================ */
+
+const $ = id => document.getElementById(id);
+/* Opened on its own (a bookmark, a direct link): back into the player, which holds the path (code review) */
+if (parent === window || !parent.DEEP) location.replace("../../play.html?a=Module3/intro-module");
+const D = parent.DEEP || { byId: () => ({ parts: [] }), isDone: () => false, suggest: () => null, load: () => ({ questions: [] }) };   // the player's list (site/src/parcours.js); a stand-in while reopening
+const scorm = Shell.connect();
+const t0 = Date.now(), secs = () => Math.round((Date.now() - t0) / 1000);
+const q = D.byId(QUESTION), parts = q.parts, ME = parts.filter(x => x.side === "me"), CLASS = parts.filter(x => x.side === "class");
+const play = x => `../../play.html?a=${x.a}`;
+const low = s => s.replace(/^./, c => c.toLowerCase());
+
+/* ---------- Learning data (as the old board): each part opened (partie_<id>, once, with the time on this page), the order,
+   « Je dois tout faire ? » (aide). The page is « completed » once something is opened. ---------- */
+let opened = [];
+try { opened = JSON.parse(scorm.get("cmi.suspend_data") || "{}").opened || []; } catch {}
+function open(id) {
+  if (!opened.includes(id)) { scorm.record(`partie_${id}`, "ouverte", { latency: secs() }); opened.push(id); }
+  scorm.record("parties_ordre", opened.join(" "));
+  scorm.set("cmi.suspend_data", JSON.stringify({ opened }));
+  scorm.set("cmi.core.lesson_status", "completed");
+  scorm.commit();
+}
+document.addEventListener("click", e => { const a = e.target.closest("[data-part]"); if (a) open(a.dataset.part); });
+
+function draw(why = false) {
+  const done = new Set(parts.filter(D.isDone).map(x => x.id)), next = D.suggest(q), all = !next;
+  const tick = x => done.has(x.id) ? "✓" : "";
+  const fait = on => on ? '<span class="sr"> · fait</span>' : "";
+  const stamp = on => on ? '<span class="stamp" aria-hidden="true">✓</span>' : "";
+  /* a way: its first part as the picture; done when all its parts are done; the suggested one when the next part is in it */
+  const snap = w => { const x = w[0], ok = w.every(y => done.has(y.id)), nx = w.includes(next);
+    return `<a class="snap${ok ? " done" : ""}${nx ? " next" : ""}" href="${play(nx ? next : x)}" target="_top" data-part="${nx ? next.id : x.id}">
+      <span class="pic"><img src="${PICS[x.id]}" alt=""></span><span class="cap"><b>${x.t}</b><small>${x.m}</small></span>${stamp(ok)}${fait(ok)}</a>`; };
+  const ways = [1, 2].map(w => ME.filter(x => x.way === w)), rest = ME.filter(x => !x.way);
+  $("mine").innerHTML = `<div class="ways">${ways.map((w, i) => `<div class="way"><p class="way-name">${WAYS[i]}</p>${snap(w)}</div>`).join(`<span class="or">${OR}</span>`)}</div>`
+    + rest.map(x => `<a class="note${done.has(x.id) ? " done" : ""}${x === next ? " next" : ""}" href="${play(x)}" target="_top" data-part="${x.id}">
+      <span><small>${LAST}</small><b>${x.t}</b></span>${stamp(done.has(x.id))}${fait(done.has(x.id))}</a>`).join("");
+  $("class").innerHTML = `<div class="acts">${CLASS.map(x => `<a class="row${done.has(x.id) ? " done" : ""}${x === next ? " next" : ""}" href="${play(x)}" target="_top" data-part="${x.id}">
+    <span class="snap"><span class="pic"><img src="${ACT_PICS[x.id]}" alt=""></span>${stamp(done.has(x.id))}</span>
+    <div><h3>${x.t} <small>· ${ACT_META[x.id]}</small></h3><p>${ACT_TEXT[x.id]}</p><span class="go">${SEE}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>${fait(done.has(x.id))}</div></a>`).join("")}</div>`;
+
+  $("guide").src = `../../bienvenue/images/leo-${why ? "pense" : "ouvre"}.png`;   // Léo has three poses; « montre » points away from his bubble
+  $("say").innerHTML = why ? WHY_ASK : all ? ALL_SAY : done.size ? BACK_SAY : FIRST_SAY;
+  $("more").innerHTML = why ? WHY : all ? ALL_MORE : done.size ? BACK_MORE(done.size, parts.length) : FIRST_MORE;
+  const chip = Object.assign(document.createElement("button"), { type: "button", className: "chip", innerHTML: why ? WHY_BACK : WHY_ASK });
+  chip.addEventListener("click", () => { if (!why) { scorm.record("aide", "ouverte", { latency: secs() }); scorm.commit(); } draw(!why); $("replies").firstChild?.focus(); });
+  $("replies").replaceChildren(chip);
+
+  /* No « Continuer » button while there is something to do: the mint outline shows it (26 Nov 2026). Once everything is done,
+     the way on comes back bottom-right, with the top bar's label (« Question suivante » / « Terminer »; usability review) */
+  document.getElementById("f-next")?.remove();
+  const barNext = (() => { try { return parent.document.getElementById("next"); } catch { return null; } })();
+  if (all && barNext && !barNext.hidden) {
+    const b = Object.assign(document.createElement("button"), { type: "button", id: "f-next", className: "f-next" });
+    b.innerHTML = `${barNext.firstChild.textContent.trim()}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+    b.onclick = () => barNext.click();
+    document.body.appendChild(b);
+  }
+}
+draw();
+addEventListener("pageshow", e => { if (e.persisted) draw(); });   // back from an activity: the ticks are up to date
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

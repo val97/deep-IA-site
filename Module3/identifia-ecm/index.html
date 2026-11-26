@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Identif'IA niveau 1</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<!--
+  Identif'IA niveau 1, matériel éducatif (ECM), dans le cadre H2 depuis le 26 nov. 2026 (comme La Machine à Histoires, module 2) ;
+  avant : old/index-avant-h2.html (mise en page de Robot dessine 1 : colonne de Léo, jeu à droite, tiroir « Pour comprendre »).
+  Le jeu, ses textes et ses données sont les mêmes ; le plateau garde sa taille d'origine et est mis à l'échelle du pupitre.
+  Les textes sont tous dans la partie CONTENU du script, plus bas ; les nouveaux libellés du cadre sont marqués.
+-->
+<style>
+  /* Identif'IA in the H2 frame. Léo stays beside the work as tutor: what you do now (his line), « Demande à Léo »
+     (Pourquoi cette étape ? · Les élèves pensent · Ce que le jeu simplifie · Peu de temps ?), the way on as the one mint button.
+     8 screens: ? Pourquoi · Avant la séance · the 5 steps · ✓ Fin (the lesson sheet). Mockup: site/design/mockups/activite-identifia.html. */
+
+  .desk { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+  .desk h2.dt { font-size: calc(15 * var(--u)); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--violet); }
+  /* the game: the old board at its own size (BOARD_W × BOARD_H), scaled to the space left on the desk */
+  .boardwin { position: relative; flex: 1; min-height: 120px; }
+  .game { position: absolute; left: 0; top: 0; transform-origin: 0 0; font: 400 22px/1.4 Inter, system-ui, sans-serif; color: #1F1F1F; display: flex; flex-direction: column; }
+  .game button { font: inherit; color: inherit; cursor: pointer; }
+  .game > .board { height: 100%; }
+  .under { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+  .under .grow { flex: 1; }
+  #acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  #acts .chip { min-height: 44px; font-size: calc(16 * var(--u)); }
+  #consigne { flex: 0 1 auto; max-width: min(640px, 70%); rotate: .8deg; }   /* beside the game's buttons, under the board */
+  .under { align-items: flex-end; }
+  .card-consigne[hidden] { display: none; }
+  .desk > .card-consigne { align-self: flex-start; max-width: 560px; flex: none; }   /* at the top of the desk, as in Module 1: always in the same place (user, 26 Nov 2026) */
+  .rotate { display: none; }
+  /* ? Pourquoi: the notions */
+  .notions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .ncard { padding: 18px 20px; } .ncard:nth-child(2) { rotate: .6deg; } .ncard:nth-child(3) { rotate: -.4deg; }
+  .ncard h3 { font-size: calc(21 * var(--u)); color: var(--g-deep); margin-bottom: 6px; } .ncard p { font-size: calc(17 * var(--u)); line-height: 1.45; }
+  .after { font-size: calc(15 * var(--u)); color: var(--soft); }
+  /* Avant la séance */
+  .plan { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .stepc { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; border: 1.5px solid var(--hair); background: #fff; text-align: left; font: inherit; cursor: pointer; }
+  .stepc:hover { border-color: var(--g-deep); }
+  .stepc .sn { display: flex; align-items: center; gap: 8px; font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .stepc .sn i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); border: 2px solid var(--g-deep); }
+  .stepc.done .sn i { background: var(--g-deep); color: #fff; }
+  .stepc h3 { font-size: calc(18 * var(--u)); line-height: 1.25; color: var(--g-deep); } .stepc p { font-size: calc(15 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .stepc .short { align-self: flex-start; margin-top: 2px; padding: 1px 8px; border-radius: 999px; border: 1.5px dashed var(--soft); font-size: calc(11 * var(--u)); font-weight: 700; color: var(--soft); }
+  .total { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--g-deep); text-align: right; margin-top: -6px; }
+  .prep { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .mat { padding: 14px 16px; } .mat h3 { font-size: calc(19 * var(--u)); color: var(--g-deep); margin-bottom: 8px; }
+  .mat ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: calc(17 * var(--u)); line-height: 1.4; }
+  .side { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .thumb { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border: 0; cursor: pointer; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); rotate: -1deg; text-align: left; }
+  .thumb img { width: 84px; height: auto; border-radius: 4px; }
+  .pdfs { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* ✓ Fin: « Ce que l'activité simplifie » */
+  .simp { width: 100%; border-collapse: collapse; font-size: calc(14 * var(--u)); line-height: 1.4; background: #fff; }
+  .simp th { text-align: left; padding: 8px 10px; font-size: calc(13 * var(--u)); color: var(--g-deep); border-bottom: 2px solid var(--g-deep); }
+  .simp th.ai, .simp td.ai { background: var(--lilac-tint); }
+  .simp td { padding: 7px 10px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .simp td .st { display: block; font-size: calc(12 * var(--u)); color: var(--soft); }
+  .scroll { min-height: 0; overflow: auto; }
+  /* the last screen: the lesson as a sheet (as in Modules 1 and 2) */
+  .lesson { --u: clamp(1px, calc(.08px + .1vh), 1.35px); display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 22vw, 280px); grid-template-rows: auto 1fr; gap: 6px clamp(20px, 2.6vw, 36px); align-self: start; padding: clamp(18px, 3vh, 28px) clamp(20px, 2.6vw, 32px); rotate: -.3deg; }
+  .ls-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--g-tint); }
+  .ls-head h2 { font-size: clamp(1.3rem, 3vh, 1.7rem); color: var(--g-deep); }
+  .ls-head span { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .ls-steps::before { content: ""; position: absolute; left: 17px; top: 24px; bottom: 24px; width: 2px; background: var(--g-hell); }
+  .ls-step { position: relative; width: 100%; display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 6px 10px 6px 0; border: 0; border-radius: 10px; background: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+  .ls-step:hover { background: var(--g-tint); }
+  .ls-step i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); background: #fff; border: 2px solid var(--g-deep); }
+  .ls-step.done i { background: var(--g-deep); color: #fff; }
+  .ls-body { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .ls-body b { font-size: clamp(16px, 2.2vh, 18px); color: var(--g-deep); }
+  .ls-body small { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-found { grid-column: 1 / -1; font-size: calc(14 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .ls-say { grid-column: 1 / -1; margin-top: 2px; padding: 4px 8px; border-radius: 8px; background: var(--g-tint); font-size: calc(14 * var(--u)); line-height: 1.35; color: var(--g-deep); }
+  .ls-say em { display: inline; margin-right: 4px; font-style: normal; font-size: calc(12 * var(--u)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .ls-mat { grid-row: 2; grid-column: 2; display: flex; flex-direction: column; gap: 10px; padding-left: clamp(16px, 2vw, 28px); border-left: 2px dashed var(--hair); }
+  .ls-mat h3 { font-size: calc(13 * var(--u)); font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--violet); }
+  .ls-sheet { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; border: 1.5px solid var(--hair); background: #fff; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); cursor: pointer; }
+  .ls-sheet:hover { border-color: var(--g-deep); }
+  .ls-sheet img { width: 100%; max-height: 26vh; object-fit: contain; box-shadow: var(--paper-shadow); rotate: 1.5deg; }
+  .ls-mat .tool { justify-content: center; }
+  /* the printed cards, large */
+  .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(11, 81, 77, .45); display: grid; place-items: center; padding: 24px; }
+  .lightbox[hidden] { display: none; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: var(--paper-shadow); background: #fff; }
+  .lightbox .x { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border-radius: 10px; border: 0; background: #fff; color: var(--g-deep); cursor: pointer; display: grid; place-items: center; }
+  /* short screens (laptops at 720 px): the plan without its summaries, smaller papers, so each screen stays whole */
+  @media (max-height: 800px) and (min-width: 761px) {
+    .stepc p { display: none; } .stepc { padding: 8px 10px; }
+    .mat { padding: 10px 14px; } .mat ul { font-size: calc(14 * var(--u)); gap: 4px; }
+    .thumb { padding: 6px 10px 6px 6px; font-size: calc(14 * var(--u)); } .thumb img { width: 60px; }
+    .side .card-consigne p { font-size: calc(14 * var(--u)); }
+    .notions .ncard p { font-size: calc(14 * var(--u)); line-height: 1.4; }
+    .lesson { padding: 14px 18px; gap: 4px 20px; } .ls-head { padding-bottom: 6px; } .ls-steps { gap: 0; } .ls-step { padding-block: 3px; }
+    .ls-found { display: none; } .ls-say { font-size: calc(13 * var(--u)); margin-top: 0; padding: 3px 8px; }
+    .ls-sheet img { max-height: 18vh; } .ls-mat { gap: 6px; }
+  }
+  @media (max-height: 640px) and (min-width: 761px) { .ls-say { display: none; } .ls-found { display: block; } }
+  @media (max-width: 1100px) { .notions { grid-template-columns: 1fr; } .plan { grid-template-columns: repeat(3, minmax(0, 1fr)); } .prep { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .lesson { grid-template-columns: 1fr; } .ls-mat { grid-row: auto; grid-column: 1; padding-left: 0; border-left: 0; } }
+  /* tablets held upright: the board is small, as before the activity asks to turn the tablet (ROTATE_MSG) */
+  @media (orientation: portrait) and (max-width: 1024px) { .rotate { display: block; padding: 10px 12px; border-radius: 10px; background: var(--lilac-tint); color: var(--violet); font-size: calc(14 * var(--u)); font-weight: 700; } }
+  @media (max-width: 760px) {
+    .boardwin { flex: none; }
+    .card-consigne { max-width: none; }
+    .plan { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ---------- The game's own look (the old page's board, unchanged, scoped to .game) ---------- */
+  .game {
+    --g-tint:#E9FCF4; --g-hell:#BBF2DB; --g-main:#77E5B6; --g-dunkel:#16AAA1; --g-deep:#0B514D;
+    --l-tint:#F4EBFF; --l-hell:#E4CCFF; --l-main:#A85CFF; --l-deep:#600FBD;
+    --red:#C4314F;
+    --page:#FBFBF9; --card:#FFFFFF; --grau:#F7F7F7; --hair:#E6E6E6; --g3:#BFBFBF; --soft:#595959; --ink:#1F1F1F;
+    --r:8px;
+    --head:60px;      /* la hauteur du bandeau du haut, avec le titre de l'écran (avant le 18 nov. 2026 : 96 px, avec le nom de l'activité) */
+    --foot:66px;      /* la hauteur de la barre du bas (avant : 104 px) ; l'écran prend le reste : 900 − 72 − 76 = 752 px */
+    --dash:#8C8C8C;   /* les traits pointillés et les points creux de la ligne de la leçon (3,3 : 1 sur blanc) */
+  }
+  .game .acts:empty { display: none; }
+  .game .board { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r); padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .game .board.g-fade > * { animation: g-fade .35s both; }
+  @keyframes g-fade { from { opacity: 0; } }
+  .game .blabel { font: 500 17px/1.3 "Inter", system-ui, sans-serif; color: var(--soft); }
+  .game .foundbox { padding: 12px 18px; border-radius: var(--r); background: var(--g-tint); border: 1.5px solid var(--g-hell); font-size: 21px; line-height: 1.35; }
+  .game .foundbox b { display: block; font: 600 17px/1.3 "Inter", system-ui, sans-serif; color: var(--g-deep); margin-bottom: 2px; }
+  @keyframes g-shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+  /* Étape 4 : la trace écrite, comme une page de cahier */
+  .game .tboard { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.25fr 1fr; gap: 22px; }
+  .game .tshow { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; border-radius: var(--r); background: var(--grau); animation: g-fade .4s both; }
+  .game .tshow .pt { margin: 0; font: 600 17px/1.3 "Inter", system-ui, sans-serif; color: var(--soft); }
+  .game .tshow img { display: block; max-width: 100%; object-fit: contain; }
+  .game .tfix { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-size: 24px; line-height: 1.35; }
+  .game .tfix del { color: var(--red); }
+  .game .tfix .arr { width: 30px; height: 30px; color: var(--soft); }
+  .game .tfix b { padding: 10px 16px; background: var(--g-tint); border: 1.5px solid var(--g-dunkel); border-radius: var(--r); color: var(--g-deep); }
+  .game .tpair { display: flex; gap: 16px; }
+  .game .tpair figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 10px; background: #fff; border: 1px solid #d6d3c8; border-radius: 4px; }
+  .game .tpair figcaption { font-size: 18px; font-weight: 600; color: var(--soft); }
+  .game .trace { min-height: 0; background: #fff; border: 1px solid #d6d3c8; border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.10); padding: 20px 28px 22px; }
+  .game .trace .pt { margin: 0 0 14px; font: 600 17px/1.3 "Inter", system-ui, sans-serif; color: var(--soft); }
+  .game .trace ol { margin: 0; padding: 0 0 0 32px; display: grid; gap: 14px; }
+  .game .trace li { font-size: 23px; line-height: 1.42; }
+  .game .trace li::marker { font-family: "Inter", system-ui, sans-serif; font-weight: 600; color: var(--g-deep); }
+  .game .trace li b { color: var(--g-deep); }
+  .game .trace li.todo { color: var(--hair); }
+  .game .trace li.todo::marker { color: var(--hair); }
+  .game .trace li.new { animation: g-fade .5s cubic-bezier(.16, 1, .3, 1) both; }
+  .game .idb { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .game .idb.wide { grid-template-columns: 1.55fr 1fr; }
+  .game .idb .col1 { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+  .game .legend { padding: 16px 24px 20px; background: #fff; border: 1px solid #d6d3c8; border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.10); }
+  .game .legend .pt, .game .hints .pt { margin: 0 0 6px; font: 600 17px/1.3 "Inter", system-ui, sans-serif; color: var(--soft); }
+  .game .legend .lt { font-size: 30px; line-height: 1.3; font-weight: 500; }
+  .game .empty { color: var(--g3); font-size: 22px; } .game .empty.big { margin: auto; color: var(--soft); }
+  .game .pairs { display: grid; gap: 8px; }
+  .game .pair { display: flex; align-items: center; gap: 14px; padding: 6px 10px 6px 6px; background: var(--g-tint); border: 1px solid var(--g-hell); border-radius: var(--r); animation: g-fade .4s both; }
+  .game .pair img { width: 84px; height: 56px; object-fit: cover; border-radius: 4px; }
+  .game .pair b { display: block; font-size: 19px; font-weight: 600; color: var(--g-deep); } .game .pair span { display: block; font-size: 16px; line-height: 1.3; color: var(--soft); }
+  .game .pcards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .game .pcard { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 10px; border: 1px solid #d6d3c8; border-radius: 6px; background: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.08); text-align: center; transition: transform .15s, box-shadow .15s; }
+  .game .pcard:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.12); }
+  .game .pcard img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 3px; }
+  .game .pcard .pn { font-size: 20px; font-weight: 600; line-height: 1.2; }
+  .game .pcard .pd { font-size: 15px; line-height: 1.3; color: var(--soft); }
+  .game .pcard.sel { outline: 4px solid var(--l-main); outline-offset: 2px; }
+  .game .pcard.no { border-color: var(--red); animation: g-shake .4s; }
+  .game .pcard.used { opacity: .3; cursor: default; box-shadow: none; }
+  @keyframes g-shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  /* Étape 2 : les indices, les 3 colonnes, les cartes à ranger */
+  .game .hints { flex: none; padding: 10px 18px 12px; background: var(--grau); border-radius: var(--r); }
+  .game .hints ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .game .hints li { font-size: 18px; line-height: 1.35; } .game .hints b { color: var(--g-deep); }
+  .game .cols3 { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .game .ccol { display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px 12px; border: 2px dashed var(--g3); border-radius: 12px; background: #fff; text-align: left; cursor: default; }
+  .game .cols3.picking .ccol { cursor: pointer; border-color: var(--g-dunkel); } .game .cols3.picking .ccol:hover { background: var(--g-tint); border-style: solid; }
+  .game .ch { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 600; }
+  .game .cdot { flex: none; display: inline-block; width: 18px; height: 18px; border-radius: 50%; margin-right: 2px; }
+  .game .cin { display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+  .game .mini { width: calc(50% - 4px); display: flex; flex-direction: column; gap: 3px; font-size: 15px; font-weight: 600; line-height: 1.2; animation: g-fade .4s both; }
+  .game .mini img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 4px; border: 1px solid var(--hair); }
+  .game .foundbox.prop { flex: none; font-size: 19px; padding: 10px 16px; }
+  .game .todo2 { flex: none; display: flex; align-items: center; gap: 14px; }
+  .game .todo2 .blabel { flex: none; }
+  .game .trow { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .game .trow .pcard { padding: 6px 6px 8px; } .game .trow .pcard img { aspect-ratio: 2 / 1; } .game .trow .pcard .pn { font-size: 17px; }
+  /* Étapes 3 et 4 : le tableau des 24 cartes */
+  .game .wall { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 1fr; gap: 8px; }
+  .game .wcard { min-height: 0; display: flex; flex-direction: column; gap: 3px; padding: 4px 4px 5px; border: 1px solid #d6d3c8; border-radius: 5px; background: #fff; text-align: center; }
+  .game .wcard img { width: 100%; flex: 1; min-height: 0; object-fit: cover; border-radius: 3px; }
+  .game .wcard span { font-size: 13.5px; font-weight: 600; line-height: 1.15; }
+  .game .wcard:hover { border-color: var(--g-dunkel); }
+  .game .wcard.seen { background: var(--g-tint); border-color: var(--g-hell); }
+  .game .wcard.sel { outline: 4px solid var(--l-main); outline-offset: 1px; }
+  .game .qcol { justify-content: flex-start; }
+  .game .qcard { display: flex; gap: 14px; align-items: center; padding: 8px; background: #fff; border: 1px solid #d6d3c8; border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+  .game .qcard img { width: 150px; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 3px; }
+  .game .qcard b { display: block; font-size: 22px; font-weight: 600; } .game .qcard span { display: block; font-size: 17px; line-height: 1.3; color: var(--soft); }
+  .game .qa { border: 1.5px solid var(--g-deep); border-radius: var(--r); background: #fff; }
+  .game .qa.on { border-color: var(--g-hell); background: var(--g-tint); }
+  .game .qq { width: 100%; min-height: 58px; padding: 10px 16px; border: 0; background: none; text-align: left; font-size: 20px; font-weight: 600; color: var(--g-deep); }
+  .game .qa:not(.on) .qq:hover { background: var(--g-tint); }
+  .game .qr { padding: 0 16px 14px; font-size: 20px; line-height: 1.4; animation: g-fade .35s both; }
+  .game .tagd { display: inline-block; padding: 2px 10px; margin-right: 4px; border-radius: 999px; font-size: 17px; font-weight: 600; background: #fff; border: 1px solid var(--g-hell); color: var(--g-deep); }
+  .game .tagd.place { color: #8A4B00; border-color: #F2C98B; }
+  .game .three { margin: 0; padding: 0 0 0 28px; display: grid; gap: 10px; }
+  .game .three li { font-size: 21px; } .game .three li::marker { font-weight: 600; color: var(--g-deep); }
+  .game .three li > * { vertical-align: middle; } .game .three img { width: 72px; height: 48px; object-fit: cover; border-radius: 4px; margin-right: 12px; }
+  .game .three li.todo { color: var(--g3); }
+  /* Étape 5 : les cartes montrées à côté de la trace écrite */
+  .game .tpair { display: flex; gap: 18px; }
+  .game .tpair figure { margin: 0; width: 210px; padding: 8px; background: #fff; border: 1px solid #d6d3c8; border-radius: 6px; }
+  .game .tpair img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 3px; }
+  .game .tpair figcaption { margin-top: 6px; display: flex; align-items: center; gap: 6px; font-size: 18px; font-weight: 600; }
+  .game .tpair .cdot { width: 14px; height: 14px; }
+  /* few items on the desk (notions, plan, material): the group sits in the middle of the desk, not against the top
+     (layout brief, 26 Nov 2026); the Consigne card stays at the top. Only here: other pages' desks are grids. */
+  .desk > :first-child:not(.card-consigne):not(.rotate) { margin-top: auto; }
+  .desk > :last-child:not(.card-consigne) { margin-bottom: auto; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" id="desk" aria-label="Ton pupitre"></section>
+</main>
+<div class="lightbox" id="lightbox" hidden><button type="button" class="x" id="lb-close" aria-label="Fermer"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><img id="lb-img" src="" alt=""></div>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   D'après le guide « Identif'IA » (le PDF « Identif'ia activités DEEP IA », 9 nov. 2026, dans Module3/identifia/media) : 4 étapes
+   (Associer cartes et légendes · Les machines fonctionnent-elles toutes avec de l'IA ? · Que fait la machine pour nous ? · Les plus utiles).
+   Cette version a 5 étapes : la trace écrite (les 3 phrases de conclusion de l'étape 2 du guide) est l'étape 5.
+   Mise en page de Robot dessine 1 / La Machine à Histoires (STYLE-GUIDE.md § 5), 23 nov. 2026. Léo remplace Anne.
+   11 écrans : 4 écrans pour toi (pourquoi, les notions, préparer la séance, le plan), les 5 étapes, ce que l'activité simplifie, la fin.
+   On passe à l'écran suivant SEULEMENT avec la flèche → en bas.
+   Les espaces avant : ? ! ; » et après « , et les apostrophes ’ sont mis tout seuls à l'affichage (fonction nb).
+   TEXTES À VÉRIFIER PAR L'ÉQUIPE : le récit de Léo est un BROUILLON.
+   Photos des cartes : Canva, sauf Tri des déchets (actu.fr), Chanteuse IA (Xania Monet), Filtres photo (media.io), comme sur les cartes.
+   ============================================================ */
+const TITLE = "Identif'IA niveau 1";
+const GUIDE_PDF = "media/page-identifia.pdf";      // la page enseignant·e à imprimer
+const CARDS_PDF = "media/cartes-identifia.pdf";    // les 24 cartes et leurs légendes, à imprimer
+const CARDS_IMG = "images/cartes-identifia.png";   // une page des cartes, vue en grand depuis « Préparer la séance » et la fin
+
+/* Les boutons (1 à 3 mots) */
+const BTN = {
+  prev: "Écran précédent", next: "Écran suivant", plan: "Plan de la leçon", close: "Fermer",
+  nextStep: "Étape suivante", finish: "Terminer",
+  write: n => `Écrire la ligne ${n}`,                                           // étape 5
+  guide: "Guide (PDF)", sheetPdf: "Les cartes (PDF)", sheet: "Voir les cartes", sheetShort: "Voir les cartes", again: "Recommencer la leçon"
+};
+const ROTATE_MSG = "Tourne ta tablette à l’horizontale pour faire l’activité.";
+
+/* ---------- Écran 1 : Avant de commencer. Le récit de Léo : BROUILLON pour l'équipe.
+   Mets TALE_DRAFT à "" quand le texte est validé : l'étiquette disparaît. ---------- */
+const TALE_DRAFT = "";
+const TALE = [
+  "« Elle est trop intelligente ! » m’a dit Lina en montrant sa calculatrice. Pour mes élèves, tout ce qui a un écran ou des boutons est une IA.",
+  "Pourtant, beaucoup de machines <b>suivent une règle</b> écrite à l’avance : elles font toujours exactement la même chose. D’autres ont appris avec des exemples : elles <b>reconnaissent</b> une voix, un visage, une image, ou <b>s’adaptent</b> à nous. Et souvent, on ne voit même pas l’IA.",
+  "Alors on part de machines du quotidien, en photo. On les range : avec IA, parfois, sans IA. Puis on se demande ce qu’elles font pour nous : est-ce qu’elles <b>nous aident</b>, ou est-ce qu’elles <b>font à notre place</b> ?"
+];
+const IDEA_LABEL = "L’idée à faire passer";
+const IDEA = "Une machine peut savoir faire des choses mais n’a pas la même intelligence que l’humain. Il faut l’utiliser en connaissant ses avantages et ses limites.";   // le guide
+
+/* ---------- Écran 2 : les notions de la séance ---------- */
+const NOTIONS_TITLE = "Les notions de la séance";
+const NOTIONS = [
+  { term: "Avec ou sans IA", def: "Une machine sans IA <b>suit une règle</b> écrite à l’avance : elle fait toujours exactement la même chose (la calculatrice). Une machine avec IA a été entraînée avec des exemples : elle <b>reconnaît</b> une voix, un visage, une image, ou elle <b>s’adapte</b> à nous (le traducteur)." },
+  { term: "Reconnaître, prédire, recommander, produire", def: "Ce que fait une IA : reconnaître un visage, prédire les bouchons, recommander une vidéo, produire une voix. Beaucoup d’IA sont entraînées pour <b>une tâche précise</b> (reconnaître un visage, trier des déchets). Les chatbots en font beaucoup plus, mais ils ne savent pas tout." },
+  { term: "Une IA souvent invisible", def: "Correcteur d’orthographe, suggestions de vidéos, reconnaissance vocale : les élèves utilisent déjà des IA sans le savoir. Un robot, lui, peut très bien fonctionner <b>sans IA</b>." },
+  { term: "Déléguer", def: "Confier une tâche à une machine. Elle peut <b>nous aider</b> (c’est nous qui gardons la main) ou <b>faire à notre place</b>. Déléguer a un prix : ce qu’on ne fait plus, on risque de ne plus savoir le faire." }
+];
+const NOTIONS_AFTER = "Dans « Identif’IA niveau 2 » (8–12 ans), on range les usages autrement : l’IA explore, soutient ou remplace.";
+
+/* ---------- Avant la fin : ce que l'activité simplifie (step = le texte affiché ; at = les étapes où la carte revient dans « Pour comprendre ») ---------- */
+const SIMP_TITLE = "Pour aller plus loin : ce que l'activité simplifie";
+const SIMP_HEAD = ["Dans l'activité", "Pourquoi on simplifie", "Dans une vraie machine"];
+const SIMP = [
+  { game: "Une photo de la machine", step: "étape 1", at: [1], why: "Les élèves reconnaissent l’objet et ce qu’il fait, sans écran.",
+    ai: "L’IA ne se voit pas : c’est un programme, souvent sur un serveur loin de l’objet.", risk: "les élèves peuvent croire que l’IA est « dans » l’objet qu’on voit." },
+  { game: "Trois colonnes : avec IA, parfois, sans IA", step: "étape 2", at: [2], why: "Un tri simple, qu’on peut discuter et déplacer.",
+    ai: "La frontière est floue : un même objet existe avec ou sans IA, et l’IA n’est souvent qu’une petite partie de la machine." },
+  { game: "Trois indices pour décider", step: "étape 2", at: [2], why: "Un critère que des élèves de 6–8 ans peuvent utiliser.",
+    ai: "Une IA a été entraînée avec des exemples : elle y repère des régularités. Un programme sans IA suit des règles écrites une à une par des humains.",
+    risk: "« elle s’adapte à moi » ne suffit pas toujours : un programme simple peut aussi changer selon l’heure ou la température." },
+  { game: "Elle nous aide, ou elle fait à notre place", step: "étape 3", at: [3], why: "Deux cases pour parler de délégation.",
+    ai: "Entre les deux, il y a beaucoup de degrés : la machine propose et l’humain choisit, ou elle agit seule et l’humain peut reprendre la main." },
+  { game: "Les plus utiles, pour nous", step: "étape 4", at: [4], why: "Les élèves partent de leur vie.",
+    ai: "Les avantages d’une IA ont un prix : énergie, données collectées sur nous, erreurs possibles." },
+  { game: "Trois phrases à copier", step: "étape 5", at: [5], why: "Des phrases courtes que des élèves de 6–8 ans peuvent écrire.",
+    ai: "Comment une machine apprend avec des exemples se vit dans le module 1 (« Robot apprend à dessiner »)." }
+];
+const SIMP_AFTER = "Une IA ne « sait » pas ce qu’elle fait : elle repère des régularités dans des exemples. C’est l’humain qui choisit ce qu’il lui confie.";
+
+/* ---------- Écran 4 : le plan de la leçon (ess = Essentiel ; sinon « Peut se raccourcir ») ---------- */
+const STEPS = [
+  { n: 1, title: "Associer cartes et légendes", min: 10, ess: true, found: "Chaque groupe trouve la carte de la légende lue au tableau, et dit à quoi sert la machine." },
+  { n: 2, title: "Avec ou sans IA ?", min: 10, ess: true, found: "Les cartes se rangent en trois colonnes : avec IA, parfois, sans IA. Pourquoi ?" },
+  { n: 3, title: "Que fait la machine pour nous ?", min: 10, ess: true, found: "Elle nous aide, ou elle fait à notre place ? Et si elle tombait en panne ?" },
+  { n: 4, title: "Les plus utiles", min: 10, ess: false, found: "Chaque groupe choisit 3 machines et dit pourquoi." },
+  { n: 5, title: "Faire le point", min: 5, ess: true, found: "La classe écrit trois phrases : sans IA, invisible, une fonction en plus." }
+];
+const TAGS = { ess: "Essentiel", short: "Peut se raccourcir" };
+const PLAN_TITLE = "clique sur une étape pour l’ouvrir";
+const PLAN_SUB = "5 étapes · 45 min";   // 10 + 10 + 10 + 10 + 5
+const DONE_MARK = "fait ✓";
+/* Avant la séance */
+const BEFORE_TITLE = "Avant la séance : imprime les cartes";
+const BEFORE_MAT = [
+  ["Les cartes Identif’IA", "24 cartes illustrées et leurs légendes, en double : quelques cartes par groupe, les légendes pour le tableau."],
+  ["Le tableau", "trois colonnes : avec IA (rond vert), parfois (rond orange), sans IA (rond rouge), et les trois indices au-dessus."],
+  ["Aimants ou pâte adhésive", "pour accrocher les cartes et les légendes."],
+  ["Organisation", "groupes de 3 ou 4 ; chaque mise en commun en classe entière."]
+];
+const BEFORE_SAY = "« Voici des machines de tous les jours. Que fait chacune pour nous ? »";
+const BEFORE_NOTE = "Ne dis pas d’avance quelles machines ont une IA : les élèves en discutent à l’étape 2, avec les indices.";
+/* La séance en 25 minutes : 5 + 8 + 5 + 3 + 4 = 25 */
+const SHORT_TITLE = "La séance en 25 minutes";
+const SHORT_BTN = "Peu de temps ? <span>La séance en 25 minutes</span> ›";
+const SHORT = [
+  ["1 · 5 min", "lis 4 légendes, une par groupe."],
+  ["2 · 8 min", "range 3 cartes avec les indices : la calculatrice, le traducteur, le chauffage."],
+  ["3 · 5 min", "une carte, les deux questions."],
+  ["4 · 3 min", "un seul choix par groupe, en une phrase."],
+  ["5 · 4 min", "les trois phrases : lis-les avec la classe, les élèves les copient."]
+];
+const SHORT_KEEP = "Ne coupe pas : les indices et « Pourquoi ? » (2), « Elle nous aide, ou elle fait à notre place ? » (3), la trace écrite (5).";
+const LONG = "<b>Plus de temps ? + 10 min.</b> Pour une carte « parfois » (l’aspirateur, la voiture, le chauffage) : « Que fait la machine sans IA ? Qu’est-ce que l’IA ajoute en plus ? Est-ce utile, ou pas vraiment ? »";   // le guide, étape 2
+/* Les mots à dire et à éviter */
+const WORDS_TITLE = "Les mots à dire et à éviter";
+const WORDS_USE = "elle suit une règle · elle reconnaît · elle s'adapte · avec IA, sans IA, parfois · elle nous aide · elle fait à notre place";
+const WORDS_AVOID = "elle est intelligente · elle pense · elle sait · elle veut · elle comprend";
+const LINK_LABEL = "Et ensuite";
+const LINK_TEXT = "« Être intelligent » : une machine peut-elle être intelligente comme nous ? « Ma machine idéale » : chacun invente la machine qui l’aiderait.";
+
+/* Le bandeau du haut de chaque écran : [le titre, à gauche ; l'info en gris, à droite] */
+const WHERE = {
+  intro: ["Avant de commencer", "Pourquoi cette activité"],
+  notions: [NOTIONS_TITLE, "Avant de commencer"],
+  prep: ["Préparer la séance", "Ce qu’il faut imprimer"],
+  plan: ["Le plan de la leçon", `${PLAN_SUB} · ${PLAN_TITLE}`],
+  simp: [SIMP_TITLE, ""],
+  end: ["Fin de la leçon", "À retenir"],
+  step: s => [`Étape ${s.n} : ${s.title}`, `${s.min} min`]
+};
+const CLASSE_LABEL = "En classe";
+const SAY_LABEL = "Consigne :";
+
+/* ---------- « Pour comprendre » : le tiroir ---------- */
+const ME_TITLE = "Pour comprendre";
+const ME_INTRO = "Ce qui t’aide à comprendre et à expliquer cette étape.";
+const ME_TABS = { why: "Pour comprendre", ideas: "Pour comprendre", simp: "Pour comprendre" };
+const ME_HEADS = { why: "Pourquoi", ideas: "Les élèves pensent", simp: "Le jeu simplifie" };
+const ME_SHORT = { why: "L’étape", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };
+const ME_LBL = { keep: "Essentiel", cut: "Peut se raccourcir", idea: "Idée fréquente", fact: "En fait", ask: "Demande", use: "Dis :", avoid: "Évite :",
+  simpIntro: "Les simplifications de cette étape. Le tableau complet est à la fin de la leçon.",
+  why2: "Pourquoi", ai: "Vraie machine", more: "Pour aller plus loin",
+  anne: "Ce que fait Léo", because: "Pourquoi ils le pensent", risk: "Attention",
+  useT: "Dis", avoidT: "Évite", kidSays: "Un élève dit :", inGame: "Dans le jeu", flipHint: "Retourner ›",
+  simpFlip: "Chaque carte montre ce que fait le jeu. Retourne-la : que se passe-t-il dans une vraie machine ?",
+  guess: "Que répondrais-tu ? Réfléchis, puis retourne la carte.", turn: "Retourner la carte ›", nextIdea: "Idée suivante ›",
+  ideaN: (i, n) => `Idée ${i} sur ${n}` };
+/* Pour chaque étape (1 à 5) : why ; anne = ce que fait Léo (BROUILLON) ; keep / cut ; ideas (idea, because facultatif, fact) ; ask ; use / avoid ; more */
+const HELP = [
+  { why: "Avant de ranger, les élèves regardent ce que fait chaque machine. Lire la légende oblige à décrire la tâche (« elle traduit », « elle trie ») plutôt que l’objet : c’est ce qui permet ensuite de dire si elle a une IA.",
+    anne: "Moi, je fais dire à quoi sert la machine avant de parler d’IA.",
+    keep: "chaque groupe trouve sa carte et dit à quoi sert la machine.", cut: "lis seulement 4 légendes, une par groupe.",
+    ideas: [{ idea: "« C’est un robot, donc c’est une IA. »", because: "Dans les films et les dessins animés, les robots parlent et pensent.",
+              fact: "Un robot peut très bien fonctionner sans IA : le robot d’usine répète des gestes programmés, le robot chirurgien suit les mains du médecin." },
+            { idea: "« La calculatrice est super intelligente : elle sait tout calculer. »", because: "Elle fait vite et juste ce qui est difficile pour nous.",
+              fact: "Elle applique des règles de calcul écrites à l’avance. Rapide et juste, ce n’est pas forcément une IA." }],
+    ask: "« Que fait cette machine pour nous ? Comment le sais-tu ? »", use: "elle sert à · elle traduit · elle reconnaît · elle trie", avoid: "elle sait, elle pense, elle veut",
+    more: "On parle d’IA quand la machine a été entraînée avec des exemples : elle reconnaît, prédit, recommande ou produit quelque chose." },
+  { why: "Ranger oblige à justifier. Les trois indices donnent un critère simple : une machine qui fait toujours exactement la même chose n’a pas d’IA ; une machine qui reconnaît une voix, un visage, une image, ou qui s’adapte à nous, en a une. La colonne « parfois » montre qu’un même objet existe avec ou sans IA.",
+    anne: "Moi, je ne donne pas la réponse : je demande « Pourquoi ? » et je renvoie aux indices.",
+    keep: "les trois indices au tableau, et « Pourquoi ? » pour chaque carte.", cut: "range seulement 3 cartes : la calculatrice, le traducteur, le chauffage.",
+    ideas: [{ idea: "« Elle marche toute seule, donc elle a une IA. »", because: "Automatique et intelligent se ressemblent.",
+              fact: "Le métro roule seul, mais il suit ses rails et ses horaires : il est automatique, sans IA." },
+            { idea: "Un groupe dit « avec IA », un autre « sans IA » pour le chauffage.",
+              fact: "Les deux ont un peu raison : un thermostat suit une règle ; un chauffage « intelligent » apprend tes habitudes. Il va dans « parfois »." }],
+    ask: "« Fait-elle toujours exactement la même chose, ou s’adapte-t-elle à toi ? »", use: "elle suit une règle · elle reconnaît · elle s'adapte · avec IA · sans IA · parfois", avoid: "elle est intelligente, elle réfléchit",
+    more: "Pour une carte « parfois », demande : « Que fait la machine sans IA ? Qu’est-ce que l’IA ajoute en plus ? Est-ce utile, ou pas vraiment ? »" },
+  { why: "On passe de « comment elle marche » à « ce qu’elle change pour nous ». Elle nous aide ou elle fait à notre place : c’est le degré de délégation. Et si elle tombait en panne : c’est ce qu’on sait encore faire sans elle.",
+    anne: "Moi, je pose les deux questions toujours dans le même ordre, pour que les élèves les reprennent seuls.",
+    keep: "les deux questions, sur 2 ou 3 cartes.", cut: "une seule carte, choisie par la classe.",
+    ideas: [{ idea: "« Si elle fait à notre place, c’est mieux : on n’a plus rien à faire. »", because: "C’est souvent plus pratique.",
+              fact: "Déléguer a un prix : ce qu’on ne fait plus, on risque de ne plus savoir le faire (trouver son chemin sans GPS, calculer de tête)." },
+            { idea: "« Si elle tombe en panne, on ne peut plus rien faire. »",
+              fact: "Presque toujours, on peut faire autrement : plus lentement, à la main, avec quelqu’un. Les élèves le trouvent eux-mêmes." }],
+    ask: "« Elle nous aide, ou elle fait à notre place ? Et si elle tombait en panne, que ferait-on ? »", use: "elle nous aide · elle fait à notre place · déléguer · sans elle, on…", avoid: "elle nous remplace, on ne peut pas sans elle",
+    more: "Si l’humain délègue, c’est pour une raison : la tâche est dangereuse ou impossible, trop grande ou trop rapide, pénible, ou plus pratique à confier." },
+  { why: "Il n’y a pas une seule bonne réponse : l’important est de justifier. Choisir oblige à comparer les avantages et les limites de chaque machine.",
+    anne: "Moi, j’écris au tableau le « parce que » de chaque groupe, pas seulement la machine.",
+    keep: "chaque groupe présente son choix en une phrase : « Pour nous, le plus utile c’est… parce que… »", cut: "un seul choix par groupe.",
+    ideas: [{ idea: "« La plus utile, c’est celle qui fait le plus de choses. »",
+              fact: "Utile pour qui, et pour quoi ? Le drone fait peu de choses, mais il aide à retrouver des personnes perdues." },
+            { idea: "« Il y a une bonne réponse, et la maîtresse la connaît. »", because: "À l’école, on cherche souvent la bonne réponse.",
+              fact: "Ici, deux groupes peuvent choisir différemment et avoir tous deux raison : ce qui compte, c’est le « parce que »." }],
+    ask: "« Utile pour qui ? Pourquoi ? Et que ferait-on sans elle ? »", use: "utile pour · parce que · un avantage · une limite", avoid: "c'est la meilleure, elle est gentille",
+    more: "On ne devrait laisser l’IA décider seule que si l’enjeu est faible (feux de circulation, tri des déchets). Plus l’enjeu touche des personnes (santé, sécurité), plus un humain doit garder la décision finale." },
+  { why: "Les élèves ont rangé et discuté ; maintenant on nomme ce qu’ils ont trouvé. Les trois phrases viennent du guide. Sans ce moment, ils retiennent le jeu, pas l’idée.",
+    anne: "Moi, je fais compléter chaque phrase par un exemple trouvé par la classe.",
+    keep: "les trois phrases au tableau, copiées par les élèves.", cut: "écris les trois phrases toi-même et lis-les avec la classe.",
+    ideas: [{ idea: "« L’IA, c’est un robot qui parle. »", because: "Films, dessins animés, enceintes connectées.",
+              fact: "Beaucoup d’IA sont invisibles : correcteur d’orthographe, suggestions de vidéos, reconnaissance vocale." },
+            { idea: "« Il y a une IA qui sait tout faire. »",
+              fact: "Beaucoup d’IA sont entraînées pour une tâche précise : celle qui reconnaît un visage ne traduit pas un texte." }],
+    ask: "« Donne un exemple d’IA que tu utilises sans la voir. »", use: "avec IA · sans IA · invisible · elle reconnaît · elle s'adapte", avoid: "l'IA sait tout, elle pense",
+    more: "Beaucoup d’IA sont entraînées pour une tâche précise (reconnaître un visage, trier des déchets). Les chatbots en font beaucoup plus, mais ils ne savent pas tout." }
+];
+
+/* ---------- Le jeu ---------- */
+/* Les 3 colonnes du tableau (dot = la couleur du rond) et les 3 indices écrits au-dessus (le guide) */
+const COLUMNS = [
+  { id: "ia", label: "Avec IA", dot: "#1F8F5A" },
+  { id: "parfois", label: "Parfois", dot: "#E0861F" },
+  { id: "sans", label: "Sans IA", dot: "#C4314F" }
+];
+const HINTS = [
+  "Elle suit une règle écrite à l’avance → <b>sans IA</b>.",
+  "Elle reconnaît une voix, un visage ou une image → <b>IA</b>.",
+  "Elle a appris avec des exemples (voix, visage, image, habitudes) → <b>IA</b>."
+];
+
+/* Les 24 cartes, dans l'ordre des cartes imprimées : nom, légende (desc), image images/c-<id>.jpg,
+   col = la colonne proposée (ia / parfois / sans), why = pourquoi ;
+   del = « aide » (elle nous aide) ou « place » (elle fait à notre place), delWhy, panne = « Et si elle tombait en panne ? »
+   Vérifié le 23 nov. 2026 : le GPS et la voiture passent dans « parfois » (calculer un trajet suit une règle ; la voiture fait partie des exemples « parfois » du guide). */
+const CARDS = [
+  { id: "frigo", name: "Frigo connecté", desc: "Identifie et commande ce qui manque dans ton frigo", col: "parfois", why: "Il peut juste mesurer le froid, ou reconnaître les aliments qui manquent.",
+    del: "place", delWhy: "Il commande les courses à notre place.", panne: "On refait une liste de courses, comme avant." },
+  { id: "chirurgien", name: "Robot chirurgien", desc: "Fait des opérations, piloté par un médecin", col: "sans", why: "Il suit les gestes du médecin qui le pilote.",
+    del: "aide", delWhy: "Il aide le médecin : c’est le médecin qui pilote.", panne: "Le médecin opère lui-même : il doit toujours pouvoir le faire." },
+  { id: "mars", name: "Mars rover", desc: "Explore la planète Mars", col: "parfois", why: "Il est surtout piloté depuis la Terre, mais trouve parfois seul son chemin entre les rochers.",
+    del: "place", delWhy: "Il va à notre place là où l’humain ne peut pas aller.", panne: "Personne ne peut aller le réparer : la mission s’arrête." },
+  { id: "aspirateur", name: "Robot aspirateur", desc: "Nettoie les sols de ta maison", col: "parfois", why: "Les plus simples suivent des règles ; d’autres reconnaissent les obstacles et retiennent le plan de la maison.",
+    del: "place", delWhy: "Il nettoie à notre place, même quand personne n’est là.", panne: "On reprend l’aspirateur ou le balai." },
+  { id: "traducteur", name: "Traducteur", desc: "Traduit automatiquement dans n’importe quelle langue", col: "ia", why: "Il a été entraîné avec des millions de textes traduits.",
+    del: "aide", delWhy: "Il nous aide à nous comprendre ; on peut encore apprendre la langue.", panne: "On fait des gestes, on cherche dans un dictionnaire, on demande à quelqu’un qui parle les deux langues." },
+  { id: "voiture", name: "Voiture autonome", desc: "Planifie tes itinéraires, parque sans aide ou aide à la conduite", col: "parfois", why: "Une voiture roule sans IA. L’IA ajoute l’aide au parking et à la conduite : elle reconnaît la route, les panneaux et les piétons.",
+    del: "aide", delWhy: "Elle aide le conducteur, qui doit rester attentif.", panne: "On conduit soi-même et on lit les panneaux." },
+  { id: "drone", name: "Drone", desc: "Surveille une zone ou recherche des gens perdus", col: "ia", why: "Il reconnaît des personnes sur ses images.",
+    del: "aide", delWhy: "Il aide les secours à chercher plus vite ; ce sont eux qui sauvent les gens.", panne: "Les secours cherchent à pied ou en hélicoptère, plus lentement." },
+  { id: "recommandations", name: "Recommandation", desc: "Conseille des vidéos à regarder", col: "ia", why: "Elle a appris ce que tu regardes et propose des vidéos qui ressemblent.",
+    del: "place", delWhy: "Elle choisit à notre place ce qu’on va regarder.", panne: "On cherche soi-même ce qu’on veut regarder… ou on fait autre chose !" },
+  { id: "educatif", name: "Robot éducatif", desc: "Permet aux enfants d’apprendre la robotique", col: "sans", why: "Il fait exactement ce que l’enfant a programmé.",
+    del: "aide", delWhy: "Il aide à apprendre : c’est l’enfant qui écrit le programme.", panne: "On programme sur papier, ou un camarade joue le robot." },
+  { id: "calculatrice", name: "Calculatrice", desc: "Peut réaliser des calculs compliqués", col: "sans", why: "Elle applique des règles de calcul écrites à l’avance : 2 + 2 donne toujours 4.",
+    del: "aide", delWhy: "Elle fait le calcul, mais c’est nous qui savons quel calcul poser.", panne: "On calcule à la main ou de tête : c’est plus lent, mais on sait encore le faire." },
+  { id: "discussion", name: "Chatbot de discussion", desc: "Peut avoir une conversation sur n’importe quel sujet", col: "ia", why: "Il produit ses phrases à partir de milliards d’exemples de textes.",
+    del: "place", delWhy: "Il peut remplacer une vraie discussion avec quelqu’un.", panne: "On parle avec de vraies personnes, on cherche dans des livres." },
+  { id: "metro", name: "Métro", desc: "Se déplace sur les rails selon ses horaires", col: "sans", why: "Il suit ses rails et ses horaires : souvent automatique, mais sans IA.",
+    del: "place", delWhy: "Il nous transporte : on n’a rien à conduire.", panne: "On prend le bus ou le vélo, on marche… ou on attend." },
+  { id: "gps", name: "GPS", desc: "Planifie les trajets pour arriver à sa destination", col: "parfois", why: "Calculer le chemin le plus court suit une règle. Prévoir les bouchons à partir des trajets de beaucoup de gens, c’est de l’IA.",
+    del: "aide", delWhy: "Il nous montre le chemin ; c’est nous qui choisissons où aller.", panne: "On lit une carte, on suit les panneaux, on demande son chemin." },
+  { id: "usine", name: "Robot d’usine", desc: "Porte les paquets lourds et les déplace au bon endroit", col: "sans", why: "Il répète les gestes qu’on lui a programmés.",
+    del: "place", delWhy: "Il porte les charges lourdes à la place des ouvriers.", panne: "Des personnes portent les paquets : c’est plus lent et plus fatigant." },
+  { id: "enceinte", name: "Enceinte connectée", desc: "Peut avoir une conversation ou contrôler d’autres objets", col: "ia", why: "Elle reconnaît ta voix et ce que tu demandes.",
+    del: "place", delWhy: "Elle fait des choses à notre place : allumer la musique, la lumière…", panne: "On allume la musique ou la lumière soi-même." },
+  { id: "visage", name: "Reconnaissance faciale", desc: "Déverrouillage par reconnaissance du visage", col: "ia", why: "Elle reconnaît un visage.",
+    del: "aide", delWhy: "Elle nous aide à ouvrir le téléphone plus vite.", panne: "On tape un code." },
+  { id: "feux", name: "Feux de circulation", desc: "Change la durée du vert pour que tout le monde avance mieux", col: "parfois", why: "Une simple minuterie, ou des feux qui s’adaptent au trafic qu’ils observent.",
+    del: "place", delWhy: "Ils règlent à notre place la durée du vert.", panne: "Un policier règle la circulation, ou chacun fait très attention." },
+  { id: "chauffage", name: "Chauffage intelligent", desc: "Règle le chauffage tout seul pour avoir chaud sans gaspiller", col: "parfois", why: "Un thermostat suit une règle ; un chauffage « intelligent » apprend tes habitudes.",
+    del: "place", delWhy: "Il règle la température à notre place : on n’a plus à y penser.", panne: "On règle le chauffage soi-même… ou on met un pull." },
+  { id: "serveur", name: "Robot serveur", desc: "Peut porter des plats et prendre les commandes", col: "parfois", why: "Il suit un trajet ; certains reconnaissent aussi les commandes dites à voix haute.",
+    del: "place", delWhy: "Il porte les plats à la place d’un serveur.", panne: "Des serveurs apportent les plats, comme d’habitude." },
+  { id: "tri", name: "Tri des déchets", desc: "Reconnaît le verre, le métal, le papier et le plastique, et les trie", col: "ia", why: "Il reconnaît les matériaux sur des images.",
+    del: "place", delWhy: "Il trie les déchets à notre place.", panne: "Des personnes trient à la main : c’est plus lent et plus pénible." },
+  { id: "diagnostic", name: "Aide au diagnostic", desc: "Reconnaît ce qui est anormal sur des images, analyses et radios", col: "ia", why: "Elle reconnaît ce qui est anormal sur des images médicales.",
+    del: "aide", delWhy: "Elle aide le médecin, qui garde la décision finale.", panne: "Le médecin regarde lui-même les images : c’est plus long, mais il sait le faire." },
+  { id: "chanteuse", name: "Chanteuse IA", desc: "Produit une voix et une musique", col: "ia", why: "Elle produit une voix et une musique qu’on n’a jamais enregistrées.",
+    del: "place", delWhy: "Elle chante à la place d’une vraie chanteuse.", panne: "On écoute de vrais musiciens… ou on chante soi-même !" },
+  { id: "filtres", name: "Filtres photo", desc: "Peut modifier une photo pour donner une apparence différente", col: "parfois", why: "Un simple changement de couleurs, ou un visage transformé par l’IA.",
+    del: "place", delWhy: "Ils transforment la photo à notre place, en un clic.", panne: "On garde la photo comme elle est, ou on la retouche soi-même." },
+  { id: "cameras", name: "Caméras de surveillance", desc: "Reconnaît des visages, des accidents, des feux…", col: "parfois", why: "Certaines enregistrent seulement ; d’autres reconnaissent des visages ou des accidents.",
+    del: "place", delWhy: "Elles surveillent à notre place, jour et nuit.", panne: "Des personnes surveillent… ou on ne voit pas ce qui se passe." }
+];
+
+/* Étape 1 : les cartes d'un groupe, et l'ordre dans lequel leurs légendes sont lues au tableau */
+const GROUP_CARDS = ["aspirateur", "traducteur", "calculatrice", "chauffage"];
+const LEGEND_ORDER = ["traducteur", "calculatrice", "chauffage", "aspirateur"];
+const S1_LABELS = { legend: "La légende au tableau", group: "Les cartes de ton groupe", board: "Au tableau", left: n => `encore ${n}` };
+const SAY1 = {
+  pick: { now: "Comme un groupe : lis la légende, puis clique sur la carte qui lui correspond.", say: "« Quel groupe a la machine qui fait ça ? Venez l’accrocher. »" },
+  wrong: "Cette machine fait autre chose. Relis la légende.",
+  next: name => `Oui : ${name}. La légende suivante est au tableau.`,
+  end: { now: "Les quatre cartes sont au tableau avec leur légende.", say: "« À quoi sert cette machine ? L’avez-vous déjà vue ? »" }
+};
+
+/* Étape 2 : les 4 cartes du groupe, à ranger dans les colonnes */
+const S2_LABELS = { hints: "Les indices au tableau", todo: "À ranger", yours: "Ton choix", ours: "Notre proposition", same: "D’accord" };
+const SAY2 = {
+  pick: { now: "Clique sur une carte, puis sur la colonne où ta classe la mettrait.", say: "« Dans quelle colonne la mettez-vous ? Pourquoi ? »" },
+  col: "Maintenant, clique sur une colonne.",
+  placed: { now: "La carte est au tableau. Si la classe n’est pas d’accord, on en discute avec les indices.", say: "« Qui n’est pas d’accord ? Quel indice vous aide ? »" },
+  end: { now: "Les quatre cartes sont rangées. Pour une carte « parfois », demande ce que l’IA ajoute.", say: "« Que fait le chauffage sans IA ? Qu’est-ce que l’IA ajoute en plus ? »" }
+};
+
+/* Étape 3 : les questions, sur une carte du tableau (toutes les cartes y sont) */
+const S3_LABELS = { wall: "Le tableau : clique sur une carte", q1: "Elle nous aide, ou elle fait à notre place ?", q2: "Et si elle tombait en panne, que ferait-on ?",
+  del: { aide: "Elle nous aide", place: "Elle fait à notre place" }, empty: "Choisis une carte au tableau.", count: (n, k) => `${n} / ${k} cartes discutées` };
+const S3_NEED = 2;   // cartes discutées (les deux questions ouvertes) pour finir l'étape
+const SAY3 = {
+  pick: { now: "Clique sur une carte du tableau, puis pose les deux questions, dans l’ordre.", say: "« Elle nous aide, ou elle fait à notre place ? Et si elle tombait en panne, que ferait-on ? »" },
+  more: "Ouvre aussi l’autre question.",
+  again: "Choisis une autre carte au tableau.",
+  end: { now: "Les élèves voient qu’on peut presque toujours faire sans la machine : plus lentement, à la main, avec quelqu’un.", say: "« Qu’est-ce qu’on ne saurait plus faire si on confiait tout aux machines ? »" }
+};
+
+/* Étape 4 : choisir 3 machines */
+const S4_LABELS = { wall: "Clique sur 3 machines", mine: "Le choix du groupe", slot: "…", say: "Le groupe dit, en une phrase :", because: "Pour nous, le plus utile c’est… parce que…" };
+const SAY4 = {
+  pick: { now: "Comme un groupe : choisis 3 machines, les plus utiles pour toi et pour les autres.", say: "« Choisissez les 3 situations les plus utiles pour vous et pour les autres. Dites pourquoi. »" },
+  end: { now: "Chaque groupe présente son choix en une phrase. Il n’y a pas une seule bonne réponse : l’important est de justifier.", say: "« Pour nous, le plus utile c’est… parce que… »" }
+};
+
+/* Étape 5 : la trace écrite (les 3 phrases du guide). q = la question à poser ; a = la ligne à écrire ; show = les cartes montrées à côté */
+const TRACE_LABEL = "La trace écrite";
+const TRACE = [
+  { show: ["calculatrice", "metro"], q: "« Toutes les machines ont-elles une IA ? »", a: "Toutes les machines n’ont pas d’<b>IA</b>, par exemple la calculatrice : elle <b>suit une règle</b>." },
+  { show: ["traducteur", "recommandations"], q: "« Où se cache l’IA, sans qu’on la voie ? »", a: "L’IA est souvent <b>invisible</b> : on ne la voit pas dans le traducteur ou dans les vidéos qu’on nous conseille." },
+  { show: ["chauffage", "aspirateur"], q: "« Qu’est-ce que l’IA ajoute au chauffage ? »", a: "Parfois, l’IA <b>ajoute une fonction en plus</b> : le chauffage intelligent apprend nos habitudes." }
+];
+const SAY5 = {
+  line: n => ({ now: `Pose la question, écoute les réponses, puis écris la ligne ${n} au tableau.` }),
+  end: { now: "La trace écrite est complète : les élèves la copient dans leur cahier.", say: "« Aujourd’hui, vous avez cherché où se cache l’IA, et ce qu’elle fait pour nous. »" }
+};
+
+/* ---------- La fin : les 3 lignes à retenir ---------- */
+const END_TITLE = "Voilà ta séance prête.";
+const TAKEAWAY = [
+  "Toutes les machines ne sont pas des IA : beaucoup suivent une règle écrite à l’avance. On parle d’IA quand la machine a été entraînée avec des exemples : elle reconnaît, prédit, recommande ou produit.",
+  "Beaucoup d’IA sont invisibles, et beaucoup sont entraînées pour une tâche précise.",
+  "Une machine peut nous aider ou faire à notre place. Déléguer a un prix : c’est à l’humain de choisir ce qu’il confie et ce qu’il garde."
+];
+const INTRO = "";
+const LINKS = [];
+
+/* ---------- Le cadre H2 (26 nov. 2026) : les écrans regroupés comme dans La Machine à Histoires (module 2).
+   ? Pourquoi (le récit, les notions) · Avant la séance (le matériel, le plan) · les 5 étapes · ✓ Fin (la séance sur une feuille).
+   Les textes ci-dessus restent ceux de l'activité ; seuls ces libellés sont nouveaux (✎ brouillons de Claude, repris du module 2).
+   Plus affichés dans le cadre H2 : WHERE, CLASSE_LABEL, SAY_LABEL, ME_TITLE, ME_INTRO, ME_TABS, ME_SHORT, PLAN_TITLE, BTN.prev/next/plan/close, SHORT_BTN. ---------- */
+const SCREEN_LABELS = { why: "Pourquoi", prep: "Avant la séance", end: "Fin" };          //
+const WHY_Q = "Avant de commencer, mon histoire.";                                       // ? Pourquoi : la grande ligne de Léo ; son récit (TALE) suit
+const WHY_NEXT = "Avant la séance";                                                      // le bouton vert
+const PREP_NEXT = "Commencer l’étape 1";                                                 // (✎ Avant la séance : Léo dit BEFORE_TITLE, puis BEFORE_NOTE)
+const BACK_LABEL = "Retour à l’étape";                                                   //
+const BACK_PREP = "Retour";                                                              //
+const ME_CHIPS = { why: "Pourquoi cette étape&nbsp;?", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };   //
+const SHORT_CHIP = "Peu de temps&nbsp;?";                                                //
+const ASK_LEAD = "Demande à Léo&nbsp;:";                                                 //
+const IDEA_ASK = "Que lui répondrais-tu&nbsp;? Réfléchis, puis regarde la réponse.";      // (ME_LBL.guess, plus court)
+const IDEA_SHOW = "Voir la réponse", NEXT_IDEA = (i, n) => `Idée suivante (${i} sur ${n})`;   //
+const SIMP_ASK = "Dans le jeu, c’est simplifié. Et dans une vraie IA&nbsp;?";            //
+const FLIP = "Voir la réponse", NEXT_CARD = (i, n) => `Simplification suivante (${i} sur ${n})`;   //
+const SIMP_BTN = "Ce que l’activité simplifie", SIMP_BACK = "Fermer le tableau";        // Fin
+const CONSIGNE_LABEL = "À dire à ta classe";                                             // (avant : « Consigne : »)
+const BACK_TO_Q = "Retour à la question";                                                // le bouton vert, sur le dernier écran
+const BACK_URL = "../../play.html?a=Module3/intro-module";              // la page de la question (le site la remplace)
+const SHEET_HEAD = "Ta séance";                                                          //
+const SHEET_META = min => `${min}&nbsp;min · 4–6P`;                                        //
+const MATERIAL = "Le matériel";                                                          //
+const OPEN_STEP = "Revoir l’étape";                                                      //
+/* ============================================================ */
+
+/* ---------- French typography at display time: ’, and a non-breaking space before : ? ! ; » and after « ---------- */
+const NB = " ";   // espace insécable
+const nb = s => String(s)
+  .replace(/([A-Za-zÀ-ÿŒœ])'(?=[A-Za-zÀ-ÿŒœ])/g, "$1’")
+  .replace(/« /g, "«" + NB).replace(/ ([»?!:;])/g, NB + "$1");
+const $ = s => document.querySelector(s);
+const put = (el, html) => { el.innerHTML = nb(html); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const icon = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${{ pdf: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>' }[k]}</svg>`;
+
+/* ---------- Learning data (Interaktionsbericht, unchanged) ----------
+     intro_vue          the screens for the teacher seen, e.g. "1 2 3 4" (1 = pourquoi, 2 = les notions, 3 = préparer la séance, 4 = le plan, 5 = ce que l'activité simplifie)
+                        since 26 Nov 2026: 1 and 2 on « ? Pourquoi », 3 and 4 on « Avant la séance », 5 from « ✓ Fin »
+     associations       step 1: the cards clicked, in order (correct = the 4 legends matched without a wrong click)
+     colonne_<carte>    step 2: the column chosen for each card of the group (correct = the column of our proposal)
+     cartes_discutees   step 3: the cards whose two questions were opened
+     plus_utiles        step 4: the 3 machines chosen
+     trace_ecrite       step 5: "3" once the three lines are written
+     pourtoi_ouvert, idees_retournees, simp_retournees: « Pour comprendre » (now Léo's chips « Demande à Léo »)
+   Completed when step 5 is done (the trace écrite written). New (26 Nov 2026, as in Modules 1 and 2): lesson_location = the screen. */
+const rec = (id, v, opt) => { scorm.record(id, v, opt); scorm.commit(); };
+
+/* ---------- The cards: a photo and the name (as printed), small on the wall ---------- */
+const card = id => CARDS.find(c => c.id === id);
+const colOf = id => COLUMNS.find(c => c.id === id);
+const pcard = (c, { attr = "", cls = "", legend = false } = {}) => `<button type="button" class="pcard ${cls}" ${attr}><img src="images/c-${c.id}.jpg" alt=""><span class="pn">${c.name}</span>${legend ? `<span class="pd">${c.desc}</span>` : ""}</button>`;
+const dot = col => `<span class="cdot" style="background:${colOf(col).dot}"></span>`;
+function wall(attrName, selected = new Set(), marked = new Set()) {
+  return `<div class="wall">${CARDS.map(c => `<button type="button" class="wcard ${selected.has(c.id) ? "sel" : ""} ${marked.has(c.id) ? "seen" : ""}" ${attrName}="${c.id}" aria-pressed="${selected.has(c.id)}">
+    <img src="images/c-${c.id}.jpg" alt=""><span>${c.name}</span></button>`).join("")}</div>`;
+}
+
+/* ============ Step 1: a legend is read on the board, the group finds its card ============ */
+const S1 = { k: 0, tries: [], msg: null };
+function r1() {
+  const finished = S1.k === LEGEND_ORDER.length, on = finished ? null : card(LEGEND_ORDER[S1.k]);
+  const matched = LEGEND_ORDER.slice(0, S1.k).map(card);
+  board(`<div class="idb">
+    <div class="col1">
+      ${on ? `<div class="legend"><p class="pt">${S1_LABELS.legend}</p><p class="lt">${on.desc}</p></div>` : ""}
+      <p class="blabel">${S1_LABELS.board}</p>
+      <div class="pairs">${matched.map(c => `<div class="pair"><img src="images/c-${c.id}.jpg" alt=""><div><b>${c.name}</b><span>${c.desc}</span></div></div>`).join("") || `<p class="empty">…</p>`}</div>
+    </div>
+    <div class="col1"><p class="blabel">${S1_LABELS.group}${finished ? "" : ` · ${S1_LABELS.left(LEGEND_ORDER.length - S1.k)}`}</p>
+      <div class="pcards">${GROUP_CARDS.map(id => { const c = card(id), used = LEGEND_ORDER.indexOf(id) < S1.k;
+        return pcard(c, { attr: `data-match="${id}" ${used ? "disabled" : ""}`, cls: used ? "used" : S1.tries.at(-1) === id && S1.msg === SAY1.wrong ? "no" : "" }); }).join("")}</div></div></div>`);
+  if (!finished) return classe({ now: S1.msg || SAY1.pick.now, say: SAY1.pick.say });
+  classe(SAY1.end);
+}
+function s1click(e) {
+  const b = e.target.closest("[data-match]"); if (!b || b.disabled || S1.k >= LEGEND_ORDER.length) return;
+  const id = b.dataset.match, want = LEGEND_ORDER[S1.k];
+  S1.tries.push(id);
+  if (id !== want) { S1.msg = SAY1.wrong; return render(); }
+  S1.k++;
+  S1.msg = S1.k < LEGEND_ORDER.length ? SAY1.next(card(id).name) : null;
+  if (S1.k === LEGEND_ORDER.length) { rec("associations", S1.tries.join(" "), { result: S1.tries.length === LEGEND_ORDER.length ? "correct" : "wrong" }); finishStep(1); }
+  render();
+}
+
+/* ============ Step 2: the three columns and the hints; each card goes into the column the class chooses, then our proposal ============ */
+const S2 = { sel: null, placed: {}, last: null, msg: null };
+function r2() {
+  const left = GROUP_CARDS.filter(id => !S2.placed[id]), finished = !left.length;
+  const last = S2.last && card(S2.last), mine = last && S2.placed[last.id];
+  board(`<div class="hints"><p class="pt">${S2_LABELS.hints}</p><ul>${HINTS.map(h => `<li>${h}</li>`).join("")}</ul></div>
+    <div class="cols3 ${S2.sel ? "picking" : ""}">${COLUMNS.map(col => `<button type="button" class="ccol" data-col="${col.id}" ${S2.sel ? "" : "tabindex=\"-1\""}>
+      <span class="ch">${dot(col.id)}${col.label}</span>
+      <span class="cin">${GROUP_CARDS.filter(id => S2.placed[id] && card(id).col === col.id).map(id => `<span class="mini"><img src="images/c-${id}.jpg" alt=""><span>${card(id).name}</span></span>`).join("")}</span></button>`).join("")}</div>
+    ${last ? `<div class="foundbox prop"><b>${last.name} · ${mine === last.col ? `${S2_LABELS.same} : ${colOf(last.col).label}` : `${S2_LABELS.yours} : ${colOf(mine).label} · ${S2_LABELS.ours} : ${colOf(last.col).label}`}</b>${last.why}</div>` : ""}
+    ${finished ? "" : `<div class="todo2"><p class="blabel">${S2_LABELS.todo}</p><div class="trow">${left.map(id => pcard(card(id), { attr: `data-pick="${id}" aria-pressed="${S2.sel === id}"`, cls: S2.sel === id ? "sel" : "" })).join("")}</div></div>`}`);
+  if (!finished) return classe(S2.last && !S2.sel ? SAY2.placed : { now: S2.msg || SAY2.pick.now, say: SAY2.pick.say });
+  classe(SAY2.end);
+}
+function s2click(e) {
+  const p = e.target.closest("[data-pick]"), c = e.target.closest("[data-col]");
+  if (p) { S2.sel = S2.sel === p.dataset.pick ? null : p.dataset.pick; S2.msg = S2.sel ? SAY2.col : null; return render(); }
+  if (c && S2.sel) {
+    const id = S2.sel, choice = c.dataset.col;
+    S2.placed[id] = choice; S2.last = id; S2.sel = null; S2.msg = null;
+    rec(`colonne_${id}`, choice, { result: choice === card(id).col ? "correct" : "wrong" });
+    if (GROUP_CARDS.every(g => S2.placed[g])) finishStep(2);
+    render();
+  }
+}
+
+/* ============ Step 3: a card of the board, then the two questions in order ============ */
+const S3 = { on: null, open: {}, msg: null };   // open[id] = Set of the questions opened (1, 2)
+const discussed = () => Object.values(S3.open).filter(s => s.size === 2).length;
+function r3() {
+  const c = S3.on && card(S3.on), o = c ? S3.open[c.id] : new Set();
+  const qa = (q, k, ans) => `<div class="qa ${o.has(k) ? "on" : ""}"><button type="button" class="qq" data-q="${k}" aria-expanded="${o.has(k)}">${q}</button>${o.has(k) ? `<div class="qr">${ans}</div>` : ""}</div>`;
+  board(`<div class="idb wide">
+    <div class="col1"><p class="blabel">${S3_LABELS.wall} · ${S3_LABELS.count(discussed(), S3_NEED)}</p>${wall("data-card", new Set(c ? [c.id] : []), new Set(Object.keys(S3.open).filter(k => S3.open[k].size === 2)))}</div>
+    <div class="col1 qcol">${c ? `<div class="qcard"><img src="images/c-${c.id}.jpg" alt=""><div><b>${c.name}</b><span>${c.desc}</span></div></div>
+      ${qa(S3_LABELS.q1, 1, `<b class="tagd ${c.del}">${S3_LABELS.del[c.del]}</b> ${c.delWhy}`)}${qa(S3_LABELS.q2, 2, c.panne)}`
+      : `<p class="empty big">${S3_LABELS.empty}</p>`}</div></div>`);
+  if (discussed() >= S3_NEED && !(c && o.size < 2)) return classe(SAY3.end);
+  classe({ now: S3.msg || SAY3.pick.now, say: SAY3.pick.say });
+}
+function s3click(e) {
+  const w = e.target.closest("[data-card]"), q = e.target.closest("[data-q]");
+  if (w) { S3.on = w.dataset.card; S3.open[S3.on] ||= new Set(); S3.msg = null; return render(); }
+  if (q && S3.on) {
+    S3.open[S3.on].add(+q.dataset.q);
+    const n = discussed();
+    S3.msg = S3.open[S3.on].size < 2 ? SAY3.more : n < S3_NEED ? SAY3.again : null;
+    rec("cartes_discutees", Object.keys(S3.open).filter(k => S3.open[k].size === 2).join(" "));
+    if (n >= S3_NEED) finishStep(3);
+    render();
+  }
+}
+
+/* ============ Step 4: the group chooses the 3 most useful machines ============ */
+const S4 = { chosen: [] };
+function r4() {
+  const full = S4.chosen.length === 3;
+  board(`<div class="idb wide">
+    <div class="col1"><p class="blabel">${S4_LABELS.wall}</p>${wall("data-useful", new Set(S4.chosen))}</div>
+    <div class="col1 qcol"><p class="blabel">${S4_LABELS.mine}</p><ol class="three">${[0, 1, 2].map(k => { const c = S4.chosen[k] && card(S4.chosen[k]);
+      return c ? `<li><img src="images/c-${c.id}.jpg" alt=""><b>${c.name}</b></li>` : `<li class="todo">${S4_LABELS.slot}</li>`; }).join("")}</ol>
+      ${full ? `<div class="foundbox"><b>${S4_LABELS.say}</b>${S4_LABELS.because}</div>` : ""}</div></div>`);
+  classe(full ? SAY4.end : SAY4.pick);
+}
+function s4click(e) {
+  const w = e.target.closest("[data-useful]"); if (!w) return;
+  const id = w.dataset.useful, k = S4.chosen.indexOf(id);
+  if (k >= 0) S4.chosen.splice(k, 1); else if (S4.chosen.length < 3) S4.chosen.push(id); else return;
+  if (S4.chosen.length === 3) { rec("plus_utiles", S4.chosen.join(" ")); finishStep(4); }
+  render();
+}
+
+/* ============ Step 5: the class writes the trace écrite, one line at a time ============ */
+const S5 = { shown: 0, fresh: false };
+function r5() {
+  const k = Math.min(S5.shown, TRACE.length - 1);
+  board(`<div class="tboard"><div class="trace"><p class="pt">${TRACE_LABEL}</p><ol>${TRACE.map((t, j) => j < S5.shown
+    ? `<li class="${S5.fresh && j === S5.shown - 1 ? "new" : ""}">${t.a}</li>` : `<li class="todo">…</li>`).join("")}</ol></div>
+    <div class="tshow" aria-live="polite"><div class="tpair">${TRACE[k].show.map(id => { const c = card(id);
+      return `<figure><img src="images/c-${id}.jpg" alt=""><figcaption>${dot(c.col)}${c.name}</figcaption></figure>`; }).join("")}</div></div></div>`);
+  S5.fresh = false;
+  if (S5.shown < TRACE.length) return classe({ now: SAY5.line(S5.shown + 1).now, say: TRACE[S5.shown].q }, [["write", BTN.write(S5.shown + 1)]]);
+  classe(SAY5.end);
+}
+function writeLine() {
+  if (S5.shown >= TRACE.length) return;
+  S5.shown++; S5.fresh = true;
+  if (S5.shown === TRACE.length) { rec("trace_ecrite", String(S5.shown)); finishStep(5); }
+  render();
+}
+
+
+/* ---------- Screens: ? Pourquoi · Avant la séance · the 5 steps · ✓ Fin (before 26 Nov 2026: 11 screens) ---------- */
+const SCREENS = [{ id: "why" }, { id: "prep" }, ...STEPS.map(s => ({ id: "step", step: s.n })), { id: "end" }];
+const MARKS = { why: "?", prep: "✎", end: "✓" };
+const stepAt = n => 1 + n, LAST = STEPS.length;
+let cur = 0;
+const seen = new Set(), done = new Set(), introSeen = new Set();
+const frame = Frame.init({ guide: "Léo", pose: "leo", now: 1, onStep: k => go(k - 1),
+  steps: SCREENS.map(S => S.step ? { mark: S.step, label: `Étape ${S.step} · ${STEPS[S.step - 1].min}&nbsp;min` } : { mark: MARKS[S.id], label: SCREEN_LABELS[S.id] }) });
+const { scorm } = frame;
+const talk = t => frame.talk({ ...t, say: nb(t.say || ""), more: nb(t.more || ""), keep: (t.keep || []).map(nb), replies: (t.replies || []).map(([l, a, g]) => [nb(l), a, g]) });
+const INTRO_CODE = { intro: 1, notions: 2, prep: 3, plan: 4, simp: 5 };   // the numbers recorded in intro_vue (unchanged)
+const sawIntro = (...ids) => { const before = introSeen.size; ids.forEach(id => introSeen.add(INTRO_CODE[id])); if (introSeen.size > before) rec("intro_vue", [...introSeen].sort().join(" ")); };
+
+const isDone = k => k !== cur && (SCREENS[k].step ? done.has(SCREENS[k].step) : seen.has(k));
+const canNext = () => { const S = SCREENS[cur]; if (S.id === "end") return false; return S.step ? done.has(S.step) : true; };
+function drawSteps() { frame.steps(cur + 1, k => ({ done: isDone(k - 1), can: seen.has(k - 1) || !!SCREENS[k - 1].step })); }
+function go(i) {
+  try { scorm.set("cmi.core.lesson_location", String(i)); scorm.commit(); } catch {}   // the screen, for coming back (as in Modules 1 and 2)
+  closeLb(false);
+  cur = i; seen.add(i); me = null;
+  const S = SCREENS[i];
+  $("#desk").scrollTop = 0;
+  if (S.id === "why") { sawIntro("intro", "notions"); drawWhy(); }
+  else if (S.id === "prep") { sawIntro("prep", "plan"); drawPrep(); }
+  else if (S.id === "end") drawEnd(false);
+  else { drawStepDesk(); render(); }
+  drawSteps();
+}
+function finishStep(n) {
+  if (done.has(n)) return;
+  done.add(n);
+  if (n === LAST && scorm.get("cmi.core.lesson_status") !== "completed") { scorm.set("cmi.core.lesson_status", "completed"); scorm.commit(); }
+  drawSteps();
+}
+
+/* ---------- A step: the board (the game, scaled to the desk), its buttons under it, the Consigne card; Léo says what you do ---------- */
+const BOARD_W = 1176, BOARD_H = 620, BOARD_H_MAX = 980;   // the board's own width; its height follows the desk
+function drawStepDesk() {
+  $("#desk").innerHTML = `<p class="rotate">${nb(ROTATE_MSG)}</p><aside class="card-consigne" id="consigne"><span class="lab">${CONSIGNE_LABEL}</span><p id="consigne-t"></p></aside><div class="boardwin" id="win"><div class="game" id="game" style="width:${BOARD_W}px;height:${BOARD_H}px"><div class="board" id="board" aria-label="Le jeu"></div></div></div>
+    <div class="under"><span class="grow"></span><div id="acts" aria-label="Actions du jeu"></div></div>`;
+  fit();
+  // the Consigne card above the board changes height with each step's text: fit the board again (layout brief, 26 Nov 2026)
+  if (window.ResizeObserver) { fitRO?.disconnect(); fitRO = new ResizeObserver(() => fit()); fitRO.observe($("#consigne")); }
+}
+var fitRO = null;   // var: drawStepDesk can run before this line (Frame.init calls it)
+function fit() {   // the board keeps its width (scaled to the desk) and takes all the height left on the desk (since 26 Nov 2026: no empty band under it)
+  const win = $("#win"), g = $("#game"); if (!win || !g) return;
+  const phone = innerWidth <= 760;
+  win.style.flex = ""; win.style.height = "";
+  const W = win.clientWidth, s = Math.min(1, W / BOARD_W);
+  const h = phone ? BOARD_H : Math.min(BOARD_H_MAX, Math.max(BOARD_H, win.clientHeight / s));
+  const s2 = phone ? s : Math.min(s, win.clientHeight / h);
+  g.style.height = `${h}px`;
+  g.style.transform = `scale(${s2})`;
+  g.style.left = `${Math.max(0, (W - BOARD_W * s2) / 2)}px`;
+  win.style.flex = "none"; win.style.height = `${h * s2}px`;
+}
+addEventListener("resize", fit);
+$(".stage").addEventListener("transitionend", e => { if (e.propertyName === "grid-template-columns") fit(); });
+
+let last = null, me = null;   // the step's current line and buttons; the « Demande à Léo » answer open in his bubble (null = none)
+const nextLabel = () => SCREENS[cur].step === LAST ? BTN.finish : BTN.nextStep;
+function classe(t, acts = []) {
+  last = { t, acts };
+  put($("#acts"), acts.map(([act, label, kind = "primary"]) => `<button type="button" class="chip ${kind === "primary" ? "go" : ""}" data-act="${act}">${label}</button>`).join(""));
+  if (!me) showStep();
+}
+function showStep() {
+  const { t } = last, n = SCREENS[cur].step;
+  $("#consigne").hidden = !t.say; put($("#consigne-t"), t.say || "");
+  talk({ pose: done.has(n) ? "ouvre" : t.now === SAY1.wrong ? "pense" : "ouvre", say: t.now, lead: ASK_LEAD,
+    wait: canNext() ? "" : nextLabel(),
+    replies: [...(canNext() ? [[nextLabel(), () => go(cur + 1), true]] : []),
+              ...meTabs(n).map(k => [ME_CHIPS[k], () => openMe(k)]), [SHORT_CHIP, () => openShort()]] });
+}
+function board(html) { put($("#board"), html); }
+function render() { const n = SCREENS[cur].step; if (!n) return; [r1, r2, r3, r4, r5][n - 1](); }
+
+/* ---------- « Demande à Léo »: the texts of the old drawer « Pour comprendre », answered in Léo's bubble ---------- */
+const TAB_KEY = { why: "pourquoi", ideas: "idees", simp: "simp" };
+const meTabs = n => ["why", "ideas", ...(SIMP.some(s => s.at.includes(n)) || HELP[n - 1].more ? ["simp"] : [])];
+const meOpened = [], ideaSeen = new Set(), simpSeen = new Set();
+const back = () => [BACK_LABEL, () => { me = null; showStep(); }];
+function openMe(tab) {
+  const n = SCREENS[cur].step, item = `${n}:${TAB_KEY[tab]}`;
+  if (!meOpened.includes(item)) { meOpened.push(item); rec("pourtoi_ouvert", meOpened.join(" ")); }
+  me = { tab, k: 0 }; drawMe();
+}
+function drawMe() {
+  const n = SCREENS[cur].step, h = HELP[n - 1], { tab, k } = me;
+  if (tab === "why") return talk({ pose: "pense", say: h.why, more: `<h4>${ME_LBL.anne}</h4><p>${h.anne}</p>`, replies: [back()] });
+  if (tab === "ideas") {
+    const d = h.ideas[k], turned = ideaSeen.has(`${n}:${k}`), lastIdea = k === h.ideas.length - 1;
+    return talk({ pose: turned ? "ouvre" : "pense", say: `${ME_LBL.kidSays} ${d.idea}`,
+      more: turned ? `${d.because ? `<p><b>${ME_LBL.because}&nbsp;:</b> ${d.because}</p>` : ""}<p><b>${ME_LBL.fact}&nbsp;:</b> ${d.fact}</p>${lastIdea ? `<p><b>${ME_LBL.ask}&nbsp;:</b> ${h.ask}</p><p><b>${ME_LBL.useT}&nbsp;:</b> ${h.use}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${h.avoid}</p>` : ""}`
+        : IDEA_ASK,
+      replies: [...(!turned ? [[IDEA_SHOW, () => { ideaSeen.add(`${n}:${k}`); rec("idees_retournees", [...ideaSeen].join(" ")); drawMe(); }]]
+        : !lastIdea ? [[NEXT_IDEA(k + 2, h.ideas.length), () => { me.k++; drawMe(); }]] : []), back()] });
+  }
+  const rows = SIMP.filter(s => s.at.includes(n));
+  if (!rows.length || k >= rows.length) return talk({ pose: "pense", say: ME_LBL.more, more: h.more, replies: [back()] });
+  const r = rows[k], flipped = simpSeen.has(`${n}:${k}`), lastCard = k === rows.length - 1;
+  talk({ pose: "pense", say: `${ME_LBL.inGame}&nbsp;: ${r.game}`,
+    more: flipped ? `<p><b>${ME_LBL.ai}&nbsp;:</b> ${r.ai}</p>${r.risk ? `<p><b>${ME_LBL.risk}&nbsp;:</b> ${r.risk}</p>` : ""}${lastCard && h.more ? `<h4>${ME_LBL.more}</h4><p>${h.more}</p>` : ""}` : SIMP_ASK,
+    replies: [...(!flipped ? [[FLIP, () => { simpSeen.add(`${n}:${k}`); rec("simp_retournees", [...simpSeen].join(" ")); drawMe(); }]]
+      : !lastCard ? [[NEXT_CARD(k + 2, rows.length), () => { me.k++; drawMe(); }]] : []), back()] });
+}
+// « Peu de temps ? » on a step: the step in the 25-minute lesson, what to keep and what can be shortened
+function openShort() {
+  const n = SCREENS[cur].step, h = HELP[n - 1], [t, d] = SHORT[n - 1];
+  me = { tab: "short", k: 0 };
+  talk({ pose: "pense", say: `${SHORT_TITLE}&nbsp;: ${t}`, more: `<p>${d}</p><p><b>${ME_LBL.keep}&nbsp;:</b> ${h.keep}</p><p><b>${TAGS.short}&nbsp;:</b> ${h.cut}</p>`, replies: [back()] });
+}
+
+/* ============ ? Pourquoi · Avant la séance · ✓ Fin ============ */
+function drawWhy() {
+  put($("#desk"), `<h2 class="dt">${NOTIONS_TITLE}</h2><div class="notions">${NOTIONS.map(c => `<div class="ncard paper"><h3>${c.term}</h3><p>${c.def}</p></div>`).join("")}</div><p class="after">${NOTIONS_AFTER}</p>`);
+  const tale = () => talk({ pose: "ouvre", say: WHY_Q, more: `${TALE_DRAFT ? `<p><b>${TALE_DRAFT}</b></p>` : ""}${TALE.map(p => `<p>${p}</p>`).join("")}`,
+    replies: [[WHY_NEXT, () => go(1), true], [IDEA_LABEL, () => talk({ pose: "pense", say: IDEA_LABEL, more: IDEA, replies: [[BACK_PREP, tale]] })]] });
+  tale();
+}
+function drawPrep() {
+  put($("#desk"), `<div class="plan">${STEPS.map(s => `<button type="button" class="stepc ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}">
+      <span class="sn"><i>${s.n}</i>${s.min} min${done.has(s.n) ? ` · ${DONE_MARK}` : ""}</span><h3>${s.title}</h3><p>${s.found}</p>${s.ess ? "" : `<span class="short">${TAGS.short}</span>`}</button>`).join("")}</div>
+    <p class="total">${PLAN_SUB}</p>
+    <div class="prep">
+      <div class="mat paper"><h3>${BEFORE_TITLE}</h3><ul>${BEFORE_MAT.map(([b, t]) => `<li><b>${b}</b>&nbsp;: ${t}</li>`).join("")}</ul></div>
+      <div class="side">
+        <button type="button" class="thumb paper" data-act="sheet"><img src="${CARDS_IMG}" alt="">${BTN.sheetShort}</button>
+        <div class="pdfs"><a class="tool" href="${CARDS_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.sheetPdf}</a><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.guide}</a></div>
+        <aside class="card-consigne"><span class="lab">${CONSIGNE_LABEL}</span><p>${BEFORE_SAY}</p></aside>
+      </div></div>`);
+  const main = () => talk({ pose: "ouvre", say: BEFORE_TITLE, more: BEFORE_NOTE,
+    replies: [[PREP_NEXT, () => go(stepAt(1)), true], [SHORT_TITLE, short], [WORDS_TITLE, words]] });
+  const short = () => talk({ pose: "pense", say: SHORT_TITLE, keep: SHORT.map(([t, d]) => `<span><b>${t}</b>&nbsp;: ${d}</span>`), more: `<p>${SHORT_KEEP}</p><p>${LONG}</p>`, replies: [[BACK_PREP, main]] });
+  const words = () => talk({ pose: "ouvre", say: WORDS_TITLE, more: `<p><b>${ME_LBL.useT}&nbsp;:</b> ${WORDS_USE}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${WORDS_AVOID}</p><p><b>${LINK_LABEL}&nbsp;:</b> ${LINK_TEXT}</p>`, replies: [[BACK_PREP, main]] });
+  main();
+}
+function drawEnd(table) {
+  if (table) {
+    sawIntro("simp");
+    put($("#desk"), `<h2 class="dt">${SIMP_TITLE}</h2><div class="scroll"><table class="simp"><thead><tr><th>${SIMP_HEAD[0]}</th><th>${SIMP_HEAD[1]}</th><th class="ai">${SIMP_HEAD[2]}</th></tr></thead>
+      <tbody>${SIMP.map(s => `<tr><td>${s.game}<span class="st">${s.step}</span></td><td>${s.why}</td><td class="ai">${s.ai}</td></tr>`).join("")}</tbody></table></div><p class="after">${SIMP_AFTER}</p>`);
+  } else {
+    const SAYS = { 1: SAY1.pick.say, 2: SAY2.pick.say, 3: SAY3.pick.say, 4: SAY4.pick.say, 5: TRACE[0].q };   // each step's first line to the class
+    const total = STEPS.reduce((t, s) => t + s.min, 0);
+    put($("#desk"), `<article class="lesson paper">
+      <header class="ls-head"><h2>${SHEET_HEAD}</h2><span>${SHEET_META(total)}</span></header>
+      <ol class="ls-steps">${STEPS.map(s => `<li><button type="button" class="ls-step ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}" title="${OPEN_STEP}">
+        <i>${done.has(s.n) ? "✓" : s.n}</i><span class="ls-body"><b>${s.title}</b><small>${s.min}&nbsp;min</small><span class="ls-found">${s.found}</span>
+        ${SAYS[s.n] ? `<span class="ls-say"><em>${CONSIGNE_LABEL}</em> ${SAYS[s.n]}</span>` : ""}</span></button></li>`).join("")}</ol>
+      <aside class="ls-mat"><h3>${MATERIAL}</h3>
+        <button type="button" class="ls-sheet" data-act="sheet"><img src="${CARDS_IMG}" alt="">${BTN.sheet}</button>
+        <a class="tool" href="${CARDS_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.sheetPdf}</a><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.guide}</a></aside>
+    </article>`);
+  }
+  talk({ pose: "ouvre", say: END_TITLE, keep: TAKEAWAY.map(t => `<span>${t}</span>`),
+    replies: [[BACK_TO_Q, BACK_URL, true], table ? [SIMP_BACK, () => drawEnd(false)] : [SIMP_BTN, () => drawEnd(true)], [BTN.again, again]] });
+}
+
+/* ---------- The printed cards, large ---------- */
+let lbOpener = null;
+function openLb(btn) { lbOpener = btn || document.activeElement; $("#lb-img").src = CARDS_IMG; $("#lb-img").alt = nb("Les cartes Identif'IA"); $("#lightbox").hidden = false; setTimeout(() => $("#lb-close").focus({ preventScroll: true }), 30); }
+function closeLb(refocus = true) { if ($("#lightbox").hidden) return; $("#lightbox").hidden = true; if (refocus && lbOpener && document.contains(lbOpener)) lbOpener.focus({ preventScroll: true }); }
+
+/* ---------- Clicks ---------- */
+function again() {
+  Object.assign(S1, { k: 0, tries: [], msg: null }); Object.assign(S2, { sel: null, placed: {}, last: null, msg: null });
+  Object.assign(S3, { on: null, open: {}, msg: null }); S4.chosen = []; Object.assign(S5, { shown: 0, fresh: false });
+  done.clear(); seen.clear();
+  go(0);
+}
+const ACT = { again, sheet: b => openLb(b), write: () => writeLine() };
+$("#desk").addEventListener("click", e => {
+  const a = e.target.closest("[data-act]");
+  if (a && !a.disabled) { if (a.dataset.act !== "sheet") me = null; return ACT[a.dataset.act](a); }
+  const g = e.target.closest("[data-goto]"); if (g && !g.disabled) return go(+g.dataset.goto);
+  const n = SCREENS[cur].step; if (!n) return;
+  if (e.target.closest("[data-match], [data-pick], [data-col], [data-card], [data-q], [data-useful]")) me = null;
+  [s1click, s2click, s3click, s4click][n - 1]?.(e);
+});
+$("#lb-close").addEventListener("click", () => closeLb());
+$("#lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLb(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
+
+/* Coming back: where the teacher was (completed: the last screen), as in Modules 1 and 2 */
+{ const saved = parseInt(scorm.get("cmi.core.lesson_location"), 10), lastScr = SCREENS.length - 1;
+  go(scorm.get("cmi.core.lesson_status") === "completed" ? lastScr : saved >= 0 && saved <= lastScr ? saved : 0); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

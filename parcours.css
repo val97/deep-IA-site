@@ -1,0 +1,54 @@
+/* DEEP IA · « Ton parcours ». Builds on home.css tokens (DESIGN.md). */
+.path-page { padding: clamp(40px, 6vw, 72px) 0 clamp(64px, 8vw, 104px); overflow-x: clip; }
+.path-in { display: grid; grid-template-columns: 11fr 9fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
+.path-title { font-weight: 800; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.08; letter-spacing: -.02em; color: var(--g-deep); }
+.path-lead { font-size: clamp(19px, 1.6vw, 22px); color: var(--soft); max-width: 34em; margin: 14px 0 32px; }
+
+/* The stations: one line, done = solid with a check, now = filled, later = dashed, soon = dotted */
+.stations { list-style: none; margin: 0 0 32px; padding: 0; position: relative; }
+.stations::before { content: ""; position: absolute; left: 21px; top: 22px; bottom: 22px; width: 2px; background: var(--hair); }
+.st { position: relative; display: flex; align-items: center; gap: 18px; padding: 10px 0; }
+.dot { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; z-index: 1;
+       font-weight: 800; font-size: 18px; color: var(--g-deep); background: var(--page); border: 2px dashed var(--g-deep); }
+.dot svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.st.done .dot { border-style: solid; }
+.st.now .dot { background: var(--g-main); border: 2px solid var(--g-deep); }
+.st.soon .dot { border: 2px dotted #5E4A78; color: #5E4A78; }
+.st-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.st-text b { font-weight: 600; font-size: 18px; line-height: 1.3; }
+.st.now .st-text b { font-weight: 800; color: var(--g-deep); }
+.st-text span { font-size: 15px; color: var(--soft); }
+.st.now .st-text span { color: var(--g-deep); font-weight: 600; }
+.st.soon .st-text span { color: #5E4A78; font-style: italic; }
+.move { flex: none; display: flex; gap: 4px; }
+.move button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 10px;
+               background: var(--white); color: var(--g-deep); cursor: pointer; transition: background .2s var(--ease), border-color .2s var(--ease); }
+.move button:hover { background: var(--g-tint); border-color: var(--g-main); }
+.move button:disabled { opacity: .35; cursor: default; background: var(--white); border-color: var(--hair); }
+.move svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.path-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.path-actions .btn[hidden] { display: none; }
+.path-note { margin-top: 20px; font-size: 16px; color: var(--soft); max-width: 36em; }
+
+/* The current question's guide, standing on the lilac field as on the home */
+.guide { position: relative; margin: 0; height: clamp(420px, 44vw, 580px); }
+.guide .field { position: absolute; left: 0; right: -50vw; top: 0; bottom: 0; background: var(--lilac); border-radius: 16px 0 0 16px; }
+.guide img { position: absolute; bottom: 0; left: 50%; height: 92%; width: auto; transform: translateX(-50%); }
+.guide figcaption { position: absolute; left: 24px; top: 20px; right: 20px; font-size: 16px; font-weight: 600; color: var(--violet); }
+
+@media (max-width: 960px) {
+  .path-in { grid-template-columns: 1fr; }
+  .guide { display: none; }
+}
+@media (max-width: 640px) {
+  .st { gap: 12px; }
+  .st-text b { font-size: 16px; }
+  .move button { width: 44px; height: 44px; }
+  .path-actions { flex-direction: column; align-items: flex-start; }
+  .path-actions .link { padding: 14px 0; }
+}
+
+/* each open question is a link back to its page (26 Nov 2026) */
+.st-text b a { color: inherit; text-decoration: underline; text-decoration-color: var(--g-main); text-decoration-thickness: 2px; text-underline-offset: .2em; }
+.st-text b a:hover { color: var(--g-deep); }

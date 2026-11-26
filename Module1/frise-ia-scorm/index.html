@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La frise de l’IA</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The frise in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Anne gives the instruction, steps aside
+     while the teacher puts the seven events under their dates (one feedback line on the desk), and comes back once the
+     frise is complete: touching a card, she tells its story. Drag a card onto its date, or touch a card then its date. */
+  .desk { display: flex; flex-direction: column; justify-content: center; gap: clamp(18px, 4vh, 36px); }
+  .strip { position: relative; width: min(100%, 900px); margin: 0 auto; padding: 18px 16px 16px; }
+  .strip::before { content: ""; position: absolute; left: 16px; right: 16px; top: 40px; height: 3px; border-radius: 2px; background: var(--g-deep); opacity: .25; }
+  .slots { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+  .slot { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; }
+  .slot .y { position: relative; z-index: 1; padding: 2px 8px; border-radius: 6px; background: #fff; font-weight: 800; font-size: 15px; color: var(--g-deep); }
+  .slot .box { width: 100%; aspect-ratio: 1 / 1.45; border-radius: 10px; border: 2px dashed var(--hair); display: grid; place-items: center; background: var(--page); overflow: hidden; transition: border-color .2s; }
+  .slot:hover .box, body.picking .slot:not(.filled) .box, .slot.over .box { border-color: var(--violet); }
+  .slot.filled .box { border: 2px solid var(--g-main); background: #fff; }
+  .slot.seen .box { border-color: var(--g-deep); }
+  .slot.no .box { border-color: #8A2B2B; animation: shake .35s; }
+  @keyframes shake { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+  @media (prefers-reduced-motion: reduce) { .slot.no .box { animation: none; } }
+  .tray { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; width: min(100%, 900px); margin: 0 auto; padding: 0 16px; }
+  .tray[hidden] { display: none; }
+  .ev { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding: 6px 4px 8px; border-radius: 10px; border: 1.5px solid var(--hair); background: #fff;
+        font: 700 13px/1.2 Inter, sans-serif; color: var(--g-deep); text-align: center; cursor: grab; touch-action: none; user-select: none; }
+  .ev img { width: 74%; aspect-ratio: 1; object-fit: contain; pointer-events: none; }
+  .tray .ev { box-shadow: var(--paper-shadow); }
+  .tray .cell:nth-child(odd) .ev { rotate: -1.2deg; } .tray .cell:nth-child(even) .ev { rotate: 1deg; }
+  .tray .ev[aria-pressed="true"] { border-color: var(--violet); outline: 2px solid var(--violet); translate: 0 -6px; rotate: 0deg; }
+  .slot .box .ev { border: 0; padding: 4px; font-size: 12px; cursor: inherit; }
+  .slot .box .ev img { width: 66%; }
+  .slot.seen .box .ev::after { content: "✓"; font-size: 13px; color: var(--g-deep); }
+  .ghost { position: fixed; z-index: 10; width: 96px; pointer-events: none; box-shadow: 0 10px 24px rgba(11, 81, 77, .22); rotate: 2deg; }
+  .feedback { text-align: center; min-height: 1.4em; color: var(--soft); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="La frise">
+    <div class="strip paper"><div class="slots" id="slots"></div></div>
+    <div class="tray" id="tray"></div>
+    <p class="feedback" id="fb" aria-live="polite"></p>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   EVENTS est dans l'ordre chronologique (= la bonne réponse).
+   hint = ce que la page dit quand la carte est posée sous une mauvaise date (✎ brouillon de Claude)
+   ============================================================ */
+const EVENTS = [
+  { id: "reve", year: "1956", label: "Le rêve de l’IA", image: "images/reve.png", hint: "C’est le tout début&nbsp;: les chercheurs rêvent.",
+    title: "Le rêve de l’IA", when: "Année 1956",
+    text: `<p>Des chercheurs rêvent de rendre les ordinateurs aussi intelligents que les humains. Ils imaginent pour
+      cela des algorithmes, des suites d’instructions que la machine exécute. Le terme «&nbsp;intelligence artificielle&nbsp;»
+      apparaît en 1956.</p>
+      <h4>Curiosité&nbsp;: le test de Turing</h4>
+      <p>En 1950, Alan Turing imagine un test&nbsp;: si une machine parvient à se faire passer pour un humain lors d’une
+      conversation, on peut la considérer comme «&nbsp;intelligente&nbsp;». Mais bien imiter une conversation ne veut pas dire
+      comprendre ce que l’on dit.</p>` },
+  { id: "hiver1", year: "1974", label: "Premier hiver de l’IA", image: "images/hiver.png", hint: "Le premier hiver vient après les premiers grands espoirs.",
+    title: "Premier hiver de l’IA", when: "De 1974 à 1980",
+    text: `<p>Les résultats promis n’arrivent pas et les financements pour la recherche diminuent. L’approche par
+      règles explicites montre ses limites face à la complexité du monde réel.</p>` },
+  { id: "experts", year: "1980", label: "Les systèmes experts", image: "images/experts.png", hint: "Les systèmes experts arrivent après le premier hiver.",
+    title: "Les systèmes experts", when: "Années 1980",
+    text: `<p>Ces programmes reproduisent le raisonnement d’un spécialiste, comme un médecin ou un juriste. Les humains
+      doivent entrer toutes les connaissances et toutes les règles dans la machine. Ils sont efficaces, mais seulement
+      dans un domaine précis.</p>` },
+  { id: "hiver2", year: "1987", label: "Deuxième hiver de l’IA", image: "images/hiver.png", hint: "Le deuxième hiver suit les systèmes experts.",
+    title: "Deuxième hiver de l’IA", when: "De 1987 à 1993",
+    text: `<p>Les systèmes experts coûtent cher à entretenir et restent trop rigides, car la machine n’apprend pas
+      seule. Les investissements s’effondrent et la recherche se tourne vers l’apprentissage à partir de données.</p>` },
+  { id: "deepblue", year: "1997", label: "Deep Blue", image: "images/deepblue.png", hint: "Deep Blue gagne aux échecs à la fin des années 90.",
+    title: "Deep Blue", when: "Année 1997",
+    text: `<p>L’ordinateur d’IBM bat Garry Kasparov, champion du monde d’échecs&nbsp;: c’est un coup de tonnerre. Pourtant,
+      Deep Blue calcule très vite mais ne comprend pas le jeu comme nous, et il ne peut rien faire d’autre.</p>` },
+  { id: "alphago", year: "2016", label: "AlphaGo", image: "images/alphago.png", hint: "AlphaGo, c’est bien plus récent, au jeu de go.",
+    title: "AlphaGo", when: "Année 2016",
+    text: `<p>Ce programme de Google bat Lee Sedol, l’un des meilleurs joueurs de Go au monde, alors qu’on pensait cela
+      impossible avant plusieurs années. Il s’est notamment entraîné en jouant contre lui-même.</p>` },
+  { id: "partout", year: "2022", label: "L’IA partout", image: "images/partout.png", hint: "Celle-ci, c’est aujourd’hui.",
+    title: "L’IA partout", when: "Aujourd’hui",
+    text: `<p>L’IA est sortie des laboratoires. Elle est présente en finance, en agriculture, en médecine, à l’école, et
+      dans nos objets du quotidien&nbsp;: appareil photo, réseaux sociaux, enceinte connectée. Depuis fin 2022, avec
+      ChatGPT, l’IA générative est accessible à tous.</p>` }
+];
+
+/* Ordre de départ des cartes dans le jeu (comme dans le Genially). « Recommencer » les mélange au hasard. */
+const START_ORDER = ["experts", "hiver2", "reve", "partout", "alphago", "deepblue", "hiver1"];
+
+/* Les étapes de la question, en haut de la colonne d'Anne (NOW = celle-ci) */
+const STEPS = ["La vidéo", "La frise · 5&nbsp;min"];
+const NOW = 2;
+
+/* Ce que dit Anne au début ; « Pourquoi ? » (✎) */
+const START_Q = "Remets l’histoire de l’IA <em>dans l’ordre</em>.";
+const START_TEXT = "Sept événements, sept dates. Glisse chaque carte sous sa date, ou touche une carte, puis sa date.";
+const START_LABEL = "Commencer";
+const WHY_LABEL = "Pourquoi cette frise ?";
+const WHY_Q = "Parce que l’IA n’est pas née hier&nbsp;: <em>90 ans</em> de recherche.";
+const WHY_TEXT = "Tes élèves l’entendront souvent comme une nouveauté. Toi, tu sauras d’où elle vient.";
+const BACK_LABEL = "D’accord";
+
+/* Les lignes sous la frise pendant le jeu (✎) */
+const PICK = "Touche une carte, puis sa date.";
+const PLACE = "Maintenant, touche sa date.";
+const RIGHT = e => `<b>Oui&nbsp;: «&nbsp;${e.label}&nbsp;», en ${e.year}.</b>`;
+const WRONG = (e, y) => `<b>Pas en ${y}.</b> ${e.hint}`;
+
+/* Quand la frise est complète : Anne revient ; chaque carte touchée, elle raconte l'événement */
+const DONE_Q = "La frise est complète&nbsp;: <em>des rêves, des hivers</em>, et l’IA partout.";
+const DONE_TEXT = n => n < EVENTS.length ? `Touche chaque carte pour en savoir plus (${n} sur ${EVENTS.length}).` : "Tu connais maintenant les grandes étapes de son histoire.";
+const MORE_LABEL = "Une autre carte";
+const RESTART_LABEL = "Recommencer";
+
+/* La page suivante */
+const NEXT_LABEL = "Ensuite&nbsp;: teste tes connaissances";
+const NEXT_URL = "../../play.html?a=Module1/quiz-fin";
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const byId = id => EVENTS.find(e => e.id === id);
+const frame = Frame.init({ guide: "Anne", pose: "anne", steps: STEPS, now: NOW });
+const { scorm } = frame;
+
+/* ---------- Completion (unchanged): timeline solved and all events opened ---------- */
+const state = { solved: false, seen: new Set() };
+try {
+  const saved = JSON.parse(scorm.get("cmi.suspend_data") || "{}");
+  state.solved = !!saved.solved;
+  (saved.seen || []).forEach(id => EVENTS.some(e => e.id === id) && state.seen.add(id));
+} catch (e) { /* no saved progress */ }
+function save() {
+  scorm.set("cmi.suspend_data", JSON.stringify({ solved: state.solved, seen: [...state.seen] }));
+  if (state.solved && state.seen.size === EVENTS.length) scorm.set("cmi.core.lesson_status", "completed");
+  scorm.commit();
+}
+
+/* ---------- Anne ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => { frame.aside(true); gameStart = Date.now(); $("#tray .ev")?.focus({ preventScroll: true }); }, true], [WHY_LABEL, why]] });
+const why = () => frame.talk({ pose: "pense", say: WHY_Q, more: WHY_TEXT, replies: [[BACK_LABEL, start]] });
+const done = () => frame.talk({ pose: "debout", say: DONE_Q, more: DONE_TEXT(state.seen.size),
+  replies: [...(state.seen.size === EVENTS.length && NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [RESTART_LABEL, restart]] });
+const story = e => frame.talk({ pose: "pense", say: `${e.title} · ${e.when}`, more: e.text,
+  replies: [...(state.seen.size === EVENTS.length && NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [MORE_LABEL, done]] });
+
+/* ---------- The game: drag a card onto its date, or touch a card then its date ---------- */
+const tray = $("#tray"), slots = $("#slots"), fb = $("#fb");
+const card = e => `<button type="button" class="ev" data-id="${e.id}" aria-pressed="false" aria-label="${e.label} : choisir puis placer sous une date"><img src="${e.image}" alt="">${e.label}</button>`;
+let selected = null;
+function say(html, no) { fb.innerHTML = html; fb.classList.toggle("no", !!no); }
+
+function buildGame(order, solved) {
+  slots.innerHTML = EVENTS.map(e => `<button type="button" class="slot" data-year="${e.year}" data-id="${e.id}" aria-label="Emplacement ${e.year}"><span class="y">${e.year}</span><span class="box"></span></button>`).join("");
+  tray.innerHTML = order.map(id => `<div class="cell">${card(byId(id))}</div>`).join("");
+  tray.hidden = false; selected = null; gameStart = Date.now();
+  if (solved) EVENTS.forEach(e => put(tray.querySelector(`.ev[data-id="${e.id}"]`), slots.querySelector(`.slot[data-id="${e.id}"]`)));
+  say(solved ? "" : PICK);
+  markSeen();
+}
+function put(c, slot) {
+  c.setAttribute("aria-pressed", "false"); c.removeAttribute("aria-label"); c.tabIndex = -1;
+  slot.classList.add("filled"); slot.setAttribute("aria-label", `${slot.dataset.year} : ${byId(c.dataset.id).label}`);
+  slot.querySelector(".box").appendChild(c);
+}
+function markSeen() { slots.querySelectorAll(".slot").forEach(s => s.classList.toggle("seen", state.seen.has(s.dataset.id))); }
+
+// Learning data (unchanged): for each event, the years tried before the right one (frise_<id>: "1956 > 1997", result
+// correct if right the first time), the total number of mistakes and the seconds taken to finish the timeline
+const tries = {};
+let gameStart = Date.now();
+function place(c, slot) {
+  if (!c || !slot || slot.classList.contains("filled")) return false;
+  const id = c.dataset.id, e = byId(id);
+  frame.aside(true);
+  (tries[id] ||= []).push(slot.dataset.year);
+  if (id !== slot.dataset.id) {
+    slot.classList.remove("no"); void slot.offsetWidth; slot.classList.add("no");
+    setTimeout(() => slot.classList.remove("no"), 600);
+    say(WRONG(e, slot.dataset.year), true);
+    return false;
+  }
+  scorm.record(`frise_${id}`, tries[id].join(" > "), { result: tries[id].length === 1 ? "correct" : "wrong" });
+  put(c, slot); selected = null; document.body.classList.remove("picking");
+  say(RIGHT(e));
+  if (!tray.querySelector(".ev")) solved();
+  return true;
+}
+function solved() {
+  const sec = Math.round((Date.now() - gameStart) / 1000);
+  scorm.record("frise_erreurs", Object.values(tries).reduce((n, t) => n + t.length - 1, 0), { type: "numeric" });
+  scorm.record("frise_temps_jeu", sec, { type: "numeric", latency: sec });
+  state.solved = true; save();
+  tray.hidden = true; say("");
+  frame.aside(false); done();                                   // Anne comes back
+}
+tray.addEventListener("click", e => {
+  const c = e.target.closest(".ev"); if (!c || dragMoved) return;
+  frame.aside(true);
+  if (selected === c) { c.setAttribute("aria-pressed", "false"); selected = null; }
+  else { selected?.setAttribute("aria-pressed", "false"); selected = c; c.setAttribute("aria-pressed", "true"); }
+  document.body.classList.toggle("picking", !!selected);
+  say(selected ? PLACE : PICK);
+});
+slots.addEventListener("click", e => {
+  const slot = e.target.closest(".slot"); if (!slot) return;
+  if (slot.classList.contains("filled")) {                       // after the game: Anne tells the story of that event
+    if (!state.solved) return;
+    const ev = byId(slot.dataset.id);
+    state.seen.add(ev.id); save(); markSeen(); story(ev); return;
+  }
+  if (selected) place(selected, slot);
+});
+
+// Mouse / touch drag
+let drag = null, dragMoved = false;
+tray.addEventListener("pointerdown", e => {
+  const c = e.target.closest(".ev"); if (!c || e.button > 0) return;
+  drag = { c, x: e.clientX, y: e.clientY, ghost: null, over: null }; dragMoved = false;
+});
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;   // still a click
+    dragMoved = true; frame.aside(true);
+    drag.ghost = drag.c.cloneNode(true); drag.ghost.classList.add("ghost"); document.body.appendChild(drag.ghost);
+    drag.c.style.visibility = "hidden";
+  }
+  drag.ghost.style.left = `${e.clientX - 48}px`; drag.ghost.style.top = `${e.clientY - 48}px`;
+  const over = document.elementsFromPoint(e.clientX, e.clientY).map(el => el.closest?.(".slot")).find(s => s && !s.classList.contains("filled"));
+  if (over !== drag.over) { drag.over?.classList.remove("over"); over?.classList.add("over"); drag.over = over; }
+});
+window.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const { c, ghost, over } = drag; drag = null;
+  if (!ghost) return;                                            // it was a click, handled above
+  over?.classList.remove("over"); ghost.remove(); c.style.visibility = "";
+  place(c, over);
+  setTimeout(() => dragMoved = false, 0);
+});
+
+function restart() {
+  buildGame(EVENTS.map(e => e.id).sort(() => Math.random() - .5), false);
+  for (const k in tries) delete tries[k];
+  frame.aside(true);
+}
+
+/* First visit: Anne gives the instruction; a teacher who already solved it: the complete frise, and Anne */
+buildGame(START_ORDER, state.solved);
+if (state.solved) { tray.hidden = true; say(""); done(); } else start();
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les fondements de l’intelligence artificielle</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The slides page in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Anne introduces the slides,
+     steps aside while the teacher reads (nothing in the middle), and comes back on the last slide with the key points.
+     Move with ‹ ›, the arrow keys or a swipe. */
+  .desk { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }   /* default bottom space: the way on sits there (frame) */
+  .slide { position: relative; width: min(100%, 1100px, calc((100vh - 172px) * 16 / 9)); aspect-ratio: 16 / 9; background: #fff; border-radius: 8px; box-shadow: var(--paper-shadow); overflow: hidden; touch-action: pan-y; }
+  .slide canvas { width: 100%; height: 100%; display: block; }
+  .slide .loading { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--soft); }
+  .slide .loading[hidden] { display: none; }
+  .nav { display: flex; align-items: center; gap: 14px; width: min(100%, 1100px, calc((100vh - 172px) * 16 / 9)); }
+  .arr { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); display: grid; place-items: center; cursor: pointer; }
+  .arr:disabled { opacity: .35; cursor: default; }
+  .count { font-weight: 700; color: var(--g-deep); min-width: 64px; text-align: center; }
+  .track { flex: 1; height: 8px; border-radius: 99px; background: var(--g-tint); overflow: hidden; }
+  .track b { display: block; height: 100%; width: 0; background: var(--g-main); transition: width .3s var(--ease); }
+  .seen { font-size: 14px; font-weight: 700; color: var(--g-deep); white-space: nowrap; }
+  @media (max-width: 760px) { .slide, .nav { width: 100%; } }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Les diapositives">
+    <div class="slide" id="slide" role="img" aria-label="Diapositive"><canvas id="canvas"></canvas><p class="loading" id="loading">Chargement des diapositives…</p></div>
+    <div class="nav">
+      <button type="button" class="arr" id="prev" aria-label="Diapositive précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count" aria-live="polite"></span>
+      <span class="track" aria-hidden="true"><b id="bar"></b></span>
+      <span class="seen" id="seen" hidden>Terminé ✓</span>
+      <button type="button" class="arr" id="next" aria-label="Diapositive suivante"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      <a class="tool" id="download" download aria-label="Télécharger les diapositives (PDF)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>PDF</a>
+    </div>
+  </section>
+</main>
+
+<script src="lib/pdf.min.js"></script>
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   ============================================================ */
+/* Les diapositives : remplacez media/module1.pdf par la nouvelle version (même nom) */
+const PDF_URL = "media/module1.pdf";
+
+/* Les étapes de la question, en haut de la colonne d'Anne (NOW = celle-ci) */
+const STEPS = ["Le texte · 10&nbsp;min", "Le quiz"];
+const NOW = 1;
+
+/* Ce que dit Anne avant les diapositives : la question (en gras), puis le texte ; et son bouton */
+const START_Q = "Sur quoi repose l’IA&nbsp;?";
+const START_TEXT = "Dans ces diapositives, tu découvres les trois bases de l’intelligence artificielle&nbsp;: la machine, les algorithmes et l’apprentissage à partir de données. Puis tu remontes son histoire, faite d’âges d’or et d’hivers.";
+const START_LABEL = "Commencer";
+
+/* Ce que dit Anne sur la dernière diapositive : 2 ou 3 idées clés, puis l'activité suivante et son bouton
+   (adresse vide = pas de bouton) */
+const END_Q = "Ce que disent les diapositives, <em>en bref</em>&nbsp;:";
+const KEEP = [
+  "Une machine calcule très vite, mais ne comprend pas comme nous ce qu’elle fait.",
+  "Un algorithme est une suite d’instructions précises&nbsp;: la machine les suit à la lettre.",
+  "Avec l’apprentissage automatique, la machine trouve elle‑même des règles à partir d’exemples."
+];
+const NEXT_LABEL = "Ensuite&nbsp;: le quiz";
+const NEXT_URL = "../../play.html?a=Module1/quiz-texte";
+const AGAIN_LABEL = "Revoir depuis le début";
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Anne", pose: "anne", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+let pdf = null, task = null, drawn = "";   // the PDF, the slide being drawn, and what is on screen now
+$("#download").href = PDF_URL;
+
+/* ---------- Progress (unchanged): the current slide is saved, completion once the last slide has been shown ---------- */
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+let page = Math.max(1, parseInt(scorm.get("cmi.core.lesson_location"), 10) || 1);
+let reading = done || page > 1;           // time on a slide counts only once Anne's introduction is closed
+
+/* ---------- Anne: the start, the end ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => { reading = true; shownAt = Date.now(); frame.aside(true); $("#next").focus({ preventScroll: true }); }, true]] });
+const end = () => frame.talk({ pose: "debout", say: END_Q, keep: KEEP,
+  replies: [...(NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [AGAIN_LABEL, () => { show(1); frame.aside(true); }]] });
+
+/* ---------- Drawing the slide (sharp at the size it is shown) ---------- */
+pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+async function render() {
+  if (!pdf) return;
+  const canvas = $("#canvas"), box = $("#slide").getBoundingClientRect();
+  const width = Math.round(box.width * (window.devicePixelRatio || 1));
+  if (!width || drawn === `${page}@${width}`) return;
+  drawn = `${page}@${width}`;
+  const p = await pdf.getPage(page);
+  const viewport = p.getViewport({ scale: width / p.getViewport({ scale: 1 }).width });
+  task?.cancel();
+  const off = document.createElement("canvas");          // draw off-screen, then swap: no blank flash between slides
+  off.width = viewport.width; off.height = viewport.height;
+  task = p.render({ canvasContext: off.getContext("2d"), viewport });
+  try { await task.promise; } catch { return; }          // cancelled by a newer slide
+  canvas.width = off.width; canvas.height = off.height;
+  canvas.getContext("2d").drawImage(off, 0, 0);
+  $("#loading").hidden = true;
+}
+window.addEventListener("resize", render);
+$(".stage").addEventListener("transitionend", e => { if (e.propertyName === "grid-template-columns") render(); });   // the slide grew or shrank
+
+/* ---------- Learning data (unchanged): seconds spent on each slide (only while the page is visible), kept in
+   suspend_data and recorded as lines diapo_01, diapo_02…, plus diapos_vues ---------- */
+let secs = [];
+try { secs = JSON.parse(scorm.get("cmi.suspend_data") || "[]"); } catch {}
+if (!Array.isArray(secs)) secs = [];
+let shownAt = Date.now();
+function countTime() {
+  if (!pdf || document.visibilityState !== "visible" || !reading) { shownAt = Date.now(); return; }
+  secs[page - 1] = Math.round((secs[page - 1] || 0) + (Date.now() - shownAt) / 1000);
+  shownAt = Date.now();
+}
+function saveSlides() {
+  countTime();
+  scorm.set("cmi.suspend_data", JSON.stringify(secs));
+  for (let i = 0; i < pdf.numPages; i++) {
+    scorm.record(`diapo_${String(i + 1).padStart(2, "0")}`, secs[i] || 0, { type: "numeric", latency: secs[i] || 0 });
+  }
+  scorm.record("diapos_vues", secs.filter(Boolean).length, { type: "numeric" });
+  scorm.commit();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { if (pdf) saveSlides(); } else shownAt = Date.now();
+});
+
+function show(n) {
+  if (pdf) countTime();
+  page = Math.min(Math.max(1, n), pdf.numPages);
+  const last = page === pdf.numPages;
+  $("#count").textContent = `${page} / ${pdf.numPages}`;
+  $("#bar").style.width = `${page / pdf.numPages * 100}%`;
+  $("#prev").disabled = page === 1;
+  $("#next").disabled = last;
+  scorm.set("cmi.core.lesson_location", String(page));
+  if (last && !done) { done = true; scorm.set("cmi.core.lesson_status", "completed"); }
+  $("#seen").hidden = !done;
+  saveSlides();
+  $("#slide").setAttribute("aria-label", `Diapositive ${page} sur ${pdf.numPages}`);   // the slide's text is in the PDF to download
+  if (last) { end(); frame.aside(false); }                // the last slide: Anne comes back with the key points
+  else if (page > 1) { reading = true; frame.aside(true); }
+  render();
+}
+
+$("#prev").addEventListener("click", () => pdf && show(page - 1));
+$("#next").addEventListener("click", () => pdf && show(page + 1));
+document.addEventListener("keydown", e => {
+  if (!pdf) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") show(page + 1);
+  if (e.key === "ArrowLeft" || e.key === "PageUp") show(page - 1);
+});
+// Swipe on touch screens
+let x0 = null;
+$("#slide").addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") x0 = e.clientX; });
+$("#slide").addEventListener("pointerup", e => {
+  if (x0 === null) return;
+  const dx = e.clientX - x0; x0 = null;
+  if (Math.abs(dx) > 50 && pdf) show(page + (dx < 0 ? 1 : -1));
+});
+
+/* First visit: Anne introduces; coming back in the middle: straight to the slide; already done: her key points */
+if (done) end(); else start();
+if (!done && page > 1) frame.aside(true);
+pdfjsLib.getDocument(PDF_URL).promise.then(doc => { pdf = doc; show(page); })
+  .catch(() => { $("#loading").textContent = "Les diapositives n’ont pas pu être chargées. Le bouton « PDF » reste disponible."; });
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

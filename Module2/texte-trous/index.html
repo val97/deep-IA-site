@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réviser – Comment fonctionne l'IA générative ?</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The fill-in-the-blanks in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Claudia introduces it,
+     steps aside on the first word moved (nothing in the middle), and comes back after the last page.
+     Two texts with gaps (words on top of the sheet), then a sorting page « Humain » / « Machine ». */
+  .desk { display: flex; flex-direction: column; gap: 12px; padding-bottom: clamp(16px, 2.6vh, 28px); }
+  body:not(.aside) .desk { padding-bottom: 76px; }
+  .sheet, .nav { width: min(100%, 1080px); align-self: center; }
+  .sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: clamp(14px, 2.4vh, 24px) clamp(18px, 2.6vw, 36px); rotate: -.25deg; }
+  .bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 52px; padding-bottom: clamp(12px, 2vh, 18px); border-bottom: 1px solid var(--hair); }
+  .bank:empty::before { content: attr(data-empty); align-self: center; font-size: 15px; color: var(--soft); }
+  .word { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; font: 600 17px Inter, sans-serif; color: var(--g-deep);
+          background: var(--g-tint); border: 1.5px solid var(--g-hell); border-radius: 8px; cursor: grab; touch-action: none; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .word::before { content: ""; width: 8px; height: 16px; opacity: .5; background: radial-gradient(circle, currentColor 1.4px, transparent 1.8px) 0 0 / 4px 5px; flex: none; }
+  .word:hover { border-color: var(--g-deep); box-shadow: 0 4px 12px rgba(0, 0, 0, .08); }
+  .word.selected { border: 2px solid var(--violet); }
+  .ghost { position: fixed; z-index: 50; pointer-events: none; margin: 0; box-shadow: 0 12px 26px rgba(0, 0, 0, .25); }
+  .text { flex: 1; min-height: 0; overflow-y: auto; padding-top: clamp(8px, 1.6vh, 16px); font-size: clamp(16px, 2.4vh, 20px); line-height: 2.1; }
+  .text h3 { margin: 4px 0 0; font-size: 1.05em; line-height: 1.4; color: var(--g-deep); }
+  .text p { margin: 0 0 10px; }
+  .gap { display: inline-flex; align-items: center; justify-content: center; min-width: 150px; height: 40px; padding: 0 12px; margin: 0 3px; vertical-align: middle;
+         font: 600 17px Inter, sans-serif; color: var(--g-deep); background: #FAFAF8; border: 2px dashed #8C8C8C; border-radius: 8px; cursor: pointer; }
+  .gap.over, .gap:hover { border-color: var(--g-deep); background: var(--g-tint); }
+  .gap.filled { border-style: solid; border-color: var(--g-deep); background: var(--g-tint); }
+  .gap.ok, .word.stmt.ok { border-style: solid; border-color: var(--g-main); background: var(--g-tint); color: var(--g-deep); cursor: default; }
+  .gap.ok::after { content: "✓"; margin-left: 6px; }
+  .gap.ko, .word.stmt.ko { border-style: solid; border-color: #D9776C; background: #FDF0EE; color: #8A2A22; animation: shake .4s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @media (prefers-reduced-motion: reduce) { .gap.ko, .word.stmt.ko { animation: none; } }
+  /* the sorting page: the statements on top, « Humain » and « Machine » side by side underneath */
+  .sheet.sort { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 14px 18px; }
+  .sheet.sort .text { display: contents; }
+  .sheet.sort .bank { grid-column: 1 / -1; gap: 8px; }
+  .zone { grid-row: 2; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 10px 12px; background: #FAFAF8; border: 1.5px solid var(--hair); border-radius: 12px; cursor: pointer; }
+  .zone:first-child { grid-column: 1; } .zone:last-child { grid-column: 2; }
+  .zone h4 { margin: 0 0 8px; text-align: center; font-size: 17px; color: var(--g-deep); }
+  .zone.over, .zone:hover { border-color: var(--g-deep); background: var(--g-tint); }
+  .zone .drop { display: flex; flex-direction: column; gap: 6px; }
+  .word.stmt { flex-shrink: 0; min-height: 40px; padding: 6px 12px; font-size: 15px; font-weight: 500; line-height: 1.3; text-align: left; }
+  .word.stmt.ok::after { content: "✓"; margin-left: auto; padding-left: 8px; }
+  /* under the sheet: ‹ page › what to do · message · reset · Vérifier, then the next page */
+  .nav { display: flex; align-items: center; gap: 12px; }
+  .arr { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); display: grid; place-items: center; cursor: pointer; }
+  .arr:disabled { opacity: .35; cursor: default; }
+  .count { font-weight: 700; color: var(--g-deep); min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 15px; color: var(--soft); }
+  .msg { flex: 1; font-size: 15px; font-weight: 700; color: var(--soft); text-align: right; }
+  .msg.good { color: var(--g-deep); } .msg.bad { color: #8A2A22; }
+  .seen { font-size: 14px; font-weight: 700; color: var(--g-deep); white-space: nowrap; }
+  .seen[hidden], .chip[hidden] { display: none; }
+  .nav .chip { min-height: 48px; font-size: 16px; }
+  .nav .chip:disabled { background: var(--hair); border-color: var(--hair); color: var(--soft); cursor: default; }
+  #next:not(.go) { display: none; }
+  body:not(.aside) .nav #next, body:not(.aside) .nav .hint, body:not(.aside) .nav .msg { display: none; }   /* Claudia is there: her mint button is the way on */
+  body:not(.aside) .nav { justify-content: flex-start; }
+  @media (max-width: 760px) {
+    .nav { flex-wrap: wrap; } .msg { order: 9; flex-basis: 100%; text-align: left; } .hint { flex-basis: 100%; order: -1; }
+    .sheet.sort { display: flex; } .zone { min-height: 110px; }
+    .gap { min-width: 100px; height: 34px; font-size: 15px; } .word { font-size: 15px; min-height: 40px; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Le texte à trous">
+    <div class="sheet paper">
+      <div class="bank" id="bank" aria-label="Mots à placer"></div>
+      <div class="text" id="text"></div>
+    </div>
+    <div class="nav">
+      <button type="button" class="arr" id="prev" aria-label="Page précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count"></span>
+      <span class="hint" id="hint"></span>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <span class="seen" id="seen" hidden>Terminé ✓</span>
+      <button type="button" class="tool" id="reset" aria-label="Recommencer cette page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4.5h4.5"/></svg></button>
+      <button type="button" class="chip go" id="check" disabled>Vérifier</button>
+      <button type="button" class="chip go" id="next"></button>
+    </div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   Une page = un texte. Écrivez le mot à trouver entre crochets : [tokens].
+   Les mots à placer sont ceux entre crochets de la page (dans l'ordre alphabétique).
+   Une page de tri = { sort: [les deux catégories], hint: la consigne, items: [[proposition, catégorie], …] }
+   (les propositions apparaissent au centre dans l'ordre de la liste).
+   ============================================================ */
+const PAGES = [
+  `<h3>1. Le parcours d'une requête</h3>
+   <p>Quand on envoie un message à un chatbot, le texte est d'abord découpé en petits morceaux appelés [tokens].
+   Chaque token est transformé en code. La machine ne lit pas des mots : elle calcule avec des [nombres].</p>
+   <h3>2. Imiter sans comprendre</h3>
+   <p>Pour répondre, l'IA écrit un mot après l'autre. À chaque fois, elle calcule quels mots sont les plus [probables],
+   puis en tire un au sort. Elle ne comprend jamais le [sens] de ce qu'elle écrit.
+   Sa réponse peut donc sembler sûre et pourtant être fausse : c'est une hallucination.</p>`,
+
+  `<h3>3. L'attitude critique face aux sorties d'une IA</h3>
+   <p>Face à toute production d'une IA, une posture de [méfiance] raisonnée est indispensable. Cela ne veut pas dire rejeter
+   systématiquement les réponses, mais exercer une [vérification] systématique : croiser les sources, questionner la plausibilité,
+   ne jamais prendre une réponse fluide pour une garantie de vérité.</p>
+   <h3>4. Dépasser le mot « intelligence »</h3>
+   <p>Le terme [intelligence] artificielle est trompeur : il suggère une conscience, une intention, une compréhension du monde.
+   Or ces systèmes calculent, prédisent et imitent, sans rien ressentir ni vouloir.</p>`,
+
+  { sort: ["Humain", "Machine"],
+    hint: "Classe chaque proposition : « Humain » ou « Machine ».",
+    items: [
+      ["Initie une requête en langage naturel dans la zone de texte.", "Humain"],
+      ["Décompose la phrase en unités linguistiques (tokens) pour l’analyser.", "Machine"],
+      ["Choisit chaque mot suivant par un calcul de probabilités, sans comprendre la demande comme nous.", "Machine"],
+      ["Traite la demande en quelques secondes grâce à ses milliards de paramètres.", "Machine"],
+      ["Relit et reformule sa demande si la réponse ne convient pas.", "Humain"],
+      ["Décide si la réponse obtenue est pertinente ou non.", "Humain"],
+      ["Garde la responsabilité finale de ce qu’il fait avec la réponse.", "Humain"],
+      ["Produit un texte statistiquement cohérent, sans vérifier sa véracité.", "Machine"]
+    ] }
+];
+
+/* Titre (dans la barre du lecteur) et consigne (sous la feuille) */
+const TITLE = "Comment fonctionne l’IA générative ?";
+const HINT = "Glisse ou clique les mots pour compléter le texte.";
+
+/* Ce que dit Claudia avant l'activité : la ligne en gras (class="q"), puis le texte */
+const START_TEXT = `<p class="q">À toi de jouer !</p>
+  <p>Vérifie ce que tu as retenu des diapositives : complète les textes avec les bons mots,
+  puis distingue ce que fait l’humain et ce que fait la machine.</p>`;
+
+/* Ce que dit Claudia à la fin (sur le site, son bouton mène à « Teste tes connaissances » : NEXT_TEST, plus bas) */
+const END_TEXT = `<p class="q">C’est fait !</p>
+  <p>Une IA générative ne « comprend » pas : elle découpe le texte en tokens, calcule les mots
+  les plus probables et peut donc se tromper avec assurance. Retourne à l’accueil du module pour la suite.</p>`;
+const NEXT_LABEL = "Retour à la question";   /* same words on every page (usability review, 26 Nov 2026; Moodle: « Retour à l’accueil du module ») */   // la section du module, avec l’introduction en haut
+const NEXT_URL = "../../play.html?a=Module2/intro-module";
+
+/* (Plus utilisés dans le cadre H2 : INTRO, LINKS) */
+const INTRO = "";
+const LINKS = [];   /* pas de boutons : la présentatrice mène à la suite */
+
+/* ---------- Nouveaux textes du cadre H2 (26 nov. 2026, brouillons de Claude) ---------- */
+const STEPS = ["Les diapositives", "Le texte à trous · 10&nbsp;min"];                    //
+const NOW = 2;
+const START_LABEL = "C’est parti";
+const NEXT_TEST_LABEL = "Ensuite&nbsp;: teste tes connaissances";                           //
+const NEXT_TEST_URL = "../../play.html?a=Module2/quiz-fin";              // « Teste tes connaissances » (l'adresse de l'accueil du module)
+const AGAIN_LABEL = "Revoir l’activité";
+/* La fin de Claudia sur le site : END_TEXT sans sa dernière phrase (« Retourne à l’accueil du module pour la suite. »), le bouton menant à la suite */
+const END_SITE = "Une IA générative ne «&nbsp;comprend&nbsp;» pas&nbsp;: elle découpe le texte en tokens, calcule les mots les plus probables et peut donc se tromper avec assurance.";   //
+/* ============================================================ */
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Claudia", pose: "claudia", steps: STEPS, now: NOW });
+const { scorm } = frame;
+// START_TEXT and END_TEXT hold Claudia's bold line (<p class="q">) and her text: the frame shows them apart
+const split = h => { const d = document.createElement("div"); d.innerHTML = h; const q = d.querySelector(".q"); const say = q ? q.innerHTML : ""; q?.remove(); return [say, d.innerHTML.trim()]; };
+const [START_Q, START_BODY] = split(START_TEXT), [END_Q, END_BODY] = split(END_TEXT);
+
+/* ---------- Pages and gaps: [mot] becomes a gap, numbered across the whole activity (trou_1, trou_2…) ---------- */
+let gapNo = 0;
+const pages = PAGES.map(html => {
+  if (html.sort) return { sort: html.sort, hint: html.hint, items: html.items.map(([text, cat], i) => ({ no: i + 1, text, cat })) };
+  const answers = [];
+  const text = html.replace(/\[([^\]]+)\]/g, (_, word) => {
+    answers.push({ no: ++gapNo, word });
+    return `<button type="button" class="gap" data-no="${gapNo}" aria-label="Trou ${gapNo}, vide"></button>`;
+  });
+  return { text, answers };
+});
+
+/* ---------- Progress (unchanged): solved pages kept in suspend_data; completed when every page is solved ---------- */
+let solved = [];
+try { solved = JSON.parse(scorm.get("cmi.suspend_data") || "[]"); } catch {}
+if (!Array.isArray(solved)) solved = [];
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+let page = Math.min(solved.length, pages.length - 1);
+const markDone = () => { $("#seen").hidden = false; };
+if (done) markDone();
+
+/* ---------- Learning data (unchanged), one line per gap:
+   trou_1 … trou_7   the words tried in that gap, e.g. "sens > probables"; correct if right the first time
+   trous_erreurs     the total number of wrong words
+   tri_1 … tri_8    sorting page: the categories tried for each statement, e.g. "Machine > Humain"; correct if right the first time
+   tri_erreurs       the total number of statements put in the wrong column
+   page_1_temps …    seconds taken to solve each page ---------- */
+const tries = {}, sortTries = {};
+let errors = 0, sortErrors = 0, pageStart = Date.now();
+
+/* ---------- Claudia: the start, the end ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_BODY,
+  replies: [[START_LABEL, () => { frame.aside(true); pageStart = Date.now(); $(".word")?.focus({ preventScroll: true }); }, true]] });
+const end = () => frame.talk({ pose: "ouvre", say: END_Q, more: END_SITE || END_BODY,
+  replies: [...(NEXT_TEST_URL ? [[NEXT_TEST_LABEL, NEXT_TEST_URL, true]] : []), [AGAIN_LABEL, () => { show(0); frame.aside(true); }]] });
+
+/* ---------- Building a page ---------- */
+const bank = $("#bank"), text = $("#text");
+let selected = null;
+const wordButton = word => `<button type="button" class="word" data-word="${word}">${word}</button>`;
+const stmtButton = it => `<button type="button" class="word stmt" data-no="${it.no}" data-word="${it.text}">${it.text}</button>`;
+const zoneHTML = cat => `<div class="zone" data-cat="${cat}" role="group" aria-label="${cat}"><h4>${cat}</h4><div class="drop"></div></div>`;
+function show(n) {
+  page = n;
+  const p = pages[page], isSolved = solved.includes(page);
+  $(".sheet").classList.toggle("sort", !!p.sort);
+  $("#hint").textContent = p.hint || HINT;
+  if (p.sort) {
+    text.innerHTML = zoneHTML(p.sort[0]) + zoneHTML(p.sort[1]);
+    bank.dataset.empty = "Toutes les propositions sont classées.";
+    bank.innerHTML = isSolved ? "" : p.items.map(stmtButton).join("");
+    if (isSolved) p.items.forEach(it => text.querySelector(`.zone[data-cat="${it.cat}"] .drop`).insertAdjacentHTML("beforeend",
+      stmtButton(it).replace('class="word stmt"', 'class="word stmt ok" disabled')));
+  } else {
+    text.innerHTML = p.text;
+    bank.dataset.empty = "Tous les mots sont placés.";
+    bank.innerHTML = isSolved ? "" : p.answers.map(a => a.word).sort((a, b) => a.localeCompare(b, "fr")).map(wordButton).join("");
+    if (isSolved) p.answers.forEach(a => setGap(gap(a.no), a.word, "ok"));
+  }
+  selected = null;
+  pageStart = Date.now();
+  $("#count").textContent = `${page + 1} / ${pages.length}`;
+  $("#prev").disabled = page === 0;
+  $("#msg").textContent = isSolved ? "Page réussie ✓" : "";
+  $("#msg").className = isSolved ? "msg good" : "msg";
+  refresh();
+}
+const gap = no => text.querySelector(`.gap[data-no="${no}"]`);
+function setGap(g, word, state = "filled") {
+  g.dataset.word = word || "";
+  g.textContent = word || "";
+  g.className = word ? `gap ${state}` : "gap";
+  g.setAttribute("aria-label", `Trou ${g.dataset.no}, ${word || "vide"}`);
+}
+function refresh() {
+  const gaps = [...text.querySelectorAll(".gap")];
+  const isSolved = solved.includes(page);
+  $("#check").disabled = isSolved || (pages[page].sort ? bank.children.length > 0 : gaps.some(g => !g.dataset.word));
+  $("#check").hidden = isSolved;
+  $("#reset").disabled = isSolved;
+  // Next page once this one is solved; on the last page, the button brings Claudia back
+  const last = page === pages.length - 1;
+  $("#next").disabled = !isSolved;
+  $("#next").classList.toggle("go", isSolved);
+  $("#next").innerHTML = `${last ? "Terminer" : "Page suivante"}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+}
+
+// Put a word in a gap (the gap's previous word goes back to the words at the top)
+function put(wordEl, g) {
+  if (!wordEl || !g || g.classList.contains("ok")) return;
+  frame.aside(true);                           // the first move: Claudia steps aside
+  if (g.classList.contains("zone")) {          // sorting page: the statement moves into the column
+    wordEl.classList.remove("selected");
+    g.querySelector(".drop").appendChild(wordEl);
+    selected = null;
+    $("#msg").textContent = ""; $("#msg").className = "msg";
+    refresh();
+    return;
+  }
+  if (g.dataset.word) bank.insertAdjacentHTML("beforeend", wordButton(g.dataset.word));
+  setGap(g, wordEl.dataset.word);
+  wordEl.remove();
+  selected = null;
+  $("#msg").textContent = ""; $("#msg").className = "msg";
+  refresh();
+}
+function stmtBack(w) {                         // sorting page: a statement goes back to the middle
+  if (w.classList.contains("ok")) return;
+  w.classList.remove("ko", "selected");
+  bank.appendChild(w);
+  refresh();
+}
+function takeBack(g) {
+  if (!g.dataset.word || g.classList.contains("ok")) return;
+  bank.insertAdjacentHTML("beforeend", wordButton(g.dataset.word));
+  setGap(g, "");
+  refresh();
+}
+
+// Click a word, then a gap; click a filled gap to take its word back
+bank.addEventListener("click", e => {
+  const w = e.target.closest(".word"); if (!w || dragMoved) return;
+  e.stopPropagation();
+  frame.aside(true);
+  if (selected === w) { w.classList.remove("selected"); selected = null; return; }
+  selected?.classList.remove("selected");
+  selected = w; w.classList.add("selected");
+});
+text.addEventListener("click", e => {
+  if (dragMoved) return;
+  const z = e.target.closest(".zone");
+  if (z) {                                     // sorting page: click a statement, then a column; click a placed statement to send it back
+    const w = e.target.closest(".stmt");
+    if (selected) put(selected, z); else if (w) stmtBack(w);
+    return;
+  }
+  const g = e.target.closest(".gap"); if (!g) return;
+  if (selected) put(selected, g); else takeBack(g);
+});
+
+// Drag a word onto a gap
+let drag = null, dragMoved = false;
+$(".sheet").addEventListener("pointerdown", e => {
+  const w = e.target.closest(".word:not(.ok)"); if (!w || e.button > 0) return;
+  const r = w.getBoundingClientRect();
+  drag = { w, x0: e.clientX, y0: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, ghost: null, over: null };
+  dragMoved = false;
+});
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+    dragMoved = true;
+    drag.ghost = drag.w.cloneNode(true);
+    drag.ghost.classList.add("ghost");
+    drag.ghost.style.width = `${drag.w.offsetWidth}px`;
+    document.body.appendChild(drag.ghost);
+    drag.w.style.visibility = "hidden";
+  }
+  drag.ghost.style.left = `${e.clientX - drag.dx}px`;
+  drag.ghost.style.top = `${e.clientY - drag.dy}px`;
+  const g = document.elementFromPoint(e.clientX, e.clientY)?.closest(".gap:not(.ok), .zone");
+  if (g !== drag.over) { drag.over?.classList.remove("over"); g?.classList.add("over"); drag.over = g; }
+});
+window.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const { w, ghost, over } = drag;
+  drag = null;
+  if (!ghost) return;
+  ghost.remove(); w.style.visibility = "";
+  over?.classList.remove("over");
+  if (over) put(w, over);
+  setTimeout(() => { dragMoved = false; });
+});
+
+// Check: right words stay (green), wrong ones shake and go back to the top
+$("#check").addEventListener("click", () => pages[page].sort ? checkSort() : checkGaps());
+function pageSolved() {
+  solved.push(page);
+  const sec = Math.round((Date.now() - pageStart) / 1000);
+  scorm.record(`page_${page + 1}_temps`, sec, { type: "numeric", latency: sec });
+  scorm.set("cmi.suspend_data", JSON.stringify(solved));
+  if (solved.length === pages.length && !done) { done = true; scorm.set("cmi.core.lesson_status", "completed"); markDone(); }
+  $("#msg").textContent = "Bravo, tout est juste !"; $("#msg").className = "msg good";
+  refresh();
+  $("#next").focus({ preventScroll: true });
+}
+// Sorting page: right statements stay (green), wrong ones shake and go back to the middle
+function checkSort() {
+  let wrong = 0;
+  text.querySelectorAll(".stmt:not(.ok)").forEach(w => {
+    const it = pages[page].items[w.dataset.no - 1], cat = w.closest(".zone").dataset.cat;
+    (sortTries[it.no] ||= []).push(cat);
+    const right = cat === it.cat;
+    scorm.record(`tri_${it.no}`, sortTries[it.no].join(" > "), { result: right && sortTries[it.no].length === 1 ? "correct" : "wrong" });
+    if (right) { w.classList.add("ok"); w.disabled = true; }
+    else { wrong++; sortErrors++; w.classList.add("ko"); setTimeout(() => stmtBack(w), 900); }
+  });
+  scorm.record("tri_erreurs", sortErrors, { type: "numeric" });
+  if (!wrong) pageSolved();
+  else {
+    const total = pages[page].items.length;
+    $("#msg").textContent = `${total - wrong} sur ${total} : les propositions mal classées reviennent au centre. Réessaie !`;
+    $("#msg").className = "msg bad";
+    refresh();
+  }
+  scorm.commit();
+}
+function checkGaps() {
+  const gaps = [...text.querySelectorAll(".gap:not(.ok)")];
+  let wrong = 0;
+  gaps.forEach(g => {
+    const a = pages[page].answers.find(a => String(a.no) === g.dataset.no);
+    (tries[a.no] ||= []).push(g.dataset.word);
+    const right = g.dataset.word === a.word;
+    if (right) {
+      setGap(g, a.word, "ok");
+      scorm.record(`trou_${a.no}`, tries[a.no].join(" > "), { result: tries[a.no].length === 1 ? "correct" : "wrong" });
+    } else {
+      wrong++; errors++;
+      g.classList.add("ko");
+      setTimeout(() => takeBack(g), 900);
+    }
+  });
+  scorm.record("trous_erreurs", errors, { type: "numeric" });
+  const total = pages[page].answers.length, ok = text.querySelectorAll(".gap.ok").length;
+  if (!wrong) pageSolved();
+  else {
+    $("#msg").textContent = `${ok} sur ${total} : les mots mal placés reviennent en haut. Réessaie !`; $("#msg").className = "msg bad";
+    refresh();
+  }
+  scorm.commit();
+}
+
+$("#reset").addEventListener("click", () => {
+  text.querySelectorAll(".gap:not(.ok)").forEach(takeBack);
+  text.querySelectorAll(".stmt:not(.ok)").forEach(stmtBack);
+});
+$("#prev").addEventListener("click", () => show(page - 1));
+$("#next").addEventListener("click", () => { if (page === pages.length - 1) { end(); frame.aside(false); } else show(page + 1); });
+
+/* First visit: Claudia introduces; coming back in the middle: straight to the page; all done: her summary */
+show(page);
+if (done) end(); else { start(); if (solved.length) frame.aside(true); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

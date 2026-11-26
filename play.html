@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP · Module 1</title>
+<link rel="stylesheet" href="site.css">
+<!-- Before the activity loads: the stand-in for Moodle's tracking (window.API), which the activity finds in this page -->
+<script src="deep-api.js"></script>
+<script src="parcours.js"></script>
+</head>
+<body>
+<div class="player">
+  <nav class="bar" aria-label="Site">
+    <a class="logo" href="./" target="_top" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <a class="home" href="./" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Accueil</a>
+    <div class="path" id="path" aria-label="Ton parcours" hidden></div>
+    <span class="title" id="title"></span>
+    <a class="next" id="next" href="parcours.html" hidden>Question suivante<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <span class="code">Code&nbsp;: <b id="code"></b> · <a href="code.html">changer</a></span>
+  </nav>
+  <iframe id="act" title="Activité" allow="fullscreen; autoplay" allowfullscreen></iframe>
+</div>
+<script>
+/* ?a=Module1/<folder> opens that activity. Without a code, the entrance comes first. */
+const TITLES = {
+  "bienvenue": "Bienvenue",
+  "Module1/intro-module": "Quels sont les fondements de l’IA ?",
+  "Module1/video-algorithmes": "Vidéo · Algorithmes et histoire de l’IA",
+  "Module1/frise-ia-scorm": "La frise de l’IA",
+  "Module1/texte-fondements": "Texte · Les fondements de l’IA",
+  "Module1/quiz-texte": "Quiz · Les fondements de l’IA",
+  "Module1/quiz-fin": "Teste tes connaissances",
+  "Module1/robot-dessine-1-ecm": "Robot dessine 1 · préparer la séance",
+  "Module1/robot-dessine-2-ecm": "Robot dessine 2 · préparer la séance",
+  "Module1/robot-apprend-ecm": "Robot apprend à dessiner · préparer la séance",
+  "Module2/intro-module": "Comment fonctionne l’IA générative ?",
+  "Module2/video-ia": "Vidéo · Prendre sans comprendre",
+  "Module2/flash-cards": "Les cartes · Les trois personnages de la vidéo",
+  "Module2/texte-ia": "Diapositives · Comment l’IA générative prédit",
+  "Module2/texte-trous": "Le texte à trous · L’IA générative",
+  "Module2/quiz-fin": "Teste tes connaissances",
+  "Module2/machine-histoires-ecm-v2": "La Machine à Histoires · préparer la séance",
+  "Module2/parcours-requete-ecm": "Parcours d’une requête · préparer la séance",
+  "Module3/intro-module": "Quand utilise-t-on l’IA ?",
+  "Module3/video-usages": "Vidéo · Pour tout ou pour rien ?",
+  "Module3/flash-cards-usages": "Les cartes · Pour tout ou pour rien ?",
+  "Module3/texte-usages": "Diapositives · Quand et comment utiliser l’IA ?",
+  "Module3/texte-reviser": "Les exercices · Les usages de l’IA",
+  "Module3/identifia-ecm": "Identif’IA · préparer la séance"
+};
+const a = new URLSearchParams(location.search).get("a") || "Module1/intro-module";
+let code = ""; try { code = localStorage.getItem("deep:code") || ""; } catch {}
+if (!code) location.replace("code.html?next=" + encodeURIComponent(location.pathname.split("/").pop() + location.search));
+else if (!Object.hasOwn(TITLES, a)) location.replace(DEEP.load().questions.length ? "parcours.html" : "play.html?a=Module1/intro-module");   // not on the site yet
+else {
+  document.getElementById("title").textContent = TITLES[a];
+  document.getElementById("code").textContent = code === DEEP.NO_CODE ? "sans code" : code;
+  document.title = "DEEP · " + TITLES[a];
+  const home = document.querySelector(".bar .home"), mod = a.split("/")[0], p = DEEP.load();
+  const q = DEEP.Q.find(x => x.module === mod), onBoard = a.endsWith("/intro-module");
+  if (a === "bienvenue") home.hidden = false;   // the welcome story: before any question, back to the home page
+  else if (q) {
+    /* The path, on every page of a question (since 26 Nov 2026): « Ton parcours », the questions in the teacher's order,
+       this question as a button that opens its menu (its page, then each part with ✓ when done) — the way back from anywhere */
+    const path = document.getElementById("path"), here = DEEP.partOf(a)?.part;
+    const ids = p.questions.includes(q.id) ? p.questions : [q.id];
+    const chev = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    const row = x => `<a href="play.html?a=${x.a}"${x === here ? ' class="here" aria-current="page"' : ""}><span>${x.t}</span><b>${DEEP.isDone(x) ? "✓<span class=\"sr\"> fait</span>" : ""}</b></a>`;
+    const menu = `<a href="${q.board}"${onBoard ? ' class="here" aria-current="page"' : ""}><span>La page de la question</span></a>`
+      + `<h3>Pour toi</h3>${q.parts.filter(x => x.side === "me").map(row).join("")}`
+      + `<h3>Pour ta classe</h3>${q.parts.filter(x => x.side === "class").map(row).join("")}`
+      + `<h3>Quand tu veux</h3><a href="pourquoi.html" target="_top"><span>Pourquoi parler d’IA à l’école&nbsp;?</span><b></b></a>`;
+    /* A breadcrumb (26 Nov 2026, user: option A): « Ton parcours › <question> ▾ › <page> ». The other questions show only
+       on « Ton parcours » and on the bridge. */
+    path.innerHTML = (p.questions.length ? `<a class="all" href="parcours.html">Ton parcours</a><span class="crumb" aria-hidden="true">›</span>` : "")
+      + `<span class="qwrap"><button type="button" class="now" id="qbtn" aria-expanded="false" aria-controls="qmenu">${q.short}${chev}</button><div class="qmenu" id="qmenu" hidden>${menu}</div></span>`
+      + (onBoard ? "" : `<span class="crumb" aria-hidden="true">›</span>`);
+    path.hidden = false;
+    const btn = document.getElementById("qbtn"), m = document.getElementById("qmenu");
+    const open = on => { m.hidden = !on; btn.setAttribute("aria-expanded", on); };
+    btn.addEventListener("click", () => open(m.hidden));
+    document.addEventListener("click", e => { if (!e.target.closest(".qwrap")) open(false); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && !m.hidden) { open(false); btn.focus(); } });
+    document.getElementById("act").addEventListener("load", () => {   // clicks inside the activity close the menu too
+      try { document.getElementById("act").contentDocument.addEventListener("click", () => open(false)); } catch {}
+    });
+    if (onBoard) document.getElementById("title").hidden = true;   // the question's page says its title itself
+    /* « Question suivante » on the question's page, once the teacher has chosen a path */
+    /* « Question suivante » once a first part is done; on the last open question (« Terminer »), once a whole way in is done
+       (usability reviews, 26 Nov 2026) */
+    const parts = q.parts || [], wayDone = [1, 2].some(w => { const ps = parts.filter(x => x.way === w); return ps.length && ps.every(DEEP.isDone); });
+    const isLast = !DEEP.current({ ...p, done: p.done.concat(q.id) });
+    if (onBoard && p.questions.includes(q.id) && (p.done.includes(q.id) || (isLast ? wayDone || parts.every(DEEP.isDone) : parts.some(DEEP.isDone)))) {
+      const next = document.getElementById("next");
+      const after = () => { const d = p.done.includes(q.id) ? p.done : p.done.concat(q.id); return DEEP.current({ ...p, done: d }); };
+      if (!after()) next.firstChild.textContent = "Terminer";
+      next.hidden = false;
+      next.addEventListener("click", e => {
+        e.preventDefault();
+        if (!p.done.includes(q.id)) p.done.push(q.id);
+        DEEP.save(p); DEEP.log("suivante", q.id);
+        top.location.href = `pont.html?de=${q.id}`;   // the bridge: this guide closes, the next one (or the end page) follows
+      });
+    }
+  }
+  document.getElementById("act").src = a + "/index.html";
+
+  /* The first time on a question's page (26 Nov 2026): a short tour, once per code. Three lit areas, one line each:
+     the notebook (« Pour toi »), the board (« Pour ta classe »), the question's button in this bar. « Passer » skips it. */
+  const TOUR_KEY = `deep:tour:${code}`;
+  let toured = false; try { toured = !!localStorage.getItem(TOUR_KEY); } catch {}
+  if (q && onBoard && !toured) {
+    const TOUR = [   /* CONTENU (✎): the guide's three lines */
+      { sel: ".notebook", say: "<b>Pour toi.</b> Deux chemins&nbsp;: regarder ou lire. Prends celui qui te va.", side: "right" },
+      { sel: ".board", say: "<b>Pour ta classe.</b> Des activités prêtes&nbsp;: chacune te guide pas à pas pour préparer ta leçon.", side: "left" },
+      { bar: "#qbtn", say: "<b>En haut, ton chemin.</b> Clique ici pour aller d’une partie à l’autre, ou revenir à cette page.", side: "below" }];
+    const tour = document.createElement("div");
+    tour.className = "tour"; tour.innerHTML = '<div class="spot" id="spot"></div><div class="tip" id="tip" role="dialog" aria-live="polite"></div>';
+    let at = 0;
+    const end = () => { tour.remove(); try { localStorage.setItem(TOUR_KEY, new Date().toISOString()); } catch {} DEEP.log("visite_guidee", at >= TOUR.length ? "vue" : `passee_${at + 1}`); };
+    const show = i => {
+      at = i; if (i >= TOUR.length) return end();
+      const t = TOUR[i], frame = document.getElementById("act"), fr = frame.getBoundingClientRect();
+      let r;
+      if (t.bar) r = document.querySelector(t.bar).getBoundingClientRect();
+      else { const el = frame.contentDocument?.querySelector(t.sel); if (!el) return end();
+             el.scrollIntoView({ block: "nearest" });   // a phone: the area may be below the fold (code review)
+             const e = el.getBoundingClientRect(); r = { left: fr.left + e.left, top: fr.top + e.top, width: e.width, height: e.height }; }
+      const pad = 10, spot = tour.querySelector("#spot"), tip = tour.querySelector("#tip");
+      Object.assign(spot.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + 2 * pad}px`, height: `${r.height + 2 * pad}px` });
+      tip.innerHTML = `<span class="who">${q.host || ""}</span><p>${t.say}</p><div class="row"><span>${i + 1} sur ${TOUR.length}</span><span><button type="button" class="skip">Passer</button> <button type="button" class="ok">${i === TOUR.length - 1 ? "C’est parti" : "Suivant"}</button></span></div>`;
+      tip.querySelector(".skip").onclick = end; tip.querySelector(".ok").onclick = () => show(i + 1);
+      const W = tip.offsetWidth, H = tip.offsetHeight;
+      if (innerWidth < 760) { Object.assign(tip.style, { left: "", top: "" }); tip.querySelector(".ok").focus({ preventScroll: true }); return; }   // narrow: docked at the bottom (CSS)
+      let left = t.side === "right" ? r.left + r.width + 24 : t.side === "left" ? r.left - W - 24 : r.left, top = t.side === "below" ? r.top + r.height + 18 : r.top + 40;
+      if (left < 16 || left + W > innerWidth - 16) { left = r.left + r.width / 2 - W / 2; top = r.top + r.height - H - 30; }   // no room beside: inside, at the bottom
+      Object.assign(tip.style, { left: `${Math.max(16, Math.min(left, innerWidth - W - 16))}px`, top: `${Math.max(16, Math.min(top, innerHeight - H - 16))}px` });   // always on screen
+      tip.querySelector(".ok").focus({ preventScroll: true });
+    };
+    document.getElementById("act").addEventListener("load", () => { document.body.appendChild(tour); setTimeout(() => show(0), 400); }, { once: true });
+    addEventListener("resize", () => { if (tour.isConnected) show(at); });
+    addEventListener("keydown", e => { if (e.key === "Escape" && tour.isConnected) end(); });
+  }
+}
+</script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

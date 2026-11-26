@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot apprend à dessiner</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* Robot apprend à dessiner in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Anne stays beside the
+     work and reacts to every move. 7 screens: ? Pourquoi (her story, the notions) · Avant la séance (the plan, the decks)
+     · the 4 steps · ✓ Fin (the takeaways; « Ce que l'activité simplifie » from a button).
+     The games and the data are the same as before; « Pour toi » is answered in Anne's bubble. */
+  .desk { display: flex; flex-direction: column; gap: 14px; overflow: auto; --sh: clamp(220px, calc(100vh - 360px), calc(380 * var(--u))); }
+  .desk h2.dt { font-size: calc(15 * var(--u)); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--violet); }
+  .pt { font-size: calc(13 * var(--u)); font-weight: 700; color: var(--soft); margin-bottom: 6px; }
+  .card-consigne { align-self: flex-start; max-width: 560px; }
+  .board { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: safe center; gap: 12px; }   /* few items: centred in the desk (layout brief, 26 Nov 2026) */
+  .duo { display: flex; gap: clamp(14px, 2vw, 24px); align-items: flex-start; justify-content: center; }
+  .duo > * { min-width: 0; }
+  .ask { font-weight: 700; color: var(--g-deep); }
+  /* the decks and the robot */
+  .deckcard { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #fff; border-radius: 6px; box-shadow: var(--paper-shadow); }
+  .deckcard b { font-size: calc(13 * var(--u)); color: var(--soft); }
+  .deckcard img, .deckcard svg { display: block; width: 100%; height: auto; }
+  .obs { display: grid; grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr); gap: clamp(14px, 2vw, 24px); align-items: start; }
+  .obs .deckcard { rotate: -.6deg; }
+  .crit h3 { font-size: calc(17 * var(--u)); color: var(--g-deep); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin-bottom: 10px; }
+  .crit h3 span { font-size: calc(14 * var(--u)); color: var(--soft); }
+  .feats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .feat { min-height: 40px; padding: 4px 12px; border-radius: 10px; border: 1.5px solid var(--g-deep); background: #fff; color: var(--g-deep); font: 600 calc(14.5 * var(--u))/1.25 Inter, sans-serif; text-align: left; cursor: pointer; }
+  .feat:hover:not(:disabled) { background: var(--g-tint); }
+  .feat.ok { background: var(--g-main); border-color: var(--g-main); cursor: default; }
+  .feat.ok::before { content: "✓ "; font-weight: 800; }
+  .feat.no { border-style: dashed; color: var(--soft); border-color: var(--soft); text-decoration: line-through; cursor: default; }
+  .feat.shake { animation: shake .35s; }
+  @keyframes shake { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+  @media (prefers-reduced-motion: reduce) { .feat.shake { animation: none; } }
+  .others { margin-top: 12px; font-size: calc(14 * var(--u)); color: var(--soft); }
+  .gen { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, .8fr) minmax(0, 1.1fr); gap: clamp(12px, 1.6vw, 20px); align-items: start; }
+  .gen .col { display: flex; flex-direction: column; gap: 10px; }
+  .gen .deckcard.new { rotate: .6deg; }
+  .score { font-size: calc(15 * var(--u)); line-height: 1.4; } .score .off { color: var(--violet); font-weight: 700; }
+  .pieces { display: grid; gap: 8px; }
+  .prow2 b { display: block; font-size: calc(13 * var(--u)); color: var(--soft); margin-bottom: 4px; }
+  .prow2 div { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pc { min-height: 34px; padding: 2px 10px; border-radius: 8px; border: 1.5px solid var(--hair); background: #fff; font: 600 calc(14 * var(--u)) Inter, sans-serif; color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .pc i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #333; }
+  .pc.on { border-color: var(--g-deep); background: var(--g-tint); color: var(--g-deep); }
+  .cmp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .cmp .deckcard { padding: 6px; } .cmp .deckcard b { font-size: calc(12 * var(--u)); }
+  /* the discussion questions */
+  .drops { display: grid; gap: 10px; }
+  .drop { border-radius: 12px; border: 1.5px solid var(--hair); background: #fff; }
+  .drop.seen { border-color: var(--g-main); }
+  .drop > button { width: 100%; display: grid; grid-template-columns: 1fr 24px; align-items: center; gap: 4px 10px; padding: 10px 16px; border: 0; background: none; text-align: left; font: inherit; cursor: pointer; }
+  .drop > button small { grid-column: 1; font-size: calc(13 * var(--u)); font-weight: 700; color: var(--soft); }
+  .drop > button b { grid-column: 1; font-size: calc(16 * var(--u)); color: var(--g-deep); }
+  .drop > button .chev { grid-column: 2; grid-row: 1 / span 2; width: 22px; height: 22px; color: var(--g-deep); transition: transform .2s; }
+  .drop.open > button .chev { transform: rotate(180deg); }
+  .drop .dbody { display: none; padding: 0 16px 12px; }
+  .drop.open .dbody { display: grid; gap: 8px; }
+  .drop .dbody p { font-size: calc(15 * var(--u)); line-height: 1.45; }
+  .drop .dbody .ans { padding: 8px 12px; border-radius: 8px; background: var(--g-tint); }
+  .drop .dbody b { display: block; font-size: calc(12 * var(--u)); text-transform: uppercase; letter-spacing: .03em; color: var(--g-deep); }
+  /* step 4: the trace écrite */
+  .trace { padding: 14px 18px; flex: 1; min-width: 280px; }
+  .trace ol { margin: 0; padding-left: 22px; display: grid; gap: 10px; font-size: calc(16 * var(--u)); line-height: 1.45; }
+  .trace li.todo { color: var(--soft); }
+  .trace li.new { animation: rise .45s var(--ease) both; }
+  .tshow { padding: 12px 14px; flex: 1; }
+  .tshow img { max-width: 100%; height: auto; max-height: calc(var(--sh) * .8); }
+  .tpair { display: flex; gap: 12px; } .tpair figure { margin: 0; text-align: center; flex: 1; } .tpair figcaption { font-size: calc(13 * var(--u)); color: var(--soft); }
+  .tpair svg, .tpair img { width: 100%; height: auto; }
+  /* ? Pourquoi */
+  .notions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .ncard { padding: 18px 20px; } .ncard:nth-child(2) { rotate: .6deg; }
+  .ncard h3 { font-size: calc(21 * var(--u)); color: var(--g-deep); margin-bottom: 6px; } .ncard p { font-size: calc(17 * var(--u)); line-height: 1.45; }
+  .exs { display: grid; gap: 6px; margin-top: 10px; } .ex { padding: 6px 10px; border-radius: 8px; font-size: calc(16 * var(--u)); line-height: 1.4; background: var(--g-tint); }
+  .ex.no { background: var(--lilac-tint); } .ex b { display: block; font-size: calc(12 * var(--u)); text-transform: uppercase; letter-spacing: .03em; color: var(--g-deep); }
+  .ex.no b { color: var(--violet); }
+  .after { font-size: calc(15 * var(--u)); color: var(--soft); }
+  /* Avant la séance */
+  /* the last screen: the lesson as a sheet (26 Nov 2026) */
+  .lesson { --u: clamp(1px, calc(.08px + .1vh), 1.35px); display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 22vw, 280px); grid-template-rows: auto 1fr; gap: 6px clamp(20px, 2.6vw, 36px); align-self: start; padding: clamp(18px, 3vh, 28px) clamp(20px, 2.6vw, 32px); rotate: -.3deg; }
+  .ls-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--g-tint); }
+  .ls-head h2 { font-size: clamp(1.3rem, 3vh, 1.7rem); color: var(--g-deep); }
+  .ls-head span { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .ls-steps::before { content: ""; position: absolute; left: 17px; top: 24px; bottom: 24px; width: 2px; background: var(--g-hell); }
+  .ls-step { position: relative; width: 100%; display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 8px 10px 8px 0; border: 0; border-radius: 10px; background: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+  .ls-step:hover { background: var(--g-tint); }
+  .ls-step i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); background: #fff; border: 2px solid var(--g-deep); }
+  .ls-step.done i { background: var(--g-deep); color: #fff; }
+  .ls-body { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .ls-body b { font-size: clamp(16px, 2.2vh, 18px); color: var(--g-deep); }
+  .ls-body small { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-found { grid-column: 1 / -1; font-size: calc(15 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .ls-say { grid-column: 1 / -1; margin-top: 4px; padding: 6px 10px; border-radius: 8px; background: var(--g-tint); font-size: calc(15 * var(--u)); line-height: 1.35; color: var(--g-deep); }
+  .ls-say em { display: block; font-style: normal; font-size: calc(12 * var(--u)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .ls-mat { grid-row: 2; grid-column: 2; display: flex; flex-direction: column; gap: 10px; padding-left: clamp(16px, 2vw, 28px); border-left: 2px dashed var(--hair); }
+  .ls-mat h3 { font-size: calc(13 * var(--u)); font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--violet); }
+  .ls-sheet { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; border: 1.5px solid var(--hair); background: #fff; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); cursor: pointer; }
+  .ls-sheet:hover { border-color: var(--g-deep); }
+  .ls-sheet img { width: 100%; max-height: 34vh; object-fit: contain; box-shadow: var(--paper-shadow); rotate: 1.5deg; }
+  .ls-mat .tool { justify-content: center; }
+  /* five steps or more: tighter, so the sheet stays on one screen */
+  .lesson.many .ls-step { padding-block: 3px; } .lesson.many .ls-steps { gap: 0; }
+  .lesson.many .ls-found, .lesson.many .ls-say { font-size: calc(14 * var(--u)); } .lesson.many .ls-say { margin-top: 2px; padding: 4px 8px; }
+  .lesson.many .ls-say em { display: inline; margin-right: 4px; }
+  @media (max-width: 900px) { .lesson { grid-template-columns: 1fr; height: auto; max-height: none; } .ls-mat { grid-row: auto; grid-column: 1; padding-left: 0; border-left: 0; } }
+  .plan { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .stepc { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; border: 1.5px solid var(--hair); background: #fff; text-align: left; font: inherit; cursor: pointer; }
+  .stepc:hover { border-color: var(--g-deep); }
+  .stepc .sn { display: flex; align-items: center; gap: 8px; font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .stepc .sn i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); border: 2px solid var(--g-deep); }
+  .stepc.done .sn i { background: var(--g-deep); color: #fff; }
+  .stepc h3 { font-size: calc(18 * var(--u)); line-height: 1.25; color: var(--g-deep); } .stepc p { font-size: calc(15 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .total { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--g-deep); text-align: right; margin-top: -6px; }
+  .prep { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .mat { padding: 14px 16px; } .mat h3 { font-size: calc(19 * var(--u)); color: var(--g-deep); margin-bottom: 8px; }
+  .mat ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: calc(17 * var(--u)); line-height: 1.4; }
+  .mat .note { margin-top: 10px; font-size: calc(14 * var(--u)); color: var(--soft); }
+  .side { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .thumb { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border: 0; cursor: pointer; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); rotate: -1deg; }
+  .thumb img { width: 80px; height: auto; border-radius: 4px; }
+  .pdfs { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* ✓ Fin */
+  .simp { width: 100%; border-collapse: collapse; font-size: calc(14 * var(--u)); line-height: 1.4; background: #fff; }
+  .simp th { text-align: left; padding: 8px 10px; font-size: calc(13 * var(--u)); color: var(--g-deep); border-bottom: 2px solid var(--g-deep); }
+  .simp th.ai, .simp td.ai { background: var(--lilac-tint); }
+  .simp td { padding: 8px 10px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .simp td .st { display: block; font-size: calc(12 * var(--u)); color: var(--soft); }
+  /* the three decks, large */
+  .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(11, 81, 77, .45); display: grid; place-items: center; padding: 24px; }
+  .lightbox[hidden] { display: none; }
+  .lightbox .lb { background: #fff; border-radius: 10px; padding: 16px; max-width: 100%; max-height: 100%; overflow: auto; }
+  .lightbox .decks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .lightbox .decks div { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--g-deep); display: grid; gap: 6px; }
+  .lightbox .decks img { width: 100%; height: auto; border-radius: 4px; }
+  .lightbox .cap { margin-top: 10px; font-size: calc(14 * var(--u)); color: var(--soft); }
+  .lightbox .x { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border-radius: 10px; border: 0; background: #fff; color: var(--g-deep); cursor: pointer; display: grid; place-items: center; }
+  @media (max-width: 1100px) { .notions { grid-template-columns: 1fr; } .plan { grid-template-columns: repeat(2, minmax(0, 1fr)); } .prep, .obs, .gen { grid-template-columns: 1fr; } .cmp { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  /* short laptop screens (≤ 820 px high): the lesson sheet keeps one screen, as in Modules 2 and 3 */
+  @media (max-height: 820px) and (min-width: 761px) {
+    .lesson { padding: 14px 18px; gap: 4px 20px; } .ls-head { padding-bottom: 6px; } .ls-steps { gap: 0; } .ls-step { padding-block: 3px; }
+    .ls-found { display: none; } .ls-say { margin-top: 2px; padding: 4px 8px; } .ls-say em { display: inline; margin-right: 4px; }
+    .ncard { padding: 14px 16px; } .ncard h3 { font-size: calc(19 * var(--u)); } .ncard p { font-size: calc(16 * var(--u)); } .ex { font-size: calc(15 * var(--u)); }
+  }
+  /* few items on the desk (notions, plan, material): the group sits in the middle of the desk, not against the top
+     (layout brief, 26 Nov 2026); the Consigne card stays at the top. Only here: other pages' desks are grids. */
+  .desk > :first-child:not(.card-consigne):not(.rotate) { margin-top: auto; }
+  .desk > :last-child:not(.card-consigne) { margin-bottom: auto; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" id="desk" aria-label="Ton pupitre"></section>
+</main>
+<div class="lightbox" id="lightbox" hidden><button type="button" class="x" id="lb-close" aria-label="Fermer"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="lb"><div class="decks" id="lb-decks"></div><p class="cap" id="lb-cap"></p></div></div>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   (Le même contenu qu'avant le 26 nov. 2026 ; les textes des trois écrans regroupés sont plus bas, marqués.)
+   Les espaces avant : ? ! ; » et après « , et les apostrophes ’, sont mis tout seuls à l'affichage (fonction nb).
+   ============================================================ */
+const TITLE = "Robot apprend à dessiner";   // « apprend » : le mot courant ; partout ailleurs, dire ce qu'il veut dire : « elle repère des régularités dans les exemples ».
+const GUIDE_PDF = "media/robot-apprend.pdf";
+const MATERIAL_PDF = "media/robot-apprend.pdf#page=4";   // les cartes A, B, C sont aux pages 4 et 5 du guide
+
+/* Les boutons (1 à 3 mots) */
+const BTN = {
+  prev: "Écran précédent", next: "Écran suivant", plan: "Plan de la leçon", close: "Fermer",
+  nextStep: "Étape suivante",          // à côté de la flèche → (en bas), quand l'étape est faite
+  finish: "Terminer",                  // à côté de la flèche →, à la fin de l'étape 4
+  ready: "Mon robot est prêt",         // étape 2
+  write: n => `Écrire la ligne ${n}`,  // étape 4
+  guide: "Guide (PDF)", material: "Cartes (PDF)", again: "Recommencer", materialShort: "Guide et cartes (PDF)",
+  decks: "Voir les trois jeux de cartes"   // « Préparer la séance »
+};
+const ROTATE_MSG = "Tourne ta tablette à l’horizontale pour faire l’activité.";
+
+/* ---------- Écran 1 : Avant de commencer. Le récit d'Anne. BROUILLON pour l'équipe : à réécrire ---------- */
+const DRAFT_TAG = "";   // avant : "Brouillon · texte à réécrire" (retiré le 23 nov. 2026)   // "" = ne plus afficher l'étiquette
+const TALE = [
+  "Après Robot dessine, une élève m'a dit : « C'est facile, un robot : on lui dit tout ! »",
+  "Mais les IA dont on parle aujourd'hui, personne ne leur dit tout. <b>On leur montre des exemples</b>, et elles y <b>repèrent des régularités</b>. Si les élèves ne voient pas cette autre façon de faire, ils croient qu'il y a quelqu'un dedans qui sait ce qu'est un robot.",
+  "Alors chaque groupe <b>joue la machine</b> : pas de règles, seulement quelques cartes. Et les groupes n'ont pas les mêmes cartes. Quand on compare les dessins, la classe voit d'elle-même que le résultat dépend des exemples.",
+];
+const IDEA_LABEL = "Pourquoi montrer des exemples ?";
+const IDEA = "Certaines tâches sont impossibles à écrire en instructions : essaie de décrire « un robot » point par point. Alors <b>on lui montre des exemples</b> : la machine <b>repère des régularités dans les exemples</b>.";
+
+/* ---------- Écran 2 : les notions de la séance (NOTIONS_TITLE = le titre du bandeau du haut). Un récapitulatif pour toi, avant l'exercice ;
+   les exemples parlent de fruits, pas des cartes de robots (l'enseignant·e n'a pas encore vu l'exercice) ---------- */
+const NOTIONS_TITLE = "Les notions de la séance";
+const NOTIONS = [
+  { term: "Des exemples, au lieu d'instructions", def: "Des humains ne disent pas tout à la machine : <b>on lui montre des exemples</b>. Quand on dit qu'une machine « apprend », cela veut dire ceci : <b>elle repère des régularités dans les exemples</b>, puis elle calcule un résultat qui leur ressemble." },
+  { term: "Repérer des régularités", def: "Une régularité, c'est ce qui revient dans les exemples. La machine ne nomme rien : <b>elle ne comprend pas comme nous</b> ce qu'elle voit, elle calcule ce qui revient souvent.",
+    yes: ["Revient", "Sur toutes les photos de pommes : une forme ronde, une queue."], no: ["Ne revient pas", "Une feuille, sur une seule photo."] },
+  { term: "Ce qui manque dans les exemples (un biais)", def: "<b>Ce qui manque dans les exemples sort rarement.</b> Si les exemples ne montrent qu'une partie du monde, les résultats aussi : c'est un biais. <b>Ce sont des humains qui choisissent les exemples.</b>",
+    yes: ["Variés", "Des pommes rouges, vertes et jaunes : les trois peuvent sortir."], no: ["Il manque", "Seulement des pommes rouges : une pomme verte sort rarement."] }
+];
+const NOTIONS_AFTER = "Si la classe a fait « Robot dessine 1 » et « 2 » : là, <b>on lui dit tout</b>, des humains écrivent chaque instruction. Ici, <b>on lui montre des exemples</b>, et des humains choisissent les exemples.";
+
+/* ---------- Écran 9, avant la fin : ce que l'activité simplifie (SIMP_TITLE = le titre du bandeau du haut ; step = le texte affiché ;
+   at = les étapes où la ligne revient dans « Pour toi » ; risk = l'idée fausse que la simplification peut donner, affichée « Attention » dans le tiroir) ---------- */
+const SIMP_TITLE = "Pour aller plus loin : ce que l’activité simplifie";
+const SIMP_HEAD = ["Dans l’activité", "Pourquoi on simplifie", "Dans une vraie machine"];
+const SIMP = [
+  { game: "Les élèves nomment les critères (« il a des antennes »)", step: "étape 1", at: [1],
+    why: "Nommer rend les régularités visibles : on peut les noter et en discuter.",
+    ai: "La machine ne nomme pas les critères et ne comprend pas comme nous ce qu'est une antenne. Elle ajuste des nombres (des paramètres) pour produire des résultats qui ressemblent statistiquement aux exemples.",
+    risk: "les élèves peuvent croire que la machine pense en mots. Et elle ne garde pas seulement ce qui est sur toutes les cartes : ce qui est rare sort rarement, pas jamais." },
+  { game: "Six cartes par groupe", step: "étapes 1 et 3", at: [1],
+    why: "On peut tout regarder et tout comparer en cinq minutes.",
+    ai: "Des milliers, souvent des millions d’images.",
+    risk: "on peut croire qu'il faut peu d'exemples : une vraie machine en a besoin de beaucoup." },
+  { game: "Le groupe choisit les pièces du robot", step: "étape 2", at: [2],
+    why: "On voit d’où vient chaque partie du nouveau robot.",
+    ai: "Personne ne choisit de pièces : la machine calcule toute l’image avec les nombres ajustés pendant l’entraînement.",
+    risk: "les élèves peuvent croire qu'elle colle des morceaux d'images : dis qu'elle calcule toute l'image." },
+  { game: "Pas de tête toute rouge dans les exemples, pas de tête rouge dessinée", step: "étapes 2 et 3", at: [2, 3],
+    why: "La limite se voit d’un coup d’œil.",
+    ai: "Ce qui manque dans les exemples sort rarement. Ce sont des humains qui choisissent les exemples : ils en ont la responsabilité.",
+    risk: "ne laisse pas dire « jamais » ni « elle n'a pas voulu » : ce qui manque sort rarement, et ce n'est pas un choix." },
+  { game: "Trois groupes, trois jeux de cartes", step: "étape 3", at: [3],
+    why: "On compare trois « machines » entraînées sur des exemples différents.",
+    ai: "Deux IA entraînées sur des données différentes produisent des résultats différents.",
+    risk: "ne laisse pas dire qu'un groupe s'est trompé : chaque robot ressemble à ses exemples." },
+  { game: "Le mot « apprendre »", step: "étape 4", at: [4], why: "C'est le mot du titre et des médias : les élèves l'entendent.",
+    ai: "On dit qu'une machine « apprend » quand elle ajuste des nombres pour que ses résultats ressemblent aux exemples. Elle ne comprend pas comme nous ce qu'elle produit.",
+    risk: "les élèves peuvent croire qu'elle apprend comme eux : dis toujours « dans les exemples »." },
+];
+const SIMP_AFTER = "Toi, tu le sais dès le départ. Tes élèves le découvrent à l’étape 3, en comparant les dessins des groupes.";
+
+/* ---------- Écran 4 : le plan de la leçon. Les 4 étapes (ess = Essentiel ; sinon « Peut se raccourcir ») ---------- */
+const STEPS = [
+  { n: 1, title: "Observation", min: 5, ess: false, found: "Chaque groupe cherche ce que tous ses robots ont en commun." },
+  { n: 2, title: "Génération", min: 5, ess: true, found: "Le groupe est la machine : il dessine un robot nouveau, mais plausible." },
+  { n: 3, title: "Comparaison", min: 5, ess: true, found: "Les dessins diffèrent d’un groupe à l’autre : le résultat dépend des exemples." },
+  { n: 4, title: "Faire le point", min: 5, ess: true, found: "La classe écrit la trace écrite : exemples, régularités, ce qui manque." },
+];
+const START_MIN = 0;   // la consigne est donnée dans l'étape 1 (avant le 18 nov. 2026 : 5 min à part) ; 5 + 5 + 5 + 5 = 20 min, comme dans le guide
+const TAGS = { ess: "Essentiel", short: "Peut se raccourcir" };   // seule l’étiquette « Peut se raccourcir » est affichée (plan et bandeau) ; « Essentiel » n’est plus montré
+const PLAN_TITLE = "clique sur une étape pour l’ouvrir";   // à droite du bandeau du haut, après PLAN_SUB
+const PLAN_SUB = (n, min) => `${n} étapes · ${min} min`;   // l'addition sous la ligne des étapes est calculée avec STEPS
+const DONE_MARK = "fait ✓";
+/* Avant la séance : le matériel, les groupes, la règle à dire, les trois jeux de cartes */
+const BEFORE_TITLE = "Avant la séance : imprime les cartes, forme les groupes";
+const BEFORE_LIST = [
+  "Les 3 jeux de cartes « apprentissage IA » (A, B, C) : un jeu différent par groupe.",
+  "Une fiche par groupe, pour noter les critères et dessiner le robot.",
+  "Des groupes de 3 ou 4 élèves ; chaque groupe sera « la machine »."
+];
+const BEFORE_SAY = "« Cette fois, on ne donne pas d’instructions : on montre des exemples à la machine. »";
+const BEFORE_NOTE = "Le jeu A est le plus facile. Si tous commencent avec A, donne B et C à deux groupes avant l'étape 2 : la comparaison a besoin d'exemples différents.";
+const DECKS_CAP = "Les trois jeux : A (des têtes de robots), B (des robots à roues), C (des robots humanoïdes).";
+/* La séance en 15 minutes (sur le plan) : 4 + 4 + 5 + 2 = 15. La séance complète : 5 + 5 + 5 + 5 = 20 */
+const SHORT_TITLE = "La séance en 15 minutes";
+const SHORT_BTN = "Peu de temps ? <span>La séance en 15 minutes</span> ›";   // le bouton sur le plan : la version courte ne s'ouvre que si on la demande
+const SHORT = [
+  ["Avant", "groupes formés, cartes distribuées."],
+  ["1 · 4 min", "la consigne, puis 3 critères communs, à l’oral."],
+  ["2 · 4 min", "un robot nouveau, dessiné simplement."],
+  ["3 · 5 min", "les dessins côte à côte, les deux questions."],
+  ["4 · 2 min", "la trace écrite : lis les trois lignes avec la classe, les élèves les copient."]
+];
+const SHORT_KEEP = "Ne coupe pas : le robot dessiné (2), « Votre machine aurait-elle pu dessiner un robot à quatre pattes ? » (3), la trace écrite (4).";
+/* Plus de temps (des adaptations de durées différentes), dans la même fenêtre que la version courte */
+const LONG = "<b>Plus de temps ? + 10 min.</b> Chaque groupe dessine deux cartes de plus (par exemple une tête toute rouge), puis un nouveau robot : qu'est-ce qui change ? Ce sont des humains qui choisissent les exemples.";
+/* Les mots à dire et à éviter (sur le plan), et le lien avec les autres activités */
+const WORDS_TITLE = "Les mots à dire et à éviter";
+const WORDS_USE = "on lui montre des exemples · elle repère des régularités dans les exemples · elle calcule un résultat qui ressemble aux exemples · un robot plausible · ce qui manque dans les exemples sort rarement · elle ne comprend pas comme nous ce qu'est un robot · ce sont des humains qui choisissent les exemples";
+const WORDS_AVOID = "elle sait · elle comprend · elle a choisi · elle invente · elle imagine · elle cherche · elle apprend par cœur · elle apprend comme nous · « jamais », « toujours »";   // « elle cherche » : comme au module 2 ; ce sont les élèves qui cherchent, la machine calcule
+const LINK_LABEL = "Avant et ensuite";
+const LINK_TEXT = "Avant, dans « Robot dessine » : « On lui dit tout ». Ici : « On lui montre des exemples ». Ensuite, au module 2, une machine qui produit des textes : ce qui manque dans les données sort rarement.";
+
+/* Le bandeau du haut de chaque écran : [le titre, à gauche ; l'info en gris, à droite ("" = rien)]. Aussi le nom des stations de la barre du bas (lecteurs d'écran, survol).
+   Sur une étape, l'étiquette « Peut se raccourcir » s'ajoute à droite quand l'étape n'est pas Essentielle (ici : l'étape 1). */
+const WHERE = {
+  intro: ["Avant de commencer", "Pourquoi cette activité"],
+  notions: [NOTIONS_TITLE, "Avant de commencer"],
+  prep: ["Préparer la séance", "Ce qu’il faut imprimer"],
+  plan: ["Le plan de la leçon", `${PLAN_SUB(STEPS.length, START_MIN + STEPS.reduce((t, s) => t + s.min, 0))} · ${PLAN_TITLE}`],
+  simp: [SIMP_TITLE, ""],
+  end: ["Fin de la leçon", "À retenir"],
+  step: s => [`Étape ${s.n} : ${s.title}`, `${s.min} min`]
+};
+const CLASSE_LABEL = "En classe";
+const SAY_LABEL = "Consigne :";
+
+/* ---------- « Pour toi » : les trois onglets au bord droit (toujours visibles dans une étape) et le tiroir ---------- */
+const ME_TITLE = "Pour toi";
+const ME_INTRO = "Ce qui t’aide à comprendre et à expliquer cette étape.";
+const ME_TABS = { why: "Pour comprendre", ideas: "Pour comprendre", simp: "Pour comprendre" };   // le titre du tiroir
+const ME_HEADS = { why: "Pourquoi", ideas: "Les élèves pensent", simp: "Le jeu simplifie" };   // plus affichés depuis le 18 nov. 2026 (gardés)
+const ME_SHORT = { why: "L’étape", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };   // les 3 onglets du bord droit, dans cet ordre
+const ME_LBL = { keep: "Essentiel", cut: "Peut se raccourcir", idea: "Idée fréquente", fact: "En fait", ask: "Demande", use: "Dis :", avoid: "Évite :",
+  simpIntro: "Les simplifications de cette étape. Le tableau complet est à la fin de la leçon.", why2: "Pourquoi", ai: "Vraie machine", more: "Pour aller plus loin",
+  anne: "Ce que fait Anne", because: "Pourquoi ils le pensent", risk: "Attention",
+  useT: "Dis", avoidT: "Évite", kidSays: "Un élève dit :", inGame: "Dans le jeu", flipHint: "Retourner ›",
+  simpFlip: "Chaque carte montre ce que fait le jeu. Retourne-la : que se passe-t-il dans une vraie machine ?",
+  guess: "Que répondrais-tu ? Réfléchis, puis retourne la carte.", turn: "Retourner la carte ›", nextIdea: "Idée suivante ›",
+  ideaN: (i, n) => `Idée ${i} sur ${n}` };
+/* Pour chaque étape (dans l'ordre 1 à 4) :
+   teaser = une ligne par onglet (plus affichée depuis le 18 nov. 2026, gardée) ;
+   why = pourquoi cette étape ; anne = ce que fait Anne dans cette étape (BROUILLON, comme TALE) ; keep / cut = ce qui est essentiel, ce qui peut se raccourcir ;
+   ideas = les idées fréquentes des élèves (idea), pourquoi ils le pensent (because, facultatif) et l'idée juste (fact) ; ask = ce que tu demandes ; use / avoid = les mots ;
+   more = « Pour aller plus loin » (dans l'onglet « Simplification »). « Induction » : une seule fois, ici, à l'étape 1. */
+const HELP = [
+  { teaser: { why: "Chercher ce qui revient sur toutes les cartes : une régularité.", ideas: "« La machine apprend les images par cœur. »", simp: "Les élèves nomment les critères ; la machine, non." },
+    why: "On ne donne pas de règles, seulement des exemples. Les élèves cherchent ce qui revient sur toutes les cartes : une régularité. C’est le point de départ : elle repère des régularités dans les exemples.",
+    anne: "Moi, je fais vérifier chaque critère sur les six cartes : « Même celle-là ? »",
+    keep: "chercher ce qui est sur toutes les cartes, et en noter 3 ou 4.", cut: "la fiche peut se remplir à l’oral ; 3 ou 4 critères suffisent.",
+    ideas: [{ idea: "« La machine apprend les images par cœur. »", because: "À l'école, apprendre veut souvent dire apprendre par cœur.",
+              fact: "Elle ne range pas les images dans une boîte : elle repère des régularités dans les exemples." },
+            { idea: "« Elle regarde les antennes, comme nous. »", fact: "Elle ne nomme pas les critères : elle ne comprend pas comme nous ce qu’est une antenne, ni ce qu’est un robot." }],
+    ask: "« Est-ce que tous vos robots ont ça ? Même celui-là ? »", use: "elle repère des régularités dans les exemples · ce qui revient sur toutes les cartes", avoid: "elle apprend par cœur, elle voit, elle sait",
+    more: "Passer d’exemples à une règle générale s’appelle l’induction, comme découvrir une règle de grammaire en lisant des phrases. Robot dessine faisait l’inverse : on donne la règle, la machine l’exécute." },
+  { teaser: { why: "Produire un robot nouveau, qui ressemble aux exemples.", ideas: "« La machine a choisi de ne pas faire de tête rouge. »", simp: "Le groupe choisit des pièces ; une vraie machine calcule." },
+    why: "Générer, c’est produire un nouvel exemplaire qui ressemble aux exemples, sans en copier un. Le résultat est plausible, mais il dépend des exemples. Le groupe est la machine : il n’utilise que ce qu’il a vu. Faire prédire avant de vérifier : les élèves justifient avec les cartes, pas avec une impression.",
+    anne: "Moi, avant le dessin, je fais prédire : « Votre robot aura-t-il une tête ronde ? Montrez la carte qui le dit. »",
+    keep: "un robot nouveau, puis « Y avait-il ça dans vos exemples ? ».", cut: "un dessin simple, sans détails ni couleurs.",
+    ideas: [{ idea: "« La machine a choisi de ne pas faire de tête rouge. »", because: "On parle souvent des machines comme de personnes qui choisissent.",
+              fact: "Ce n'est pas un choix : il n'y avait pas de tête toute rouge dans ses exemples. Ce qui manque dans les exemples sort rarement." },
+            { idea: "« Elle copie un des robots. »", fact: "Elle produit un robot nouveau, qui ressemble aux exemples : un robot plausible." }],
+    ask: "« Dans vos exemples, y avait-il des têtes rondes ? Des têtes toutes rouges ? »", use: "un robot plausible · ce qui manque dans les exemples sort rarement", avoid: "elle a choisi, elle invente, elle imagine, elle copie",
+    more: "Une vraie IA qui produit des images ne colle pas des pièces : elle calcule toute l’image avec les nombres ajustés pendant l’entraînement. Ce qui est fréquent dans les exemples sort souvent ; ce qui est rare sort rarement." },
+  { teaser: { why: "Mêmes consignes, exemples différents : dessins différents.", ideas: "« La machine sait ce qu’est un robot. »", simp: "Trois jeux de six cartes ; une vraie IA, des millions d’images." },
+    why: "Comparer les dessins montre que le résultat dépend des exemples. Et ce sont des humains qui choisissent les exemples : ils en ont la responsabilité.",
+    anne: "Moi, j'affiche les dessins côte à côte et je fais prédire avant de les montrer.",
+    keep: "les dessins côte à côte, et « Votre machine aurait-elle pu dessiner un robot à quatre pattes ? ».", cut: "s’il manque du temps, seulement la deuxième question.",
+    ideas: [{ idea: "« La machine sait ce qu’est un robot. »", because: "Le dessin ressemble à un robot : on croit qu'elle sait ce qu'elle dessine.",
+              fact: "Elle ne comprend pas comme nous ce qu’est un robot : chaque groupe a dessiné un robot qui ressemble à ses propres exemples." },
+            { idea: "« Le groupe B s’est trompé : un robot, ça a une tête. »", fact: "Il avait d’autres exemples : son robot ressemble à ses exemples, il est plausible." }],
+    ask: "« Qui a choisi les cartes de chaque groupe ? Que faudrait-il ajouter pour obtenir un robot à quatre pattes ? »", use: "ce sont des humains qui choisissent les exemples · elle ne comprend pas comme nous ce qu’est un robot", avoid: "elle sait, elle s’est trompée, elle préfère",
+    more: "Une machine entraînée seulement sur des robots gris a peu de chances de produire un robot rouge. Avec des images de personnes ou de métiers, le même effet produit des biais : c’est pourquoi le choix des exemples compte." },
+  { teaser: { why: "Mettre des mots sur ce que les élèves ont vécu.", ideas: "« Elle a appris comme nous. »", simp: "« Apprendre » : le même mot, pas la même chose." },
+    why: "Les élèves ont joué la machine ; maintenant on nomme ce qu'ils ont fait. Sans ce moment, ils retiennent le jeu, pas l'idée. La trace écrite garde les phrases qu'on retrouve au module 2.",
+    anne: "Moi, je fais d'abord parler les élèves, puis j'écris avec leurs mots. Si j'entends « elle a appris », j'ajoute : « dans les exemples ».",
+    keep: "les trois lignes au tableau, copiées par les élèves.", cut: "écris les trois lignes toi-même et lis-les avec la classe.",
+    ideas: [{ idea: "« La machine a appris comme nous, à l'école. »", because: "On dit « apprendre » pour nous et pour les machines : c'est le même mot.",
+              fact: "Le mot est le même, pas la chose. Elle repère des régularités dans les exemples et calcule ; elle ne comprend pas comme nous ce qu'est un robot." },
+            { idea: "« Avec plus d'exemples, elle saura tout dessiner. »", because: "Pour nous, plus on s'entraîne, mieux on fait.",
+              fact: "Plus d'exemples aident, mais ce qui manque dans les exemples sort rarement. Ce sont des humains qui choisissent les exemples." }],
+    ask: "« Comment expliquerais-tu à un camarade comment notre machine a dessiné son robot ? »",
+    use: "on lui montre des exemples · elle repère des régularités dans les exemples · ce qui manque dans les exemples sort rarement · ce sont des humains qui choisissent les exemples",
+    avoid: "elle a compris, elle sait dessiner, elle est intelligente, elle apprend comme nous",
+    more: "On appelle cela l'apprentissage automatique. Les IA qui produisent des images ou des textes sont entraînées ainsi, sur des millions d'exemples." }
+];
+
+/* ---------- Les 3 jeux de cartes ; common = les caractéristiques sur les six cartes (vérifiées sur images/cartes-*.png, 18 nov. 2026),
+   others = des caractéristiques à écarter (certaines sont sur quelques cartes, pas sur toutes) ---------- */
+const DECKS = {
+  A: { img: "images/cartes-a.png", name: "Jeu A : des têtes de robots", short: "Exemples du groupe A",
+       common: ["Une tête seule, sans corps", "Une tête carrée aux coins arrondis", "Deux yeux", "Un élément de chaque côté de la tête", "Un élément sur le dessus de la tête", "Une bouche"],
+       others: ["Deux bras et deux jambes", "Des roues", "Une tête ronde", "Un nez en triangle"] },   // la tête de Microsoft est la plus ronde : à vérifier sur la carte imprimée
+  B: { img: "images/cartes-b.png", name: "Jeu B : des robots à roues", short: "Exemples du groupe B",
+       common: ["Des roues ou des chenilles", "Ni bras ni jambes", "Une forme basse, proche du sol"],
+       others: ["Une tête et deux bras", "Debout sur deux jambes", "Des yeux ou un visage", "Surtout blanc ou gris"] },
+  C: { img: "images/cartes-c.png", name: "Jeu C : des robots humanoïdes", short: "Exemples du groupe C",
+       common: ["Une tête, un tronc et deux bras", "Debout, à la verticale", "Des yeux, un visage ou une visière"],
+       others: ["Une forme basse, proche du sol", "Une tête seule, sans corps", "Deux jambes", "Des articulations visibles"] }   // « Des articulations visibles » : à vérifier sur la carte imprimée (Miroka, G1)
+};
+const DECK = "A";      /* le jeu essayé dans la simulation */
+const ENOUGH = 4;      /* l'étape 1 est faite à partir de 4 caractéristiques communes trouvées (ou toutes, si le jeu en a moins) */
+
+/* ---------- Étape 1 : Observation ---------- */
+const OBS_TITLE = "Ce qu’ont en commun tous ces robots";
+const OBS_COUNT = (n, N) => `${n} / ${N} trouvées`;
+const OBS_OTHERS = "Les autres groupes ont les jeux B et C : on les compare à l’étape 3.";
+const SAY1 = {
+  start: { now: "Chaque groupe observe son jeu. Tu es le groupe A : clique ce que tous les robots ont en commun.", say: "« On ne donne pas d’instructions, on montre des exemples. Qu’ont en commun tous vos robots ? »" },
+  wrong: f => `« ${f} » : pas sur toutes les cartes. Regarde bien les six robots.`,
+  more: (n, N) => `${n} sur ${N} : c’est sur toutes les cartes. Continue.`,
+  enough: (n, N) => ({ now: `${n} régularités sur ${N} : assez pour dessiner. Cherche les autres, ou passe à la suite.`, say: "« Avec ça, pourriez-vous dessiner un nouveau robot ? »" }),
+  all: { now: "Les six régularités sont trouvées : c’est ce que tous les exemples ont en commun.", say: "« Avec ça, pourriez-vous dessiner un nouveau robot ? »" }
+};
+
+/* ---------- Étape 2 : Génération. Les pièces pour dessiner un nouveau robot (jeu A) ; ok = comme dans les exemples ---------- */
+const PIECES = [
+  { id: "forme", label: "Tête", options: [{ v: "carree", label: "carrée", ok: true }, { v: "ronde", label: "ronde" }] },
+  { id: "yeux", label: "Yeux", options: [{ v: "ronds", label: "ronds", ok: true }, { v: "carres", label: "carrés", ok: true }, { v: "triangles", label: "en triangle" }] },   // « carrés » : Microsoft a des yeux rectangulaires
+  { id: "cotes", label: "Côtés", options: [{ v: "oreilles", label: "écouteurs", ok: true }, { v: "antennes", label: "antennes", ok: true }, { v: "rien", label: "rien" }] },
+  { id: "dessus", label: "Dessus", options: [{ v: "antenne", label: "antenne à boule", ok: true }, { v: "rien", label: "rien" }] },
+  { id: "bouche", label: "Bouche", options: [{ v: "grille", label: "grille", ok: true }, { v: "sourire", label: "sourire" }] },
+  { id: "couleur", label: "Couleur de la tête", options: [{ v: "#9aa3ad", label: "gris", ok: true }, { v: "#6f9be0", label: "bleu", ok: true }, { v: "#e0574f", label: "rouge" }] }   // la couleur remplit toute la tête
+];
+const GEN_EXAMPLES = "Les exemples (jeu A)";
+const GEN_NEW = "Le nouveau robot";
+const GEN_SCORE = (k, N) => `<b>${k} pièces sur ${N}</b> comme dans les exemples.`;
+const GEN_OFF = list => `Pas dans les exemples : <span class="off">${list}</span>.`;
+const SAY2 = {
+  start: { now: "Ton groupe est la machine : compose un robot nouveau, qui pourrait faire partie des exemples.", say: "« Dessinez un nouveau robot qui ne figure pas parmi vos exemples, mais qui pourrait en faire partie. »" },
+  ok: { now: "Ton robot ressemble aux exemples : il est plausible. Est-il nouveau, ou presque une copie d'une carte ?", say: "« Une machine entraînée sur ces cartes pourrait-elle le produire ? »" },
+  off: n => ({ now: `${n > 1 ? `${n} pièces ne sont` : "Une pièce n’est"} pas dans les exemples. ${n > 1 ? "Change-les" : "Change-la"}, ou passe à la suite.`, say: "« Dans vos exemples, y avait-il des têtes rondes ? Des têtes toutes rouges ? »" })
+};
+
+/* ---------- Étape 3 : Comparaison. Les questions et leurs pistes ---------- */
+const CMP_MINE = "Ton robot (groupe A)";
+const DISCUSS = [
+  { title: "Pourquoi les robots sont-ils différents d’un groupe à l’autre ?", ask: "« Chaque groupe avait-il les mêmes exemples ? »",
+    key: "Chaque « machine » a d’autres exemples : elle produit des robots qui ressemblent à ses exemples. Le résultat dépend des exemples." },
+  { title: "Votre machine aurait-elle pu dessiner un robot à quatre pattes ?", ask: "« Y avait-il un robot à quatre pattes dans vos exemples ? Et dans le groupe A, une tête toute rouge ? »",
+    key: "Peu probable : ce qui manque dans les exemples sort rarement. Ce n’est pas un choix de la machine : ce sont des humains qui choisissent les exemples." }
+];
+const Q_LABEL = k => `Question ${k}`;
+const ASK_LABEL = "Pour relancer";
+const KEY_LABEL = "Une réponse possible";
+const SAY3 = {
+  start: { now: "Avant d'afficher les dessins, fais prédire. Puis pose les deux questions.", say: "« Avant de regarder : le robot du groupe B aura-t-il des jambes ? Pourquoi ? »" },
+  // once one question is open: say = the question not yet opened (say[0] = question 1, say[1] = question 2)
+  one: { now: "Pose maintenant l’autre question.", say: ["« Pourquoi les robots sont-ils différents d’un groupe à l’autre ? »", "« Votre machine aurait-elle pu dessiner un robot à quatre pattes ? Pourquoi ? »"] },
+  end: { now: "Chaque machine produit des robots qui ressemblent à ses exemples.", say: "« Ce sont des humains qui choisissent les exemples. »" }
+};
+
+/* ---------- Étape 4 : la trace écrite. Pour chaque ligne : q = la question à poser à la classe, a = la ligne à écrire au tableau,
+   show = ce qu'on montre à côté (deck = les exemples de votre machine ; robot = les exemples et votre robot ; groups = les exemples des trois groupes) ---------- */
+const TRACE_LABEL = "La trace écrite";
+const TRACE = [
+  { show: "deck", q: "« Qu'avez-vous donné à votre machine : des instructions ou des exemples ? »",
+    a: "On ne lui dit pas tout : <b>on lui montre des exemples</b>. Elle <b>repère des régularités dans les exemples</b>." },
+  { show: "robot", q: "« Votre robot ressemble-t-il à vos exemples ? Pourquoi ? »",
+    a: "Elle produit un robot nouveau qui <b>ressemble aux exemples</b>. <b>Elle ne comprend pas comme nous ce qu'est un robot.</b>" },
+  { show: "groups", q: "« Pourquoi aucune machine n'a dessiné de robot à quatre pattes ? Qui a choisi les cartes ? »",
+    a: "<b>Ce qui manque dans les exemples sort rarement.</b> <b>Ce sont des humains qui choisissent les exemples</b> : ils en ont la responsabilité." }
+];
+const SHOW_LABEL = { deck: "Les exemples de votre machine", robot: "Les exemples et votre robot", groups: "Les exemples des trois groupes" };
+const SAY4 = {
+  line: n => ({ now: `Pose la question, écoute les réponses, puis écris la ligne ${n} au tableau.` }),
+  end: { now: "La trace écrite est complète : les élèves la copient dans leur cahier.", say: "« Aujourd'hui, vous avez été la machine : vous avez dessiné un robot à partir d'exemples. »" }
+};
+
+/* ---------- La fin : les 3 lignes à retenir ---------- */
+const END_TITLE = "Voilà ta séance prête.";   // Anne parle à une collègue (texte à ajuster par l’équipe)
+const BACK_TO_Q = "Retour à la question";   // the way on, on the last screen
+/* The last screen: the lesson as a sheet on the desk (26 Nov 2026). Its texts come from the steps above (title, time, « found »)
+   and from each step's first « À dire » line (SAY1–SAYn); only these labels are new. */
+const SHEET_HEAD = "Ta séance";                 //
+const SHEET_META = (min) => `${min}&nbsp;min · 4–6P`;
+const MATERIAL = "Le matériel";                 //
+const OPEN_STEP = "Revoir l’étape";             // shown on hover
+const BACK_URL = "../../play.html?a=Module1/intro-module";   // the question's page (the build points it there)
+const TAKEAWAY = [
+  "Dans Robot dessine, on lui disait tout. Ici, on lui montre des exemples : elle repère des régularités dans les exemples.",
+  "Elle produit un résultat plausible, qui ressemble aux exemples. Elle ne comprend pas comme nous ce qu’est un robot.",
+  "Ce qui manque dans les exemples sort rarement. Ce sont des humains qui choisissent les exemples : ils en ont la responsabilité."
+];
+
+/* ---------- Les trois écrans regroupés et la bulle d'Anne (26 nov. 2026, brouillons de Claude) ---------- */
+const SCREEN_LABELS = { why: "Pourquoi", prep: "Avant la séance", end: "Fin" };
+const WHY_Q = "Avant de commencer, mon histoire.";
+const WHY_NEXT = "Avant la séance";
+const PREP_Q = "Avant la séance&nbsp;: imprime les cartes, forme les groupes.";
+const PREP_NEXT = "Commencer l’étape 1";
+const BACK_LABEL = "Retour à l’étape";
+const ME_CHIPS = { why: "Pourquoi cette étape ?", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };
+const IDEA_ASK = "Que lui répondrais-tu&nbsp;? Réfléchis, puis regarde la réponse.";
+const IDEA_SHOW = "Voir la réponse", NEXT_IDEA = (i, n) => `Idée suivante (${i} sur ${n})`;
+const SIMP_ASK = "Dans le jeu, c’est simplifié. Et dans une vraie machine&nbsp;?";
+const FLIP = "Voir la réponse", NEXT_CARD = (i, n) => `Simplification suivante (${i} sur ${n})`;
+const SIMP_BTN = "Ce que l’activité simplifie", SIMP_BACK = "Fermer le tableau";
+const CONSIGNE_LABEL = "À dire à ta classe";
+const ASK_LEAD = "Demande à Anne&nbsp;:";
+const PRINT_LABEL = "À imprimer, à préparer";
+/* ============================================================ */
+
+/* ---------- French typography at display time: ’, and a non-breaking space before : ? ! ; » and after « ---------- */
+const NB = " ";
+const nb = s => String(s)
+  .replace(/([A-Za-zÀ-ÿŒœ])'(?=[A-Za-zÀ-ÿŒœ])/g, "$1’")
+  .replace(/« /g, "«" + NB).replace(/ ([»?!:;])/g, NB + "$1");
+const $ = s => document.querySelector(s);
+const put = (el, html) => { el.innerHTML = nb(html); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ICON = { pdf: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>' };
+const icon = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+
+/* ---------- Screens: ? Pourquoi · Avant la séance · the 4 steps · ✓ Fin ---------- */
+const SCREENS = [{ id: "why" }, { id: "prep" }, ...STEPS.map(s => ({ id: "step", step: s.n })), { id: "end" }];
+const MARKS = { why: "?", prep: "✎", end: "✓" };
+const stepAt = n => 1 + n, LAST = STEPS.length;
+let cur = 0;
+const seen = new Set(), done = new Set(), introSeen = new Set();
+const frame = Frame.init({ guide: "Anne", pose: "anne", now: 1, onStep: k => go(k - 1),
+  steps: SCREENS.map(S => S.step ? { mark: S.step, label: `Étape ${S.step} · ${STEPS[S.step - 1].min}&nbsp;min` } : { mark: MARKS[S.id], label: SCREEN_LABELS[S.id] }) });
+const { scorm } = frame;
+const talk = t => frame.talk({ ...t, say: nb(t.say || ""), more: nb(t.more || ""), keep: (t.keep || []).map(nb), lead: nb(t.lead || ""), wait: nb(t.wait || ""),
+  replies: (t.replies || []).map(([l, a, g]) => [nb(l), a, g]) });
+
+/* ---------- Learning data (unchanged) ----------
+     intro_vue             1 = pourquoi, 2 = les notions (both on « ? Pourquoi »), 3 = préparer la séance, 4 = le plan (both on
+                           « Avant la séance »), 5 = ce que l'activité simplifie (the table, from « ✓ Fin »)
+     criteres_trouves      step 1: the features found, in order, e.g. "Deux yeux | Une bouche"
+     criteres_erreurs      step 1: the features tried that are not on all the cards
+     robot_genere          step 2: the pieces of the robot, at « Mon robot est prêt »; plausibilite: how many pieces are as in the examples
+     questions_ouvertes, pistes_affichees   step 3: the questions unfolded (both lines are the same)
+     pourtoi_ouvert        the « Pour toi » buttons opened, as step:tab; idees_retournees, simp_retournees: the answers shown
+     trace_ecrite          step 4: "3" once the three lines of the trace écrite are written
+   Completed when step 4 is done (the trace écrite written). */
+const rec = (id, v, opt) => { scorm.record(id, v, opt); scorm.commit(); };
+const sawIntro = (...codes) => { const before = introSeen.size; codes.forEach(c => introSeen.add(c)); if (introSeen.size > before) rec("intro_vue", [...introSeen].sort().join(" ")); };
+
+const isDone = k => k !== cur && (SCREENS[k].step ? done.has(SCREENS[k].step) : seen.has(k));
+const canNext = () => { const S = SCREENS[cur]; if (S.id === "end") return false; return S.step ? done.has(S.step) : true; };
+function drawSteps() { frame.steps(cur + 1, k => ({ done: isDone(k - 1), can: seen.has(k - 1) || SCREENS[k - 1].step })); }
+function go(i) {
+  try { scorm.set("cmi.core.lesson_location", String(i)); } catch {}   // the screen, for coming back (usability review, 26 Nov 2026)
+  closeDecks(false);
+  cur = i; seen.add(i); me = null;
+  const S = SCREENS[i], desk = $("#desk");
+  desk.scrollTop = 0;
+  if (S.id === "why") { sawIntro(1, 2); drawWhy(); }
+  else if (S.id === "prep") { sawIntro(3, 4); drawPrep(); }
+  else if (S.id === "end") drawEnd(false);
+  else { desk.innerHTML = `<aside class="card-consigne" id="consigne" hidden><span class="lab">${CONSIGNE_LABEL}</span><p id="consigne-t"></p></aside><div class="board" id="board"></div>`; render(); }
+  drawSteps();
+}
+function finishStep(n) {
+  if (done.has(n)) return;
+  done.add(n);
+  if (n === LAST && scorm.get("cmi.core.lesson_status") !== "completed") { scorm.set("cmi.core.lesson_status", "completed"); scorm.commit(); }
+  drawSteps();
+}
+
+/* ---------- Anne during a step: what you do (her line), the Consigne on the desk, her questions; the way on is on the desk ---------- */
+let last = null, me = null;
+const nextLabel = () => SCREENS[cur].step === LAST ? BTN.finish : BTN.nextStep;
+function classe(t) { last = { t }; if (!me) showStep(); }
+function showStep() {
+  const { t } = last, n = SCREENS[cur].step;
+  $("#consigne").hidden = !t.say; put($("#consigne-t"), t.say || "");
+  talk({ pose: done.has(n) ? "debout" : /pas sur toutes|Regarde|ne sont|n’est pas/.test(t.now) ? "pense" : "montre", say: t.now, lead: ASK_LEAD,
+    wait: canNext() ? "" : nextLabel(),
+    replies: [...(canNext() ? [[nextLabel(), () => go(cur + 1), true]] : []), ...meTabs(n).map(k => [ME_CHIPS[k], () => openMe(k)])] });
+}
+function board(html) { put($("#board"), html); }
+function render() { const n = SCREENS[cur].step; [r1, r2, r3, r4][n - 1](); }
+
+/* ---------- « Pour toi »: three questions, answered in Anne's bubble (same texts as the old drawer) ---------- */
+const TAB_KEY = { why: "pourquoi", ideas: "idees", simp: "simp" };
+const meTabs = n => ["why", "ideas", ...(SIMP.some(s => s.at.includes(n)) ? ["simp"] : [])];
+const meOpened = [], ideaSeen = new Set(), simpSeen = new Set();
+const back = () => [BACK_LABEL, () => { me = null; showStep(); }];
+function openMe(tab) {
+  const n = SCREENS[cur].step, item = `${n}:${TAB_KEY[tab]}`;
+  if (!meOpened.includes(item)) { meOpened.push(item); rec("pourtoi_ouvert", meOpened.join(" ")); }
+  me = { tab, k: 0 }; drawMe();
+}
+function drawMe() {
+  const n = SCREENS[cur].step, h = HELP[n - 1], { tab, k } = me;
+  if (tab === "why") return talk({ pose: "pense", say: h.teaser.why,
+    more: `<p>${h.why}</p>${h.anne ? `<h4>${ME_LBL.anne}</h4><p>« ${h.anne} »</p>` : ""}${h.more ? `<h4>${ME_LBL.more}</h4><p>${h.more}</p>` : ""}`, replies: [back()] });
+  if (tab === "ideas") {
+    const d = h.ideas[k], turned = ideaSeen.has(`${n}:${k}`), lastIdea = k === h.ideas.length - 1;
+    return talk({ pose: turned ? "montre" : "pense", say: `${ME_LBL.kidSays} ${d.idea}`,
+      more: turned ? `${d.because ? `<p><b>${ME_LBL.because}&nbsp;:</b> ${d.because}</p>` : ""}<p><b>${ME_LBL.fact}&nbsp;:</b> ${d.fact}</p>${lastIdea ? `<p><b>${ME_LBL.ask}&nbsp;:</b> ${h.ask}</p><p><b>${ME_LBL.useT}&nbsp;:</b> ${h.use}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${h.avoid}</p>` : ""}` : IDEA_ASK,
+      replies: [...(!turned ? [[IDEA_SHOW, () => { ideaSeen.add(`${n}:${k}`); rec("idees_retournees", [...ideaSeen].join(" ")); drawMe(); }]]
+        : !lastIdea ? [[NEXT_IDEA(k + 2, h.ideas.length), () => { me.k++; drawMe(); }]] : []), back()] });
+  }
+  const rows = SIMP.filter(s => s.at.includes(n)), r = rows[k], flipped = simpSeen.has(`${n}:${k}`), lastCard = k === rows.length - 1;
+  talk({ pose: "pense", say: `${ME_LBL.inGame}&nbsp;: ${r.game}`,
+    more: flipped ? `<p><b>${ME_LBL.ai}&nbsp;:</b> ${r.ai}</p>${r.risk ? `<p><b>${ME_LBL.risk}&nbsp;:</b> ${r.risk}</p>` : ""}` : SIMP_ASK,
+    replies: [...(!flipped ? [[FLIP, () => { simpSeen.add(`${n}:${k}`); rec("simp_retournees", [...simpSeen].join(" ")); drawMe(); }]]
+      : !lastCard ? [[NEXT_CARD(k + 2, rows.length), () => { me.k++; drawMe(); }]] : []), back()] });
+}
+
+const deckCard = (src, label, alt, cls = "") => `<div class="deckcard ${cls}"><b>${label}</b><img src="${src}" alt="${esc(alt)}"></div>`;
+
+/* ============ Step 1: what do all the robots have in common? (unchanged) ============ */
+const S1 = {};
+function resetS1() { Object.assign(S1, { found: [], wrongs: [], msg: null, shake: null,
+  order: [...DECKS[DECK].common, ...DECKS[DECK].others].sort((a, b) => a.localeCompare(b, "fr")) }); }
+resetS1();
+const enough = () => Math.min(ENOUGH, DECKS[DECK].common.length);
+function r1() {
+  const d = DECKS[DECK], N = d.common.length, n = S1.found.length;
+  board(`<div class="obs">${deckCard(d.img, d.name, d.name)}
+    <div class="crit"><h3>${OBS_TITLE}<span>${OBS_COUNT(n, N)}</span></h3>
+    <div class="feats">${S1.order.map((f, k) => { const ok = S1.found.includes(f), no = S1.wrongs.includes(f);
+      return `<button type="button" class="feat ${ok ? "ok" : ""} ${no ? "no" : ""} ${S1.shake === f ? "shake" : ""}" data-feat="${k}" aria-pressed="${ok}" ${ok || no ? "disabled" : ""}>${f}</button>`; }).join("")}</div>
+    <p class="others">${OBS_OTHERS}</p></div></div>`);
+  S1.shake = null;
+  if (n === N) return classe(SAY1.all);
+  if (n >= enough()) { const t = SAY1.enough(n, N); return classe({ now: S1.msg || t.now, say: t.say }); }
+  classe({ now: S1.msg || SAY1.start.now, say: SAY1.start.say });
+}
+function s1click(e) {
+  const b = e.target.closest("[data-feat]"); if (!b || b.disabled) return;
+  const f = S1.order[+b.dataset.feat], d = DECKS[DECK];
+  if (!d.common.includes(f)) {
+    S1.wrongs.push(f); rec("criteres_erreurs", S1.wrongs.join(" | "));
+    S1.msg = SAY1.wrong(f); S1.shake = f; return render();
+  }
+  S1.found.push(f); rec("criteres_trouves", S1.found.join(" | "));
+  S1.msg = S1.found.length < enough() ? SAY1.more(S1.found.length, d.common.length) : null;
+  if (S1.found.length >= enough()) finishStep(1);
+  render();
+}
+
+/* ============ Step 2: the machine draws a new robot (unchanged) ============ */
+const S2 = {};
+function resetS2() { Object.assign(S2, { robot: Object.fromEntries(PIECES.map(p => [p.id, p.options[p.options.length - 1].v])), judged: false }); }
+resetS2();
+const optOf = (p, r) => p.options.find(o => o.v === r[p.id]);
+function head(r) {
+  const c = r.couleur, round = r.forme === "ronde";
+  const shape = round ? `<circle cx="150" cy="150" r="88" fill="${c}" stroke="#333" stroke-width="5"/>` : `<rect x="62" y="70" width="176" height="160" rx="28" fill="${c}" stroke="#333" stroke-width="5"/>`;
+  const eyes = r.yeux === "carres" ? `<rect x="98" y="112" width="34" height="34" fill="#fff" stroke="#333" stroke-width="4"/><rect x="168" y="112" width="34" height="34" fill="#fff" stroke="#333" stroke-width="4"/><rect x="108" y="122" width="14" height="14" fill="#111"/><rect x="178" y="122" width="14" height="14" fill="#111"/>`
+             : r.yeux === "triangles" ? `<polygon points="96,146 115,110 134,146" fill="#fff" stroke="#333" stroke-width="4" stroke-linejoin="round"/><polygon points="166,146 185,110 204,146" fill="#fff" stroke="#333" stroke-width="4" stroke-linejoin="round"/><circle cx="115" cy="134" r="6" fill="#111"/><circle cx="185" cy="134" r="6" fill="#111"/>`
+                                     : `<circle cx="115" cy="130" r="19" fill="#fff" stroke="#333" stroke-width="4"/><circle cx="185" cy="130" r="19" fill="#fff" stroke="#333" stroke-width="4"/><circle cx="115" cy="130" r="8" fill="#111"/><circle cx="185" cy="130" r="8" fill="#111"/>`;
+  const sides = r.cotes === "oreilles" ? `<rect x="40" y="120" width="24" height="52" rx="8" fill="#555"/><rect x="236" y="120" width="24" height="52" rx="8" fill="#555"/>`
+              : r.cotes === "antennes" ? `<path d="M62 130 L30 104 M238 130 L270 104" stroke="#333" stroke-width="5"/><circle cx="30" cy="104" r="8" fill="#f2a33a"/><circle cx="270" cy="104" r="8" fill="#f2a33a"/>` : "";
+  const top = r.dessus === "antenne" ? `<line x1="150" y1="${round ? 62 : 70}" x2="150" y2="30" stroke="#333" stroke-width="5"/><circle cx="150" cy="24" r="11" fill="#e0574f" stroke="#333" stroke-width="3"/>` : "";
+  const mouth = r.bouche === "grille" ? `<rect x="108" y="172" width="84" height="30" rx="5" fill="#fff" stroke="#333" stroke-width="4"/>${[129, 150, 171].map(x => `<line x1="${x}" y1="172" x2="${x}" y2="202" stroke="#333" stroke-width="3"/>`).join("")}`
+                                      : `<path d="M112 180 Q150 210 188 180" fill="none" stroke="#333" stroke-width="5" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 300 260" role="img" aria-label="${esc(GEN_NEW)}"><rect width="300" height="260" fill="#fff"/>${sides}${top}${shape}${eyes}${mouth}</svg>`;
+}
+const robotCard = (label, cls = "new") => `<div class="deckcard ${cls}"><b>${label}</b>${head(S2.robot)}</div>`;
+const offList = () => PIECES.filter(p => !optOf(p, S2.robot).ok).map(p => `${p.label.toLowerCase()} : ${optOf(p, S2.robot).label}`);
+function r2() {
+  const d = DECKS[DECK], off = offList();
+  board(`<div class="gen">${deckCard(d.img, GEN_EXAMPLES, d.name)}
+    <div class="col">${robotCard(GEN_NEW)}${S2.judged ? `<p class="score">${GEN_SCORE(PIECES.length - off.length, PIECES.length)}${off.length ? ` ${GEN_OFF(off.join(", "))}` : ""}</p>` : ""}
+      <div><button type="button" class="${S2.judged ? "tool" : "chip go"}" data-act="ready">${BTN.ready}</button></div></div>
+    <div class="pieces">${PIECES.map(p => `<div class="prow2"><b>${p.label}</b><div>${p.options.map(o =>
+      `<button type="button" class="pc ${S2.robot[p.id] === o.v ? "on" : ""}" data-piece="${p.id}" data-v="${o.v}" aria-pressed="${S2.robot[p.id] === o.v}">${p.id === "couleur" ? `<i style="background:${o.v}"></i>` : ""}${o.label}</button>`).join("")}</div></div>`).join("")}</div></div>`);
+  if (!S2.judged) return classe(SAY2.start);
+  classe(off.length ? SAY2.off(off.length) : SAY2.ok);
+}
+function s2click(e) {
+  const b = e.target.closest("[data-piece]"); if (!b) return;
+  S2.robot[b.dataset.piece] = b.dataset.v; S2.judged = false;
+  render();
+}
+function judge() {
+  const off = offList();
+  rec("robot_genere", PIECES.map(p => optOf(p, S2.robot).label).join(" "));
+  rec("plausibilite", PIECES.length - off.length, { type: "numeric" });
+  S2.judged = true; finishStep(2); me = null; render();
+}
+
+/* ============ Step 3: compare the groups (unchanged) ============ */
+const S3 = { open: -1, opened: [] };
+const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+function r3() {
+  board(`<div class="cmp">${Object.keys(DECKS).map(k => deckCard(DECKS[k].img, DECKS[k].short, DECKS[k].name)).join("")}${robotCard(CMP_MINE)}</div>
+    <div class="drops">${DISCUSS.map((d, k) => `<div class="drop ${k === S3.open ? "open" : ""} ${S3.opened.includes(k + 1) ? "seen" : ""}">
+      <button type="button" data-q="${k}" aria-expanded="${k === S3.open}"><small>${Q_LABEL(k + 1)}</small><b>${d.title}</b>${CHEV}</button>
+      <div class="dbody"><p class="ask"><b>${ASK_LABEL}</b>${d.ask}</p><p class="ans"><b>${KEY_LABEL}</b>${d.key}</p></div></div>`).join("")}</div>`);
+  const n = S3.opened.length;
+  if (n >= DISCUSS.length) return classe(SAY3.end);
+  if (n) { const k = DISCUSS.findIndex((_, i) => !S3.opened.includes(i + 1)); return classe({ now: SAY3.one.now, say: SAY3.one.say[k] }); }
+  classe(SAY3.start);
+}
+function s3click(e) {
+  const b = e.target.closest("[data-q]"); if (!b) return;
+  const k = +b.dataset.q;
+  S3.open = S3.open === k ? -1 : k;
+  if (S3.open === k && !S3.opened.includes(k + 1)) {
+    S3.opened.push(k + 1);
+    rec("questions_ouvertes", [...S3.opened].sort().join(" ")); rec("pistes_affichees", [...S3.opened].sort().join(" "));
+    if (S3.opened.length === DISCUSS.length) finishStep(3);
+  }
+  render();
+}
+
+/* ============ Step 4: the class writes the trace écrite, one line at a time (unchanged) ============ */
+const S4 = { shown: 0, fresh: false };
+function traceShow(k) {
+  const t = TRACE[k], lbl = `<p class="pt">${SHOW_LABEL[t.show]}</p>`, d = DECKS[DECK];
+  if (t.show === "deck") return `${lbl}<img src="${d.img}" alt="${esc(d.name)}">`;
+  if (t.show === "robot") return `${lbl}<div class="tpair"><figure><img src="${d.img}" alt="${esc(d.name)}"><figcaption>${d.short}</figcaption></figure>
+    <figure>${head(S2.robot)}<figcaption>${CMP_MINE}</figcaption></figure></div>`;
+  return `${lbl}<div class="tpair groups">${Object.keys(DECKS).map(g => `<figure><img src="${DECKS[g].img}" alt="${esc(DECKS[g].name)}"><figcaption>${DECKS[g].short}</figcaption></figure>`).join("")}</div>`;
+}
+function r4() {
+  const k = Math.min(S4.shown, TRACE.length - 1);
+  board(`<div class="duo"><div class="trace paper"><p class="pt">${TRACE_LABEL}</p><ol>${TRACE.map((t, j) => j < S4.shown
+    ? `<li class="${S4.fresh && j === S4.shown - 1 ? "new" : ""}">${t.a}</li>`
+    : j === S4.shown ? `<li class="todo"><button type="button" class="chip go" data-act="write">${BTN.write(j + 1)}</button></li>`
+    : `<li class="todo">…</li>`).join("")}</ol></div>
+    <div class="tshow paper" aria-live="polite">${traceShow(k)}</div></div>`);
+  S4.fresh = false;
+  if (S4.shown < TRACE.length) return classe({ now: SAY4.line(S4.shown + 1).now, say: TRACE[S4.shown].q });
+  classe(SAY4.end);
+}
+function writeLine() {
+  if (S4.shown >= TRACE.length) return;
+  S4.shown++; S4.fresh = true;
+  if (S4.shown === TRACE.length) { rec("trace_ecrite", String(S4.shown)); finishStep(4); }
+  me = null; render();
+}
+
+/* ============ ? Pourquoi · Avant la séance · ✓ Fin ============ */
+function drawWhy() {
+  put($("#desk"), `<h2 class="dt">${NOTIONS_TITLE}</h2><div class="notions">${NOTIONS.map(c => `<div class="ncard paper"><h3>${c.term}</h3><p>${c.def}</p>${c.yes ? `<div class="exs"><div class="ex yes"><b>${c.yes[0]}</b>${c.yes[1]}</div><div class="ex no"><b>${c.no[0]}</b>${c.no[1]}</div></div>` : ""}</div>`).join("")}</div><p class="after">${NOTIONS_AFTER}</p>`);
+  const tale = () => talk({ pose: "salue", say: WHY_Q, more: `${DRAFT_TAG ? `<p><b>${DRAFT_TAG}</b></p>` : ""}${TALE.map(p => `<p>${p}</p>`).join("")}`,
+    replies: [[WHY_NEXT, () => go(1), true], [IDEA_LABEL, () => talk({ pose: "pense", say: IDEA_LABEL, more: IDEA, replies: [[BACK_LABEL, tale]] })]] });
+  tale();
+}
+function planHTML(withFound) {
+  const total = START_MIN + STEPS.reduce((t, s) => t + s.min, 0);
+  return `<div class="plan">${STEPS.map(s => `<button type="button" class="stepc ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}">
+      <span class="sn"><i>${s.n}</i>${s.min} min${done.has(s.n) ? ` · ${DONE_MARK}` : ""}</span><h3>${s.title}</h3>${withFound ? `<p>${s.found}</p>` : ""}</button>`).join("")}</div>
+    ${withFound ? `<p class="total">${PLAN_SUB(STEPS.length, total)}</p>` : ""}`;
+}
+function drawPrep() {
+  put($("#desk"), `${planHTML(true)}
+    <div class="prep">
+      <div class="mat paper"><h3>${PRINT_LABEL}</h3><ul>${BEFORE_LIST.map(t => `<li>${t}</li>`).join("")}</ul><p class="note">${BEFORE_NOTE}</p></div>
+      <div class="side">
+        <button type="button" class="thumb paper" data-act="decks"><img src="${DECKS[DECK].img}" alt="">${BTN.decks}</button>
+        <div class="pdfs"><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.materialShort}</a></div>
+        <aside class="card-consigne"><span class="lab">${CONSIGNE_LABEL}</span><p>${BEFORE_SAY}</p></aside>
+      </div></div>`);
+  const main = () => talk({ pose: "montre", say: PREP_Q,
+    replies: [[PREP_NEXT, () => go(stepAt(1)), true], [SHORT_TITLE, short], [WORDS_TITLE, words]] });
+  const short = () => talk({ pose: "pense", say: SHORT_TITLE, keep: SHORT.map(([t, d]) => `<b>${t}</b>&nbsp;: ${d}`), more: `<p>${SHORT_KEEP}</p><p>${LONG}</p>`, replies: [[BACK_LABEL, main]] });
+  const words = () => talk({ pose: "montre", say: WORDS_TITLE, more: `<p><b>${ME_LBL.useT}&nbsp;:</b> ${WORDS_USE}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${WORDS_AVOID}</p><p><b>${LINK_LABEL}&nbsp;:</b> ${LINK_TEXT}</p>`, replies: [[BACK_LABEL, main]] });
+  main();
+}
+function drawEnd(table) {
+  if (table) {
+    sawIntro(5);
+    put($("#desk"), `<h2 class="dt">${SIMP_TITLE}</h2><table class="simp"><thead><tr><th>${SIMP_HEAD[0]}</th><th>${SIMP_HEAD[1]}</th><th class="ai">${SIMP_HEAD[2]}</th></tr></thead>
+      <tbody>${SIMP.map(s => `<tr><td>${s.game}<span class="st">${s.step}</span></td><td>${s.why}</td><td class="ai">${s.ai}</td></tr>`).join("")}</tbody></table><p class="after">${SIMP_AFTER}</p>`);
+  } else {
+    const SAYS = { 1: SAY1.start.say, 2: SAY2.start.say, 3: SAY3.start.say, 4: SAY4.end.say };   // each step's first line to the class
+    const total = STEPS.reduce((t, s) => t + s.min, 0);
+    put($("#desk"), `<article class="lesson paper${STEPS.length > 4 ? " many" : ""}">
+      <header class="ls-head"><h2>${SHEET_HEAD}</h2><span>${SHEET_META(total)}</span></header>
+      <ol class="ls-steps">${STEPS.map(s => `<li><button type="button" class="ls-step ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}" title="${OPEN_STEP}">
+        <i>${done.has(s.n) ? "✓" : s.n}</i><span class="ls-body"><b>${s.title}</b><small>${s.min}&nbsp;min</small><span class="ls-found">${s.found}</span>
+        ${SAYS[s.n] ? `<span class="ls-say"><em>${CONSIGNE_LABEL}</em> ${SAYS[s.n]}</span>` : ""}</span></button></li>`).join("")}</ol>
+      <aside class="ls-mat"><h3>${MATERIAL}</h3>
+        <button type="button" class="ls-sheet" data-act="decks"><img src="${DECKS[DECK].img}" alt="">${BTN.decks}</button>
+        <a class="tool" href="${MATERIAL_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.material}</a><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.guide}</a></aside>
+    </article>`);
+  }
+  talk({ pose: "debout", say: END_TITLE, keep: TAKEAWAY,
+    replies: [[BACK_TO_Q, BACK_URL, true], table ? [SIMP_BACK, () => drawEnd(false)] : [SIMP_BTN, () => drawEnd(true)], [BTN.again, again]] });
+}
+
+/* ---------- The three decks, large ---------- */
+let lbOpener = null;
+put($("#lb-decks"), Object.keys(DECKS).map(k => `<div>${DECKS[k].name}<img src="${DECKS[k].img}" alt="${esc(DECKS[k].name)}"></div>`).join(""));
+put($("#lb-cap"), DECKS_CAP);
+function openDecks(btn) { lbOpener = btn; $("#lightbox").hidden = false; setTimeout(() => $("#lb-close").focus({ preventScroll: true }), 30); }
+function closeDecks(refocus = true) { if ($("#lightbox").hidden) return; $("#lightbox").hidden = true; if (refocus && lbOpener && document.contains(lbOpener)) lbOpener.focus({ preventScroll: true }); }
+
+/* ---------- Clicks ---------- */
+function again() {
+  resetS1(); resetS2(); S3.open = -1; S3.opened = []; Object.assign(S4, { shown: 0, fresh: false });
+  done.clear(); seen.clear();
+  go(0);
+}
+const ACT = { again, decks: b => openDecks(b), ready: () => judge(), write: () => writeLine() };
+$("#desk").addEventListener("click", e => {
+  const a = e.target.closest("[data-act]");
+  if (a && !a.disabled) return ACT[a.dataset.act](a);
+  const g = e.target.closest("[data-goto]"); if (g) return go(+g.dataset.goto);
+  const n = SCREENS[cur].step; if (!n || !e.target.closest("#board")) return;
+  if (e.target.closest("[data-feat], [data-piece], [data-q]")) me = null;
+  if (n === 1) s1click(e); else if (n === 2) s2click(e); else if (n === 3) s3click(e);
+});
+$("#lb-close").addEventListener("click", () => closeDecks());
+$("#lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeDecks(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDecks(); });
+
+{ const saved = parseInt(scorm.get("cmi.core.lesson_location"), 10), last = SCREENS.length - 1;
+  go(scorm.get("cmi.core.lesson_status") === "completed" ? last : saved >= 0 && saved <= last ? saved : 0); }   // coming back: where the teacher was
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

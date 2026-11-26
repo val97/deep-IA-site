@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithmes et histoire de l’IA</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The video page in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Anne introduces the video,
+     steps aside while it plays (nothing in the middle), and comes back at the end with the key points and the next page. */
+  .desk { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .screen { width: min(100%, 1100px, calc((100vh - 170px) * 16 / 9)); aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #0b1d1c; box-shadow: var(--paper-shadow); }
+  .screen video { width: 100%; height: 100%; display: block; background: #0b1d1c; }
+  .meta { width: min(100%, 1100px, calc((100vh - 170px) * 16 / 9)); margin-top: 12px; display: flex; justify-content: space-between; gap: 16px; font-size: 15px; color: var(--soft); }
+  .meta b { color: var(--g-deep); }
+  .meta .seen { color: var(--g-deep); font-weight: 700; }
+  .tools { position: absolute; left: clamp(18px, 3vw, 40px); bottom: 18px; }   /* left: bottom-right is the way on (frame) */
+  /* the transcript: a white sheet over the desk */
+  .tx { position: absolute; inset: 16px clamp(18px, 3vw, 40px) 72px; z-index: 4; background: #fff; border: 1px solid var(--hair); border-radius: 12px; box-shadow: var(--paper-shadow); padding: 18px 22px; overflow: auto; }
+  .tx[hidden] { display: none; }
+  .tx h2 { font-size: 18px; color: var(--g-deep); padding-right: 48px; }
+  .tx .help { font-size: 14px; color: var(--soft); margin: 2px 0 10px; }
+  .tx p.line { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--hair); font-size: 15px; line-height: 1.45; }
+  .tx button.ts { font: 700 14px Inter, sans-serif; color: var(--violet); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: .2em; align-self: start; }
+  .tx .x { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--hair); background: #fff; cursor: pointer; display: grid; place-items: center; color: var(--g-deep); }
+  @media (max-width: 760px) { .screen, .meta { width: 100%; } .tools { position: static; margin-top: 12px; } .tx { inset: 8px; } }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="La vidéo">
+    <div class="screen"><video id="video" controls preload="metadata" playsinline></video></div>
+    <div class="meta"><b id="title"></b><span><span class="seen" id="seen" hidden>Vue ✓ · </span><span id="info"></span></span></div>
+    <div class="tools"><button type="button" class="tool" id="tx-open" aria-expanded="false" aria-controls="tx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg><span></span></button></div>
+    <div class="tx" id="tx" role="region" aria-labelledby="tx-title" hidden>
+      <button type="button" class="x" id="tx-close" aria-label="Fermer la transcription"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <h2 id="tx-title" tabindex="-1"></h2><p class="help" id="tx-help"></p>
+      <div id="transcript"></div>
+    </div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   ============================================================ */
+/* La vidéo, dans le paquet (media/module1.mp4) ; les sous-titres (vide = pas de sous-titres) */
+const VIDEO_URL = "media/module1.mp4";
+const SUBTITLES = "media/module1-fr.vtt";
+
+/* Titre (sous la vidéo, à gauche) et l'info à droite */
+const TITLE = "Algorithmes et histoire de l’IA";
+const INFO = "Vidéo d’Inria · 4 min";
+
+/* Les étapes de la question, en haut de la colonne d'Anne (NOW = celle-ci) */
+const STEPS = ["La vidéo · 4&nbsp;min", "La frise"];
+const NOW = 1;
+
+/* Ce que dit Anne avant la vidéo : la question (en gras), puis le texte ; et son bouton */
+const START_Q = "Les algorithmes, c’est quoi <em>au juste</em>&nbsp;?";
+const START_TEXT = "Dans cette vidéo d’Inria, tu découvres ce qu’est un algorithme et comment l’intelligence artificielle s’est développée, entre grands espoirs et «&nbsp;hivers de l’IA&nbsp;».";
+const START_LABEL = "Lancer la vidéo";
+/* « Pourquoi cette vidéo ? » : la réponse d'Anne (✎ brouillon de Claude) */
+const WHY_LABEL = "Pourquoi cette vidéo ?";
+const WHY_Q = "Parce que tout le reste part de là&nbsp;: <em>un algorithme</em>.";
+const WHY_TEXT = "Avant d’enseigner l’IA, il faut savoir ce qu’une machine fait vraiment&nbsp;: elle suit des instructions.";
+const BACK_LABEL = "D’accord";
+
+/* Ce que dit Anne à la fin : 2 ou 3 idées clés de la vidéo, puis l'activité suivante et son bouton
+   (adresse vide = pas de bouton) */
+const END_Q = "Ce que dit la vidéo, <em>en bref</em>&nbsp;:";
+const KEEP = [
+  "Un algorithme, c’est comme une recette&nbsp;: des instructions à suivre dans un ordre précis.",
+  "Deux approches&nbsp;: écrire les règles à la main, ou laisser la machine apprendre à partir d’exemples.",
+  "L’histoire de l’IA alterne grands succès et déceptions (les «&nbsp;hivers de l’IA&nbsp;»)."
+];
+const NEXT_LABEL = "Ensuite&nbsp;: la frise de l’IA";
+const NEXT_URL = "../../play.html?a=Module1/frise-ia-scorm";
+const AGAIN_LABEL = "Revoir la vidéo";
+
+/* La transcription (bouton en bas à droite) */
+const TX_SHOW = "Lire la transcription";
+const TX_HIDE = "Masquer la transcription";
+const TX_TITLE = "Transcription";
+const TX_HELP = "Clique sur un temps pour y aller dans la vidéo.";
+
+/* Transcription : [temps, texte] — le temps est cliquable et amène la vidéo à ce moment */
+const TRANSCRIPT = [
+  ["0:00", "Histoire d’algorithmes."],
+  ["0:03", "Les algorithmes sont partout autour de nous. Recommandations de contenus sur Facebook : algorithme. Localisation GPS qui m’informe des embouteillages : algorithme. Reconnaissance des visages : algorithme."],
+  ["0:17", "Bien. Oui, mais les algorithmes, c’est quoi en fait ? Alors commençons par le commencement : l’informatique. L’informatique a pour objet le traitement de l’information de manière automatique, d’où son nom. Elle s’appuie sur des machines capables de traiter des données grâce à des… algorithmes. Bien, Théo, c’est bien ça, tu suis ? Ça fait plaisir."],
+  ["0:37", "Maintenant, les algorithmes. Arrêtez-moi si je me trompe, c’est un petit peu comme… une recette de cuisine. C’est une série d’instructions à suivre dans un certain ordre pour effectuer une tâche de manière automatique. Qui dit de manière automatique dit sans avoir besoin de comprendre ou de réfléchir. Et c’est parfait pour une machine. Une fois qu’on a cette liste d’instructions, on la traduit en langage compréhensible par un ordinateur et on obtient un programme informatique. Les ordinateurs exécutent parfaitement et très rapidement tout programme qui décrit un algorithme, et c’est très puissant."],
+  ["1:10", "D’ailleurs, dans les années 50, les chercheurs se sont mis à rêver. Ils ont imaginé des algorithmes qui rendraient les ordinateurs aussi intelligents que l’humain."],
+  ["1:19", "L’approche symbolique essaie d’imiter comment l’humain raisonne logiquement et utilise ses connaissances. Comme nous l’explique Thalita Firmo Drumond, doctorante Inria, un certain nombre de savoirs nous sont transmis par un ensemble de connaissances, de règles, de procédures. C’est la manière privilégiée par les savoirs scolaires, comme apprendre à poser une addition par exemple. Lorsque je pose une addition, je peux expliquer comment je m’y prends, étape par étape. Il est donc ensuite possible d’écrire un programme expliquant à la machine comment procéder, étape par étape. La machine pourra ensuite l’exécuter beaucoup plus rapidement que moi et sans étourderie. Cette approche a donné les systèmes experts, qui essaient de reproduire le raisonnement d’un spécialiste, comme un médecin ou un juriste, pour résoudre un problème. C’est cette approche-là qui a eu le vent en poupe dans les années 80."],
+  ["2:06", "D’autres savoirs naissent de l’expérience, pour lesquels il est beaucoup plus difficile d’expliquer comment on s’y prend, comme par exemple faire du vélo ou reconnaître un chat. J’aurais beau vous expliquer comment faire du vélo, c’est en pédalant que vous saurez pédaler. Il faut que vous en fassiez l’expérience. Ça, c’est l’autre approche, l’approche numérique ou connexionniste, qui, elle, tente d’imiter comment l’humain apprend par essais et erreurs, à partir de ses expériences. C’est cette approche-là qui est sur le devant de la scène aujourd’hui."],
+  ["2:34", "Comme l’explique Nicolas Rougier, chercheur Inria, il y a eu de belles avancées jusqu’à la fin des années 70, puis on a déchanté. Les résultats promis n’arrivaient pas, les fonds pour la recherche ont cessé d’affluer et on a connu un premier hiver de l’IA. Dix ans plus tard, on connaît un sursaut avec les systèmes experts, qui tentent de reproduire le raisonnement d’un spécialiste comme un médecin. Mais il fallait entrer les connaissances des hommes dans les machines, alors que ce qu’on voulait, c’était que les machines apprennent toutes seules. Un deuxième hiver de l’IA se produit."],
+  ["3:03", "À la fin des années 90, coup de tonnerre : Deep Blue, le superordinateur d’IBM, bat le champion du monde d’échecs, Garry Kasparov. Et en 2016, nouveau coup de tonnerre : un algorithme de Google bat un des meilleurs joueurs du monde de go, alors que l’on n’imaginait pas ça possible avant plusieurs années."],
+  ["3:20", "En fait, l’histoire de l’intelligence artificielle est une alternance de progrès très médiatiques, mais aussi de grosses déceptions. Là, nous sommes de nouveau en phase de boom."],
+  ["3:30", "L’intelligence artificielle est sortie des laboratoires. Elle infuse et impacte désormais tous les domaines de la société, de la finance à l’agriculture, en passant par la médecine ou l’éducation, jusqu’à nos maisons. Dans notre monde devenu numérique, nous fréquentons et utilisons chaque jour, sans le savoir, de l’intelligence artificielle dans nos objets du quotidien : appareil photo, mécanisme de recommandation sur les réseaux sociaux, enceintes connectées."],
+  ["3:53", "Un monde d’algorithmes. Mais c’est bien nous, humains, qui devons décider de ce que les systèmes peuvent faire pour nous, et non l’inverse. Et comme ces technologies façonnent profondément notre société, il est fondamental de comprendre comment elles marchent."]
+];
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Anne", pose: "anne", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+const video = $("#video");
+
+video.src = VIDEO_URL;
+if (SUBTITLES) video.insertAdjacentHTML("beforeend", `<track kind="subtitles" src="${SUBTITLES}" srclang="fr" label="Français">`);
+$("#title").innerHTML = TITLE; $("#info").innerHTML = INFO;
+$("#tx-title").innerHTML = TX_TITLE; $("#tx-help").innerHTML = TX_HELP;
+const sec = t => t.split(":").reduce((a, n) => a * 60 + Number(n), 0);
+$("#transcript").innerHTML = TRANSCRIPT.map(([t, text]) =>
+  `<p class="line"><button type="button" class="ts" data-t="${sec(t)}" aria-label="Aller à ${t} dans la vidéo">${t}</button><span>${text}</span></p>`).join("");
+
+/* ---------- Anne: the start, « Pourquoi ? », the end ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => video.play().catch(() => {}), true], [WHY_LABEL, why]] });
+const why = () => frame.talk({ pose: "pense", say: WHY_Q, more: WHY_TEXT, replies: [[BACK_LABEL, start]] });
+const end = () => frame.talk({ pose: "debout", say: END_Q, keep: KEEP,
+  replies: [...(NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []), [AGAIN_LABEL, () => { video.currentTime = 0; video.play().catch(() => {}); }]] });
+
+// Transcript over the desk; the video keeps playing; the button, the cross or Esc opens and closes it
+const tx = $("#tx"), txOpen = $("#tx-open");
+function showTranscript(on) {
+  tx.hidden = !on;
+  txOpen.setAttribute("aria-expanded", on);
+  txOpen.querySelector("span").textContent = on ? TX_HIDE : TX_SHOW;
+  if (on) $("#tx-title").focus({ preventScroll: true });
+}
+showTranscript(false);
+txOpen.addEventListener("click", () => showTranscript(tx.hidden));
+$("#tx-close").addEventListener("click", () => { showTranscript(false); txOpen.focus(); });
+$("#transcript").addEventListener("click", e => {
+  const b = e.target.closest(".ts"); if (!b) return;
+  video.currentTime = Number(b.dataset.t);
+  video.play().catch(() => {});
+});
+
+// Resume where the learner stopped, saving the position every few seconds
+const resumeAt = parseFloat(scorm.get("cmi.core.lesson_location")) || 0;
+video.addEventListener("loadedmetadata", () => {
+  if (resumeAt > 1 && resumeAt < video.duration - 2) video.currentTime = resumeAt;
+}, { once: true });
+let lastSaved = 0;
+video.addEventListener("timeupdate", () => {
+  if (Math.abs(video.currentTime - lastSaved) < 5) return;
+  lastSaved = video.currentTime;
+  scorm.set("cmi.core.lesson_location", String(Math.floor(video.currentTime)));
+  if (++saves % 3 === 0) saveStats(); else scorm.commit();      // the viewing data every 15 s
+});
+
+/* ---------- Learning data (unchanged): what was really watched, in 5-second slices, plus pauses, jumps and transcript ----------
+   Kept in suspend_data during the attempt, and summarised as interaction lines:
+     video_vu_pct            % of the video watched at least once
+     video_temps_lecture     seconds actually played
+     video_passages_revus    passages watched more than once, e.g. "1:05-1:20 (x3)"
+     video_passages_sautes   passages never watched
+     video_pauses, video_sauts_avant, video_retours_arriere, video_transcription, video_fin_atteinte   counts */
+const SLICE = 5;
+let saved = {};
+try { saved = JSON.parse(scorm.get("cmi.suspend_data") || "{}"); } catch {}
+const stats = { p: 0, f: 0, b: 0, t: 0, e: 0, s: 0, ...saved };     // pauses, forward, back, transcript, ends, seconds
+let counts = [], lastSlice = -1, lastTime = 0, started = false, saves = 0;
+video.addEventListener("loadedmetadata", () => {
+  counts = Array.from({ length: Math.ceil(video.duration / SLICE) }, (_, i) => parseInt((stats.c || "")[i] || "0", 36));
+}, { once: true });
+video.addEventListener("play", () => { started = true; });
+video.addEventListener("timeupdate", () => {
+  if (video.seeking || seekFrom !== null) return;                 // jumping, not watching
+  const t = video.currentTime, d = t - lastTime;
+  if (!video.paused && d > 0 && d < 1.5) stats.s += d;           // normal playback (not a jump)
+  lastTime = t;
+  const i = Math.floor(t / SLICE);
+  if (!video.paused && counts.length && i !== lastSlice && i < counts.length) { counts[i] = Math.min(35, counts[i] + 1); lastSlice = i; }
+});
+// A jump: dragging the progress bar makes many small seeks, so they are grouped into one jump (from → to)
+let seekFrom = null, seekTimer = null;
+video.addEventListener("seeking", () => {
+  if (!started) return;                                           // the resume jump at load is not the learner's
+  if (seekFrom === null) seekFrom = lastTime;
+  clearTimeout(seekTimer);
+  lastSlice = -1;
+});
+video.addEventListener("seeked", () => {
+  if (seekFrom === null) return;
+  clearTimeout(seekTimer);
+  seekTimer = setTimeout(endJump, 600);
+});
+function endJump() {
+  clearTimeout(seekTimer);
+  if (seekFrom === null) return;
+  const d = video.currentTime - seekFrom;
+  if (d > 5) stats.f++; else if (d < -5) stats.b++;
+  seekFrom = null; lastTime = video.currentTime;
+}
+video.addEventListener("pause", () => { if (!video.ended && !video.seeking) stats.p++; saveStats(); });
+video.addEventListener("ended", () => { endJump(); stats.e++; lastSlice = -1; });
+txOpen.addEventListener("click", () => { if (tx.hidden) return; stats.t++; saveStats(); });   // counts openings only
+
+const clock = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+function ranges(test) {                                           // consecutive slices that pass the test → "0:30-0:45 (x2), …"
+  const out = [];
+  counts.forEach((n, i) => {
+    if (!test(n)) return;
+    const last = out[out.length - 1];
+    if (last && last.to === i) { last.to = i + 1; last.max = Math.max(last.max, n); }
+    else out.push({ from: i, to: i + 1, max: n });
+  });
+  return out.map(r => `${clock(r.from * SLICE)}-${clock(Math.min(r.to * SLICE, video.duration))}${r.max > 1 ? ` (x${r.max})` : ""}`).join(", ") || "aucun";
+}
+function saveStats() {
+  if (!counts.length) return;
+  stats.c = counts.map(n => n.toString(36)).join("");
+  scorm.set("cmi.suspend_data", JSON.stringify({ ...stats, s: Math.round(stats.s) }));
+  scorm.record("video_vu_pct", Math.round(counts.filter(n => n > 0).length / counts.length * 100), { type: "numeric" });
+  scorm.record("video_temps_lecture", Math.round(stats.s), { type: "numeric", latency: stats.s });
+  scorm.record("video_passages_revus", ranges(n => n > 1));
+  scorm.record("video_passages_sautes", ranges(n => n === 0));
+  scorm.record("video_pauses", stats.p, { type: "numeric" });
+  scorm.record("video_sauts_avant", stats.f, { type: "numeric" });
+  scorm.record("video_retours_arriere", stats.b, { type: "numeric" });
+  scorm.record("video_transcription", stats.t, { type: "numeric" });
+  scorm.record("video_fin_atteinte", stats.e, { type: "numeric" });
+  scorm.commit();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveStats(); });
+
+/* ---------- Where Anne is: the start (first visit), aside while the video plays, the end once it has been seen ---------- */
+let watched = scorm.get("cmi.core.lesson_status") === "completed";
+const drawSeen = () => { $("#seen").hidden = !watched; };
+drawSeen();
+if (watched) end();                                   // coming back after the video: the key points and the next page
+else if (resumeAt > 1) { start(); frame.aside(true); } // coming back in the middle: straight to the video
+else start();
+video.addEventListener("play", () => frame.aside(true));
+video.addEventListener("ended", () => {
+  scorm.set("cmi.core.lesson_location", "0");
+  scorm.set("cmi.core.lesson_status", "completed");
+  saveStats();
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  watched = true; drawSeen();
+  end(); frame.aside(false);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !tx.hidden) { showTranscript(false); txOpen.focus(); }
+});
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

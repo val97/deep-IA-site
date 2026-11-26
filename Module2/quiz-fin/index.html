@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste tes connaissances : l’IA générative</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* « Teste tes connaissances » in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html), like the text's quiz:
+     Claudia introduces it, steps aside while the teacher answers (the feedback is on the sheet), comes back at the end.
+     Three kinds of questions: self-assessment (1 to 5), opinion (no right answer), and questions with a right answer. */
+  .desk { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; }
+  .qsheet { width: min(100%, 780px); padding: clamp(18px, 3vh, 28px) clamp(18px, 3vw, 30px); rotate: -.4deg; }
+  .qsheet .n { font-size: 14px; font-weight: 700; color: var(--soft); }
+  .qsheet h2 { margin: 6px 0 clamp(14px, 2.4vh, 22px); font-size: clamp(1.15rem, 2.9vh, 1.5rem); line-height: 1.25; color: var(--g-deep); text-wrap: balance; }
+  .answers { display: grid; gap: 10px; }
+  .ans { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--hair);
+         background: #fff; font: 600 16px/1.3 Inter, sans-serif; color: var(--ink); text-align: left; cursor: pointer; }
+  .ans b { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--g-tint); color: var(--g-deep); font-weight: 800; }
+  .ans:hover:not(:disabled) { border-color: var(--g-deep); }
+  .ans:disabled { cursor: default; }
+  .ans.wrong { color: var(--soft); border-style: dashed; text-decoration: line-through; }
+  .ans.wrong b { background: var(--hair); color: var(--soft); }
+  .ans.right, .ans.chosen { background: var(--g-main); border-color: var(--g-main); color: var(--g-deep); }
+  .ans.right b, .ans.chosen b { background: #fff; }
+  /* self-assessment: five points in a row, the two ends written under them */
+  .answers.scale { grid-template-columns: repeat(5, minmax(0, 1fr)); }   /* tablets: the five points shrink (26 Nov 2026) */
+  @media (max-width: 1024px) { .answers.scale { gap: 6px; } .answers.scale .ans { padding: 8px 2px; } .ends { gap: 10px; font-size: 13px; min-width: 0; } .ends span { min-width: 0; flex: 1; } .ends span + span { text-align: right; } }
+  .answers.scale .ans { grid-template-columns: 1fr; justify-items: center; min-height: 64px; padding: 10px; }
+  .answers.scale .ans b { width: 40px; height: 40px; font-size: 18px; }
+  .ends { grid-column: 1 / -1; display: flex; justify-content: space-between; font-size: 14px; color: var(--soft); }
+  .comment { display: block; margin-top: 12px; font-size: 15px; font-weight: 700; color: var(--g-deep); }
+  .comment[hidden] { display: none; }
+  .comment textarea { display: block; box-sizing: border-box; width: 100%; height: 72px; margin-top: 6px; padding: 10px 12px; border: 1.5px solid var(--hair); border-radius: 10px;
+                      font: 400 15px/1.4 Inter, sans-serif; color: var(--ink); resize: none; }
+  .fb { display: flex; align-items: center; gap: 14px; margin-top: 14px; min-height: 48px; }
+  .fb[hidden] { display: none; }
+  .fb p { flex: 1; }
+  .dots { display: flex; gap: 8px; align-items: center; }
+  #dots { display: inline-flex; gap: 6px; align-items: center; }
+  .dots i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--g-deep); }
+  .dots i.ok { background: var(--g-deep); } .dots i.on { background: var(--g-main); width: 15px; height: 15px; }
+  .dots .prev { margin-right: 10px; }
+  .seen { margin-left: 10px; font-size: 14px; font-weight: 700; color: var(--g-deep); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Teste tes connaissances">
+    <div class="qsheet paper">
+      <span class="n" id="count"></span><h2 id="question"></h2>
+      <div class="answers" id="answers" role="group" aria-labelledby="question"></div>
+      <label class="comment" id="comment" hidden><span id="comment-label"></span><textarea id="comment-text" maxlength="250"></textarea></label>
+      <div class="fb feedback" id="fb" aria-live="polite" hidden><p id="fb-text"></p><button type="button" class="chip go" id="next"></button></div>
+    </div>
+    <div class="dots"><button type="button" class="tool prev" id="prev" aria-label="Question précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><span id="dots" aria-hidden="true"></span><span class="seen" id="seen" hidden>Terminé ✓</span></div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   answers : les quatre réponses (A, B, C, D) ; right : la lettre de la bonne réponse
+   good    : le message quand c'est juste ; bad : le message quand c'est faux
+   (pour un message propre à une mauvaise réponse : badFor: { B: "…" })
+   Auto-évaluation sur 5 points (pas comptée dans le score) : id = le numéro du questionnaire, statement = l'affirmation, scale = les deux extrémités
+   Question d'opinion (pas de bonne réponse, pas comptée dans le score) : survey: true, good = le message après le choix,
+   comment: "…" = une case de commentaire libre sous les réponses, avec ce titre
+   ============================================================ */
+const QUESTIONS = [
+  { id: "Q5", statement: "Je peux expliquer les différences entre l’intelligence humaine et l’intelligence artificielle.", scale: ["Pas du tout d’accord", "Tout à fait d’accord"] },
+  { id: "Q6", statement: "Les ordinateurs peuvent raisonner et prendre des décisions d’une manière identique à celle des humains.", scale: ["Pas du tout d’accord", "Tout à fait d’accord"] },
+  { id: "Q2", statement: "Les algorithmes d’apprentissage automatique apprennent à partir de données.", scale: ["Pas du tout d’accord", "Tout à fait d’accord"] },
+
+  { question: "Que se passe-t-il concrètement quand une requête est envoyée à un chatbot ?",
+    answers: ["Elle est directement comprise comme une phrase entière.",
+              "Elle est découpée en tokens, convertis en identifiants numériques, puis en vecteurs traités par le réseau de neurones.",
+              "Elle est comparée à une base de données de réponses toutes faites.",
+              "Elle est cherchée sur Internet, puis la réponse est copiée depuis la page la plus pertinente."],
+    right: "B",
+    good: "Exact ! Le chatbot ne lit pas une phrase comme nous. Il la transforme en nombres, puis calcule une suite de mots probable.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Vrai ou faux ? « Les algorithmes d’apprentissage automatique apprennent à partir de données. »",
+    answers: ["Vrai",
+              "Faux"],
+    right: "A",
+    good: "Exact ! Ils ajustent leurs paramètres en analysant de très nombreux exemples, jusqu’à repérer des régularités. Sans données, pas d’apprentissage.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Une IA résout immédiatement la devinette du Sphinx. Qu’est-ce que cela montre le plus probablement ?",
+    answers: ["Qu’elle a raisonné comme un humain l’aurait fait.",
+              "Qu’elle comprend le cycle de la vie humaine.",
+              "Qu’elle a cherché la réponse dans une base de devinettes.",
+              "Que cette devinette et sa réponse apparaissent très souvent dans ses données d’entraînement."],
+    right: "D",
+    good: "Exact ! La devinette et sa réponse apparaissent très souvent dans les textes d’entraînement. Même quand l’IA affiche un raisonnement, on ne peut pas savoir si elle a « réfléchi » ou retrouvé un classique.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Certains chercheurs comparent les IA génératives à des « perroquets stochastiques ». Que veut dire cette image ?",
+    answers: ["L’IA recopie mot pour mot des phrases de ses données.",
+              "L’IA répète des mots au hasard, sans aucune logique.",
+              "L’IA produit des phrases en calculant les mots les plus probables, sans accès au sens.",
+              "L’IA se contente de traduire des textes existants."],
+    right: "C",
+    good: "Exact ! « Stochastique » signifie « fondé sur les probabilités ». L’IA reproduit le langage comme un perroquet, sans en saisir le sens. Même fluide, son texte n’est pas une preuve de compréhension.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Quelle phrase décrit le mieux une différence entre l’intelligence humaine et l’intelligence artificielle ?",
+    answers: ["L’humain comprend le sens de ce qu’il dit et a des intentions ; l’IA calcule des réponses probables à partir de données.",
+              "L’IA ressent des émotions, mais elle calcule moins vite que l’humain.",
+              "Depuis les chatbots, il n’y a plus de différence réelle entre les deux.",
+              "L’humain peut mémoriser beaucoup plus de textes que l’IA."],
+    right: "A",
+    good: "Exact ! L’IA excelle pour repérer des régularités et produire vite du contenu. Elle n’a ni compréhension, ni intention, ni émotions, ni expérience du monde.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Vrai ou faux ? « Les ordinateurs peuvent raisonner et prendre des décisions exactement comme les humains. »",
+    answers: ["Vrai",
+              "Faux"],
+    right: "B",
+    good: "Exact ! Une IA peut imiter un raisonnement, mais elle suit des règles ou des calculs de probabilités. Elle ne tient compte ni du contexte vécu, ni des valeurs, ni des conséquences comme le fait une personne.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Pourquoi la question « Qui est le plus beau ? » pose-t-elle un problème particulier à une IA ?",
+    answers: ["Parce qu’elle n’a pas accès aux photos des personnes concernées.",
+              "Parce que c’est un jugement subjectif : l’IA donnera quand même une réponse qui a l’air sûre, en reprenant des opinions déjà écrites par des humains.",
+              "Parce qu’elle n’a jamais entendu cette question auparavant.",
+              "Parce que c’est une question interdite par ses règles de programmation."],
+    right: "B",
+    good: "Exact ! Aucune réponse « la plus probable » ne s’impose dans les données. L’IA ne peut que refléter des opinions déjà écrites par des humains.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Pourquoi une IA générative peut-elle halluciner, même quand elle affiche des sources ?",
+    answers: ["Parce qu’elle produit un texte probable, sans vérifier qu’il est vrai ; elle peut même mal résumer ou inventer une source.",
+              "Parce que les sites qu’elle consulte sont toujours peu fiables.",
+              "Parce qu’elle a eu un bug ponctuel.",
+              "Parce qu’elle n’a pas accès à Internet."],
+    right: "A",
+    good: "Exact ! L’IA produit ce qui « sonne juste » statistiquement, sans vérifier. Une réponse peut donc être plausible, sûre d’elle… et fausse.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Dans le sketch, que symbolise la phrase finale « On envoie », alors qu’aucun des trois personnages n’a compris la réponse ?",
+    answers: ["Que l’équipe a fini par bien collaborer et comprendre la question.",
+              "Que la question était trop difficile pour être traitée.",
+              "Que l’IA a triché en copiant une réponse toute faite.",
+              "Qu’une réponse peut être envoyée et paraître présentable, même si l’IA n’en a pas saisi le sens réel."],
+    right: "D",
+    good: "Exact ! Une réponse bien formulée n’est pas une preuve de compréhension. C’est à l’utilisateur de vérifier.",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" },
+
+  { question: "Que devrait-on enseigner aux élèves face aux réponses d’une IA générative ?",
+    answers: ["À leur faire confiance, car elles sont toujours bien formulées.",
+              "À ouvrir les sources citées pour vérifier qu’elles disent bien ce qu’on leur attribue, à les comparer à d’autres, et à ne pas prêter à l’IA des qualités humaines.",
+              "À éviter complètement d’utiliser une IA générative.",
+              "À reformuler la question jusqu’à obtenir la réponse qu’on attend."],
+    right: "B",
+    good: "Exact ! L’objectif est un usage critique : vérifier, comparer, prendre du recul, et parler de l’IA avec des mots justes (elle calcule, elle ne « pense » pas).",
+    bad: "Pas tout à fait. Relis la question et repense à ce que tu as vu dans le module. Tu peux réessayer !" }
+];
+
+/* Titre (dans la barre du lecteur) et consignes (plus affichées dans le cadre H2 : Claudia donne la consigne au début) */
+const TITLE = "Quiz de fin de module : l’IA est-elle intelligente ?";
+const HINT = "Choisis la bonne réponse.";
+const HINT_SCALE = "Choisis un chiffre de 1 à 5.";
+const HINT_SURVEY = "Choisis ta réponse.";
+
+/* Ce que dit Claudia avant le quiz : la ligne en gras (class="q"), puis le texte */
+const START_TEXT = `<p class="q">Le quiz de fin de module !</p>
+  <p>D’abord, trois affirmations : dis à quel point tu es d’accord. Puis dix questions pour faire le point sur ce module.
+  Pas d’inquiétude : si tu te trompes, tu peux réessayer.</p>`;
+
+/* Ce que dit Claudia à la fin, son bouton et où il mène (adresse vide = pas de bouton ; le bouton dit maintenant RETURN_LABEL, plus bas) */
+const END_TEXT = `<p class="q">Bravo, tu as terminé le quiz !</p>
+  <p>Une IA générative ne comprend pas comme nous : elle calcule les mots probables, puis en tire un au sort.
+  À toi de vérifier, de comparer et de garder la décision.</p>`;
+const NEXT_LABEL = "Retour à la question";   /* same words on every page (usability review, 26 Nov 2026; Moodle: « Retour à l’accueil du module ») */   // la section du module, avec l’introduction en haut
+const NEXT_URL = "../../play.html?a=Module2/intro-module";
+
+/* (Plus utilisés dans le cadre H2 : INTRO, LINKS) */
+const INTRO = "";
+const LINKS = [];
+
+/* ---------- Le cadre H2 (26 nov. 2026) : les libellés de la feuille, repris de l'ancienne page ; les nouveaux sont marqués ---------- */
+const START_LABEL = "C’est parti";
+const RETURN_LABEL = "Retour à la question";   // remplace NEXT_LABEL sur le site : la page de la question (« Comment fonctionne l’IA générative ? »)
+const AGAIN_LABEL = "Revoir le quiz";
+const SELF = "Auto-évaluation";
+const NUM = n => `Question ${n}`;
+const NEXT_Q = "Question suivante";
+const LAST_Q = "Voir le bilan";                //
+const THANKS = "Merci pour ta réponse&nbsp;!";
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+// START_TEXT and END_TEXT hold Claudia's bold line (<p class="q">) and her text: the frame shows them apart
+const split = h => { const d = document.createElement("div"); d.innerHTML = h; const q = d.querySelector(".q"); const say = q ? q.innerHTML : ""; q?.remove(); return [say, d.innerHTML.trim()]; };
+const [START_Q, START_BODY] = split(START_TEXT), [END_Q, END_BODY] = split(END_TEXT);
+const LETTERS = ["A", "B", "C", "D"];
+const frame = Frame.init({ guide: "Claudia", pose: "claudia" });
+const { scorm } = frame;
+const bold = t => t.replace(/^(.+?[!.])\s/, "<b>$1</b> ");   // « Exact ! … » → the first words in bold
+
+/* ---------- Progress (unchanged): the letters tried for each question and the comments, kept in suspend_data ----------
+   Learning data: question_1 … = the letters tried, e.g. "B > C"; correct if right the first time.
+   Self-assessment: one line per statement, named by its questionnaire id (e.g. Q4), with the point chosen (1–5).
+   Survey questions: the answer chosen, and question_N_commentaire = the free comment. Score (cmi.core.score.raw) = % of the
+   scored questions right the first time (self-assessment and survey questions don't count). */
+const KEY = QUESTIONS.map(Q => Q.id || Q.right || "s").join("");   // which questions, in which order
+let tried = [], comments = {};
+try {
+  const data = JSON.parse(scorm.get("cmi.suspend_data") || "[]");
+  if (!Array.isArray(data) && data.key === KEY) { tried = data.tried || []; comments = data.comments || {}; }
+} catch {}
+const save = () => scorm.set("cmi.suspend_data", JSON.stringify({ key: KEY, tried, comments }));
+QUESTIONS.forEach((_, i) => { if (!Array.isArray(tried[i])) tried[i] = []; });
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+QUESTIONS.forEach(Q => { if (Q.scale) { Q.survey = true; Q.good = Q.good || THANKS; } });
+const solved = i => QUESTIONS[i].survey ? tried[i].length > 0 : tried[i].includes(QUESTIONS[i].right);
+const SCORED = QUESTIONS.filter(Q => !Q.survey);
+let q = Math.max(0, tried.findIndex((_, i) => !solved(i)));
+if (QUESTIONS.every((_, i) => solved(i))) q = 0;
+let shownAt = Date.now();
+
+/* ---------- Claudia ---------- */
+const start = () => frame.talk({ pose: "salue", say: START_Q, more: START_BODY,
+  replies: [[START_LABEL, () => { frame.aside(true); shownAt = Date.now(); $(".ans")?.focus({ preventScroll: true }); }, true]] });
+const end = () => frame.talk({ pose: "ouvre", say: END_Q, more: END_BODY,
+  replies: [...(NEXT_URL ? [[RETURN_LABEL, NEXT_URL, true]] : []), [AGAIN_LABEL, () => { show(0); frame.aside(true); }]] });
+
+/* ---------- The sheet ---------- */
+const drawDots = () => { $("#dots").innerHTML = QUESTIONS.map((_, i) => `<i class="${i === q ? "on" : solved(i) ? "ok" : ""}"></i>`).join(""); };
+function show(n) {
+  q = n;
+  const Q = QUESTIONS[q];
+  const num = QUESTIONS.slice(0, q + 1).filter(x => !x.scale).length;
+  $("#count").textContent = Q.scale ? SELF : NUM(num);
+  $("#question").innerHTML = Q.scale ? Q.statement : Q.question;
+  $("#answers").classList.toggle("scale", !!Q.scale);
+  $("#answers").innerHTML = Q.scale
+    ? [1, 2, 3, 4, 5].map(k => `<button type="button" class="ans" data-letter="${k}" aria-label="${k} sur 5"><b>${k}</b></button>`).join("")
+      + `<div class="ends" aria-hidden="true"><span>1 = ${Q.scale[0]}</span><span>5 = ${Q.scale[1]}</span></div>`
+    : Q.answers.map((a, k) => `<button type="button" class="ans" data-letter="${LETTERS[k]}"><b>${LETTERS[k]}</b><span>${a}</span></button>`).join("");
+  tried[q].forEach(l => mark(l));
+  if (solved(q)) feedback(Q.good, true); else $("#fb").hidden = true;
+  $("#comment").hidden = !Q.comment;
+  if (Q.comment) { $("#comment-label").textContent = Q.comment; $("#comment-text").value = comments[q] || ""; }
+  drawDots();
+  $("#prev").disabled = q === 0;
+  $("#seen").hidden = !done;
+  shownAt = Date.now();
+}
+function mark(letter) {
+  const Q = QUESTIONS[q], b = $(`.ans[data-letter="${letter}"]`), right = Q.survey || letter === Q.right;
+  if (!b) return;
+  b.classList.add(Q.survey ? "chosen" : right ? "right" : "wrong"); b.disabled = true;
+  if (right) document.querySelectorAll(".ans").forEach(x => x.disabled = true);
+}
+function feedback(text, good) {
+  const last = q === QUESTIONS.length - 1;
+  $("#fb").hidden = false; $("#fb").classList.toggle("no", !good);
+  $("#fb-text").innerHTML = QUESTIONS[q].survey ? text : bold(text);
+  $("#next").hidden = !good;
+  $("#next").innerHTML = `${last ? LAST_Q : NEXT_Q}<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+}
+
+$("#answers").addEventListener("click", e => {
+  const b = e.target.closest(".ans"); if (!b || b.disabled) return;
+  frame.aside(true);
+  const Q = QUESTIONS[q], letter = b.dataset.letter, right = Q.survey || letter === Q.right;
+  tried[q].push(letter);
+  mark(letter);
+  feedback(right ? Q.good : (Q.badFor?.[letter] || Q.bad), right);
+  if (Q.scale) scorm.record(Q.id, letter, { type: "likert", latency: (Date.now() - shownAt) / 1000 });
+  else if (Q.survey) scorm.record(`question_${q + 1}`, Q.answers[LETTERS.indexOf(letter)], { type: "likert", latency: (Date.now() - shownAt) / 1000 });
+  else scorm.record(`question_${q + 1}`, tried[q].join(" > "), {
+    type: "choice", result: right ? (tried[q].length === 1 ? "correct" : "wrong") : "wrong",
+    latency: (Date.now() - shownAt) / 1000 });
+  save();
+  const firstTry = SCORED.filter(Qi => tried[QUESTIONS.indexOf(Qi)][0] === Qi.right).length;
+  scorm.set("cmi.core.score.min", "0"); scorm.set("cmi.core.score.max", "100");
+  scorm.set("cmi.core.score.raw", String(Math.round(firstTry / SCORED.length * 100)));
+  if (!done && QUESTIONS.every((_, i) => solved(i))) { done = true; scorm.set("cmi.core.lesson_status", "completed"); }
+  scorm.commit();
+  drawDots();
+  $("#seen").hidden = !done;
+  if (right) $("#next").focus({ preventScroll: true });
+});
+// Free comment of a survey question: saved when the teacher leaves the box
+$("#comment-text").addEventListener("change", e => {
+  comments[q] = e.target.value.trim();
+  scorm.record(`question_${q + 1}_commentaire`, comments[q] || "—");
+  save(); scorm.commit();
+});
+$("#prev").addEventListener("click", () => q > 0 && show(q - 1));
+$("#next").addEventListener("click", () => { if (q === QUESTIONS.length - 1) { end(); frame.aside(false); } else show(q + 1); });
+
+/* First visit: Claudia introduces; coming back in the middle: straight to the question; already done: her summary */
+show(q);
+if (done) end();
+else { start(); if (tried.some(t => t.length)) frame.aside(true); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

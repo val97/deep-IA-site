@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="fr" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Cartes – Pour tout ou pour rien ?</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The Module 3 cards in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Léo introduces them, steps aside
+     on the first move (nothing in the middle), and comes back after « Terminer » with the key points.
+     Kept from the Module 3 version: the pile (one card at a time, turned with the corner, a click or a swipe) and the optional note. */
+  .desk { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: clamp(16px, 2.6vh, 28px); }
+  body:not(.aside) .desk { padding-bottom: 76px; }      /* Léo's way on sits bottom-right */
+  .pile { position: relative; flex: 1; min-height: 0; width: min(100%, 600px); max-height: 640px; touch-action: pan-y; }
+  .pile .under { position: absolute; inset: 0; border-radius: 14px; background: #fff; box-shadow: var(--paper-shadow); transform-origin: 50% 100%; }
+  .pile .under.u1 { transform: translateY(10px) scaleX(.955); }
+  .pile .under.u2 { transform: translateY(20px) scaleX(.91); background: #F3F3F0; }
+  #slot { position: absolute; inset: 0; }
+  .card { position: absolute; inset: 0; perspective: 2200px; }
+  .card .inner { position: relative; width: 100%; height: 100%; transition: transform .6s var(--ease); transform-style: preserve-3d; cursor: pointer; }
+  .card.flipped .inner { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; overflow: hidden; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+          display: flex; flex-direction: column; box-shadow: var(--paper-shadow); transition: box-shadow .25s; }
+  .inner:hover .face { box-shadow: 0 10px 26px rgba(11, 81, 77, .18); }
+  .front { background: #fff; }
+  .back { background: var(--g-tint); transform: rotateY(180deg); padding: clamp(18px, 3vh, 32px) clamp(18px, 2.4vw, 34px) 84px; font-size: 19px; line-height: 1.45; }
+  .card.arrive { animation: arrive .45s ease-out both; }
+  .card.leave { animation: leave .45s ease-in both; }
+  .card.leave-back { animation: leave-back .45s ease-in both; }
+  @keyframes arrive { from { transform: translateY(14px) scale(.96); } }
+  @keyframes leave { to { transform: translateX(80%) rotate(8deg); opacity: 0; } }
+  @keyframes leave-back { to { transform: translateX(-80%) rotate(-8deg); opacity: 0; } }
+  /* front: the pictogram (in deep green), the name, the question, the optional note */
+  .band { flex: none; height: clamp(110px, 22%, 190px); background: var(--g-tint); display: grid; place-items: center; }
+  .pic { width: clamp(64px, 12vh, 116px); aspect-ratio: 1; background: var(--g-deep); -webkit-mask: var(--src) center / contain no-repeat; mask: var(--src) center / contain no-repeat; }
+  .txt { flex: 1; display: flex; flex-direction: column; padding: clamp(14px, 2.6vh, 26px) clamp(18px, 2.4vw, 34px) 20px; min-height: 0; }
+  .front .name { font-size: clamp(1.2rem, 3vh, 1.6rem); font-weight: 800; line-height: 1.15; color: var(--g-deep); }
+  .front .ask { margin: 10px 0 0; font-size: clamp(1.05rem, 2.6vh, 1.35rem); font-weight: 600; line-height: 1.3; text-wrap: pretty; }
+  .note { margin-top: auto; margin-right: 70px; cursor: auto; }
+  .note-open { min-height: 44px; padding: 0 2px; border: 0; background: none; color: var(--violet); font: 600 15px Inter, sans-serif; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .note-open span { font-weight: 400; color: var(--soft); }
+  .note-open:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .note-open svg { width: 18px; height: 18px; }
+  .note[data-open="0"] label, .note[data-open="0"] textarea, .note[data-open="1"] .note-open { display: none; }
+  .note label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; color: var(--g-deep); }
+  .note label span { font-weight: 400; color: var(--soft); }
+  .note textarea { display: block; width: 100%; height: clamp(64px, 11vh, 96px); resize: none; padding: 8px 12px; border: 1px solid #cfcfcf; border-radius: 8px;
+                   background: var(--page); font: 15px/1.4 Inter, system-ui, sans-serif; color: var(--ink); }
+  .note textarea::placeholder { color: #767676; }
+  /* back: a title, then « Dans la vidéo : … » and what it means; the text size is fitted (19 → 13 px) */
+  .back h3 { margin: 0 0 .6em; font-size: 1.15em; font-weight: 800; color: var(--g-deep); }
+  .back p { margin: 0 0 .7em; } .back p:last-child { margin-bottom: 0; }
+  .back strong { color: var(--g-deep); }
+  .back .vid { background: #fff; border-radius: 8px; padding: 10px 16px; margin-bottom: .8em; font-size: .92em; }
+  .back .vid strong { display: block; font-size: 13px; letter-spacing: .02em; margin-bottom: 2px; }
+  /* turned: a small mark */
+  .seen { position: absolute; left: 16px; top: 16px; display: none; align-items: center; gap: 4px; padding: 3px 10px 3px 6px; border-radius: 999px;
+          background: #fff; color: var(--g-deep); font-size: 13px; font-weight: 700; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+  .seen svg { width: 16px; height: 16px; }
+  .card.is-seen .seen { display: inline-flex; }
+  /* the quarter circle in the bottom-right corner */
+  .turn { position: absolute; right: 0; bottom: 0; z-index: 2; width: 66px; height: 66px; border: 0; border-radius: 66px 0 14px 0; background: var(--g-main);
+          color: var(--g-deep); display: grid; place-items: center; padding: 12px 0 0 12px; cursor: pointer; transition: background .2s, color .2s; }
+  .inner:hover .turn { background: var(--g-deep); color: #fff; }
+  .turn:focus-visible { outline-offset: -6px; }
+  .turn svg { width: 24px; height: 24px; }
+  /* under the pile: ‹ n / 6 › what to do; on the last card › becomes « Terminer » */
+  .nav { width: min(100%, 600px); display: flex; align-items: center; gap: 12px; }
+  .arr { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); display: grid; place-items: center; cursor: pointer; }
+  .arr:disabled { opacity: .35; cursor: default; }
+  .arr.go { background: var(--g-main); border-color: var(--g-main); }
+  .count { font-weight: 700; color: var(--g-deep); min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+  .todo { flex: 1; font-size: 15px; color: var(--soft); }
+  .todo b { color: var(--g-deep); }
+  .chip.fin { min-height: 48px; font-size: 16px; }
+  .chip.fin:not(.go) { border-color: var(--hair); color: var(--g-deep); }
+  body:not(.aside) .nav { visibility: hidden; }   /* Léo is there: his mint button is the way on */
+  @media (prefers-reduced-motion: reduce) { .card .inner { transition: none; } .card.arrive, .card.leave, .card.leave-back { animation: none; } }
+  /* phones: the card flows, front or back */
+  @media (max-width: 760px) {
+    .pile { flex: none; max-height: none; }
+    .pile .under { display: none; }
+    #slot, .card, .card .inner, .face { position: relative; inset: auto; transform: none !important; perspective: none; }
+    .card.flipped .front, .card:not(.flipped) .back { display: none; }
+    .band { height: 110px; } .pic { width: 64px; }
+    .front { padding-bottom: 70px; }
+    .back { font-size: 16px !important; padding-bottom: 80px; }
+    .note { margin-right: 0; margin-top: 14px; }
+    .nav { flex-wrap: wrap; } .todo { flex-basis: 100%; order: 9; }
+    body:not(.aside) .nav { visibility: visible; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Les cartes">
+    <div class="pile" id="pile"><div class="under u2"></div><div class="under u1"></div><div id="slot"></div></div>
+    <div class="nav">
+      <button type="button" class="arr" id="prev" aria-label="Carte précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count"></span>
+      <p class="todo" id="todo" aria-live="polite"></p>
+      <button type="button" class="arr" id="next"></button>
+    </div>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifiez seulement cette partie.
+   id      : identifiant de la carte (sert au suivi : ne le changez pas)
+   image   : le pictogramme du recto (vide = pas de pictogramme)
+   name    : le nom en gros sur le recto
+   question: la question du recto
+   heading : le titre du verso
+   back    : le texte du verso (court : environ 60 mots, sinon le texte devient plus petit)
+   ============================================================ */
+/* Titre (bandeau du haut, à gauche) et l'info à droite (après le nombre de cartes, compté tout seul) */
+const TITLE = "Cartes : pour tout ou pour rien ?";
+const DURATION = "≈ 5 min";
+
+/* Les cartes, dans l'ordre de la vidéo : une pile, une carte à la fois.
+   Vérifiées le 22 nov. 2026 contre la vidéo (Module3/video-usages) et les diapositives (Module3/texte-usages). */
+const CARDS = [
+  { id: "q1", image: "images/carte-q1.png", name: "Pour tout ou pour rien",
+    question: "As-tu des exemples de « questions météo » dans ta pratique, des questions trop simples pour l’IA ?",
+    heading: "Des pistes pour comparer",
+    back: `<p class="vid"><strong>Dans la vidéo :</strong> pour la météo de la semaine, la réponse renvoie… aux sites météo gratuits.</p>
+      <p>Dans ta pratique : l’horaire de la piscine, les dates des vacances scolaires, une simple addition. Ce n’est pas interdit,
+      mais un site officiel suffit, et une requête à une IA générative consomme en général bien plus d’énergie qu’une recherche web.</p>` },
+  { id: "q2", image: "images/carte-q2.png", name: "On n’est pas Google",
+    question: "T’arrive-t-il encore d’utiliser un moteur de recherche ? Pour quel type de besoin ?",
+    heading: "Des pistes pour comparer",
+    back: `<p class="vid"><strong>Dans la vidéo :</strong> « On n’est pas Google, quoi. »</p>
+      <p><strong>Dans une vraie machine :</strong> un moteur de recherche renvoie vers des sources à consulter et à citer.
+      Une IA générative calcule les mots les plus probables, puis en tire un au sort : sa réponse est plausible, pas vérifiée,
+      souvent sans source. Pour un fait daté ou officiel, préfère la source ; l’IA aide plutôt à reformuler, synthétiser, faire un premier jet.</p>` },
+  { id: "q3", image: "images/carte-q3.png", name: "Une demande précise",
+    question: "C’est quoi, une bonne demande (un bon prompt) ?",
+    heading: "Des pistes pour comparer",
+    back: `<p class="vid"><strong>Dans la vidéo :</strong> « l’évolution de la météo en Suisse » reçoit une réponse banale ; la même question
+      « ces dernières années, par rapport au réchauffement climatique mondial » fait gagner du temps.</p>
+      <p><strong>Dans les diapositives :</strong> un rôle, un objectif, un contexte (élèves, niveau), des contraintes, des consignes
+      de format et, si possible, un exemple. Plus la demande est précise, plus les mots calculés collent à ce que tu veux.</p>` },
+  { id: "q4", image: "images/carte-q4.png", name: "Ce qui marche",
+    question: "En quoi l’IA t’a-t-elle déjà agréablement surpris·e ?",
+    heading: "Des pistes pour comparer",
+    back: `<p>Pas de réponse-repère : c’est ton expérience qui compte. Par exemple : du temps gagné sur une tâche précise,
+      une idée à laquelle tu n’aurais pas pensé, une reformulation utile.</p>
+      <p>Ces réussites ont souvent un point commun : l’IA a fourni un premier jet, et c’est toi qui as vérifié, adapté et décidé.</p>` },
+  { id: "q5", image: "images/carte-q5.png", name: "Ce que je retiens",
+    question: "Quelle phrase de la vidéo as-tu envie de garder en tête ?",
+    heading: "Des pistes pour comparer",
+    back: `<p>Quelques phrases possibles : « Il y en a marre que les gens nous sollicitent pour un tout ou pour un rien » ·
+      « On n’est pas Google, quoi » · « Votre réponse m’a fait gagner tellement de temps, merci » … « D’ailleurs, il fait quel temps lundi prochain ? »</p>
+      <p>Aucune n’est « la bonne » : l’idée est de repartir avec une phrase-repère à toi.</p>` },
+  { id: "q6", image: "images/carte-q6.png", name: "L’effet rebond",
+    question: "Si tu utilises l’IA, à quoi a servi le temps que tu as gagné ?",
+    heading: "Des pistes pour comparer",
+    back: `<p>Pas de bonne ou de mauvaise réponse. Ce temps a-t-il servi à une tâche qui compte davantage (un retour individuel
+      à un élève, une préparation plus différenciée, une correction plus soignée)…</p>
+      <p>… ou à de nouvelles demandes à l’outil, comme le « il fait quel temps lundi prochain ? » à la fin de la vidéo ?</p>` }
+];
+
+/* L'espace pour écrire, au recto : son titre et le texte d'exemple (rien n'est obligatoire) */
+const NOTE_LABEL = `Ta réflexion <span>— facultatif</span>`;
+const NOTE_PLACEHOLDER = "Quelques mots avant de retourner la carte…";
+const NOTE_OPEN = `Noter une idée <span>(facultatif)</span>`;   // le lien qui ouvre l'espace pour écrire
+
+/* La barre du bas : ce qu'il faut faire, puis quand tout est retourné, et le bouton de la dernière carte */
+const TODO = "Réfléchis, puis retourne la carte.";
+const TODO_COUNT = "cartes retournées";
+const DONE_TODO = "Toutes les cartes sont retournées.";
+const END_BUTTON = "Terminer";
+
+/* Ce que dit Léo à la fin (après « Terminer ») : 2 ou 3 idées clés, puis où aller */
+const END_Q = "Ce que disent les cartes, en bref";
+const KEEP = [
+  "Pour une question simple (la météo, un horaire), un site ou un moteur de recherche suffit, et consomme bien moins d’énergie.",
+  "Une demande précise (objectif, contexte, contraintes) donne une réponse plus utile.",
+  "Les personnages s’agacent ou se réjouissent, mais une IA ne ressent rien : c’est à toi de choisir quand l’utiliser, et de vérifier."
+];
+const NEXT_INTRO = "Et ensuite";
+const NEXT_TEXT = "Retourne à l’accueil du module pour choisir la suite : les diapositives ou une activité pour ta classe.";
+const NEXT_LABEL = "Retour à la question";   /* same words on every page (usability review, 26 Nov 2026; Moodle: « Retour à l’accueil du module ») */
+const NEXT_URL = "../../play.html?a=Module3/intro-module";   // la section du module, avec l’introduction en haut
+const AGAIN_LABEL = "Revoir les cartes";
+
+const INTRO = "";
+const LINKS = [];   /* pas de boutons sous l'activité : on avance avec la barre du bas, et Léo à la fin */
+
+/* ---------- Nouveaux textes du cadre H2 (26 nov. 2026, brouillons de Claude) ---------- */
+/* (Plus utilisés dans le cadre H2 : TITLE et DURATION, la durée est dans les étapes ; NEXT_INTRO, NEXT_TEXT, INTRO, LINKS) */
+/* Les étapes de la question, en haut de la colonne de Léo (NOW = celle-ci) */
+const STEPS = ["La vidéo", "Les cartes · 5&nbsp;min"];                                    //
+const NOW = 2;
+/* Ce que dit Léo avant les cartes ; « Pourquoi ? » */
+const START_Q = "Six moments de la vidéo, <em>six questions pour toi</em>.";               //
+const START_TEXT = "Réfléchis à chaque question, note une idée si tu veux, puis retourne la carte pour comparer.";   //
+const START_LABEL = "Commencer";                                                          //
+const WHY_LABEL = "Pourquoi ces cartes ?";                                                //
+const WHY_Q = "Parce que la vraie question, c’est <em>ta</em> pratique.";                  //
+const WHY_TEXT = "Les personnages s’agacent ou se réjouissent. Les cartes ramènent ces moments à ce que tu fais, toi, avec l’IA.";   //
+const BACK_LABEL = "D’accord";                                                            //
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Léo", pose: "leo", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+const MAX_NOTE = 600;
+const nb = s => s.replace(/ ([:;?!»])/g, " $1").replace(/« /g, "« ");   // French non-breaking spaces
+const esc = s => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+const ARROW = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const NEXT_ICON = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+const CHECK = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const PEN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:2.2"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+const TURN = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4.5h4.5"/></svg>';
+
+/* ---------- Progress, kept in suspend_data so the learner resumes where they stopped (unchanged) ----------
+     top : the card on top of the pile;  flipped : the cards turned over at least once;  notes : what the learner wrote */
+let state = { top: 0, flipped: [], notes: {} };
+try { const s = JSON.parse(scorm.get("cmi.suspend_data") || "null"); if (s && Array.isArray(s.flipped)) state = { ...state, ...s, top: s.top || 0 }; } catch {}
+function save() { scorm.set("cmi.suspend_data", JSON.stringify(state)); scorm.commit(); }
+let done = scorm.get("cmi.core.lesson_status") === "completed";
+
+/* ---------- Learning data (Interaktionsbericht, unchanged) ----------
+     carte_q1 … carte_q6          seconds before the card was turned over (the first time)
+     reflexion_q1 … reflexion_q6  what the learner wrote, only if they wrote something (Moodle shows the first 255 characters)
+     cartes_retournees            how many cards were turned over
+   Completed with « Terminer », which is always available on the last card (a learner may stop before the end). */
+let shownAt = Date.now();
+function recordNote(c) { const t = (state.notes[c.id] || "").trim(); if (t) scorm.record(`reflexion_${c.id}`, t); }
+
+/* ---------- Léo: the start, « Pourquoi ? », the end (after « Terminer ») ---------- */
+const start = () => frame.talk({ pose: "ouvre", say: START_Q, more: START_TEXT,
+  replies: [[START_LABEL, () => { frame.aside(true); $("#card .turn")?.focus({ preventScroll: true }); }, true], [WHY_LABEL, why]] });
+const why = () => frame.talk({ pose: "pense", say: WHY_Q, more: WHY_TEXT, replies: [[BACK_LABEL, start]] });
+const end = () => frame.talk({ pose: "ouvre", say: END_Q, keep: KEEP,
+  replies: [...(NEXT_URL ? [[NEXT_LABEL, NEXT_URL, true]] : []),
+            [AGAIN_LABEL, () => { state.top = 0; save(); shownAt = Date.now(); drawCard("arrive"); frame.aside(true); }]] });
+
+/* ---------- The card on top of the pile ---------- */
+function drawCard(anim = "") {
+  const c = CARDS[state.top], turned = state.flipped.includes(c.id);
+  $("#slot").innerHTML = `<div class="card ${anim}${turned ? " is-seen" : ""}" id="card"><div class="inner">
+      <section class="face front" aria-label="Recto">
+        <span class="seen">${CHECK}Retournée</span>
+        <div class="band">${c.image ? `<div class="pic" style="--src: url('${c.image}')" aria-hidden="true"></div>` : ""}</div>
+        <div class="txt">
+          <p class="name">${nb(c.name)}</p>
+          <h2 class="ask">${nb(c.question)}</h2>
+          <div class="note" data-open="${state.notes[c.id] ? 1 : 0}">
+            <button class="note-open" type="button">${PEN}${NOTE_OPEN}</button>
+            <label for="note">${NOTE_LABEL}</label>
+            <textarea id="note" maxlength="${MAX_NOTE}" placeholder="${NOTE_PLACEHOLDER}">${esc(state.notes[c.id] || "")}</textarea></div>
+        </div>
+        <button class="turn" type="button" aria-label="Retourner la carte : ${c.name}">${TURN}</button>
+      </section>
+      <section class="face back" aria-label="Verso" inert>
+        <div class="back-in"><h3>${nb(c.heading)}</h3>${nb(c.back)}</div>
+        <button class="turn" type="button" aria-label="Revenir à la question : ${c.name}">${TURN}</button>
+      </section>
+    </div></div>`;
+  fitBack();
+  drawBar();
+}
+/* The back gets the largest text that fits (19 → 13 px); phones: the card grows with its text */
+function fitBack() {
+  const b = $("#card .back");
+  if (matchMedia("(max-width: 760px)").matches) { b.style.fontSize = ""; return; }
+  let size = 19;
+  do { b.style.fontSize = `${size}px`; } while (b.scrollHeight > b.clientHeight + 1 && --size >= 13);
+}
+
+/* ---------- Under the pile: n / 6, how many cards are turned, › or « Terminer » on the last card ---------- */
+function drawBar() {
+  const last = state.top === CARDS.length - 1, all = state.flipped.length === CARDS.length;
+  $("#count").textContent = `${state.top + 1} / ${CARDS.length}`;
+  $("#prev").disabled = state.top === 0;
+  $("#todo").innerHTML = all ? DONE_TODO : `${TODO} <b>${state.flipped.length} / ${CARDS.length}</b> ${TODO_COUNT}.`;
+  const next = $("#next");
+  if (last) { next.className = "chip fin" + (all ? " go" : ""); next.innerHTML = `${END_BUTTON}${ARROW}`; next.removeAttribute("aria-label"); }
+  else {
+    next.className = "arr" + ($("#card")?.classList.contains("flipped") ? " go" : ""); next.innerHTML = NEXT_ICON;
+    next.setAttribute("aria-label", "Carte suivante");
+  }
+}
+
+// What the learner writes is kept as they type, and recorded when they leave the note
+$("#slot").addEventListener("input", e => { if (e.target.id === "note") state.notes[CARDS[state.top].id] = e.target.value; });
+$("#slot").addEventListener("change", e => { if (e.target.id === "note") { recordNote(CARDS[state.top]); save(); } });
+
+// Turn the card over (front ↔ back); the first time, the time spent on the question is recorded
+function turn(byKeyboard) {
+  frame.aside(true);                                     // the first move: Léo steps aside
+  const card = $("#card"), c = CARDS[state.top];
+  const flipped = card.classList.toggle("flipped");
+  const [front, back] = card.querySelectorAll(".face");
+  front.inert = flipped; back.inert = !flipped;
+  if (flipped && !state.flipped.includes(c.id)) {
+    state.flipped.push(c.id);
+    card.classList.add("is-seen");
+    const sec = Math.round((Date.now() - shownAt) / 1000);
+    scorm.record(`carte_${c.id}`, sec, { type: "numeric", latency: sec });
+    scorm.record("cartes_retournees", state.flipped.length, { type: "numeric" });
+  }
+  if (flipped) { recordNote(c); save(); fitBack(); }
+  if (byKeyboard) (flipped ? back : front).querySelector(".turn").focus({ preventScroll: true });
+  drawBar();
+}
+// A click on the card (or on its corner) turns it, except in the note where the learner writes
+$("#slot").addEventListener("click", e => {
+  const open = e.target.closest(".note-open");
+  if (open) { frame.aside(true); open.parentElement.dataset.open = "1"; $("#note").focus(); return; }
+  if (!e.target.closest(".note")) turn(e.detail === 0);
+});
+
+// Next / previous card: the card on top slides away and the other one comes up
+let leaving = false;
+function moveCard(step) {
+  const to = state.top + step;
+  if (leaving || to < 0 || to >= CARDS.length) return;
+  leaving = true;
+  frame.aside(true);
+  recordNote(CARDS[state.top]);
+  $("#card").classList.add(step > 0 ? "leave" : "leave-back");
+  setTimeout(() => { state.top = to; save(); shownAt = Date.now(); drawCard("arrive"); leaving = false; }, 430);
+}
+$("#prev").addEventListener("click", () => moveCard(-1));
+$("#next").addEventListener("click", () => state.top === CARDS.length - 1 ? finish() : moveCard(1));
+
+// Swipe (two fingers on a trackpad over the desk, or one finger on the card on a touch screen):
+//   towards the left : front → turn the card over ; back → next card
+//   towards the right: back → see the question again
+function swipe(dir) {
+  if (leaving || !document.body.classList.contains("aside")) return;   // Léo is talking
+  const flipped = $("#card").classList.contains("flipped");
+  if (dir === "left") flipped ? moveCard(1) : turn();
+  else if (flipped) turn();
+}
+// One swipe = one action: after an action, nothing happens for 0.6 s, and the inertia of the trackpad never counts
+const SWIPE_DISTANCE = 60, SWIPE_PAUSE = 600;
+let wheelX = 0, armed = true, calmed = false, pauseUntil = 0, wheelTimer = null;
+$(".desk").addEventListener("wheel", e => {
+  if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+  e.preventDefault();
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => { armed = true; wheelX = 0; }, 200);
+  const now = performance.now();
+  if (!armed) {
+    if (Math.abs(e.deltaX) <= 4) calmed = true;
+    if (now > pauseUntil && calmed) { armed = true; wheelX = 0; }
+    return;
+  }
+  wheelX += e.deltaX;
+  if (Math.abs(wheelX) > SWIPE_DISTANCE) { armed = false; calmed = false; pauseUntil = now + SWIPE_PAUSE; swipe(wheelX > 0 ? "left" : "right"); }
+}, { passive: false });
+let touch = null;
+$("#pile").addEventListener("pointerdown", e => { if (e.pointerType === "mouse" || e.target.closest("textarea, button")) return; touch = { x: e.clientX, y: e.clientY }; });
+$("#pile").addEventListener("pointerup", e => {
+  if (!touch) return;
+  const dx = e.clientX - touch.x, dy = e.clientY - touch.y; touch = null;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) swipe(dx < 0 ? "left" : "right");
+});
+$("#pile").addEventListener("pointercancel", () => { touch = null; });
+
+/* ---------- « Terminer »: completed (unchanged rule), Léo comes back with the key points ---------- */
+function finish() {
+  CARDS.forEach(recordNote);
+  if (!done) { done = true; scorm.set("cmi.core.lesson_status", "completed"); }
+  save(); drawBar();
+  end(); frame.aside(false);
+}
+
+/* First visit: Léo introduces; coming back in the middle: straight to the card; already done: his key points */
+drawCard();
+if (done) end(); else { start(); if (state.flipped.length || state.top) frame.aside(true); }
+document.fonts?.ready.then(fitBack);
+window.addEventListener("resize", fitBack);
+$(".stage").addEventListener("transitionend", e => { if (e.propertyName === "grid-template-columns") fitBack(); });
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

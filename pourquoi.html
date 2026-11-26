@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP IA · Pourquoi parler d’IA à l’école ?</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="home.css">
+<link rel="stylesheet" href="bienvenue.css">
+</head>
+<body class="bv-page">
+
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="top">
+  <div class="wrap top-in bv-top">
+    <a class="logo" href="./" aria-label="DEEP IA, accueil">DEEP <span>IA</span></a>
+    <span class="bv-crumb">Pourquoi parler d’IA à l’école&nbsp;? <small>· 3 minutes, quand tu veux</small></span>
+    <nav aria-label="Site"><a href="code.html">Mon code</a></nav>
+  </div>
+</header>
+
+<main id="contenu" class="stage">
+  <!-- Claudia (left) and Léo (right) stay in place for the three moments; only their pose changes. In moment 3 they can be touched. -->
+  <div class="floor" aria-hidden="true"></div>
+  <div class="guides" id="guides">
+    <button type="button" class="gd l" data-who="0" tabindex="-1"><img id="gl" src="bienvenue/images/claudia-salue.png" alt="Claudia"><span class="q"></span></button>
+    <button type="button" class="gd r" data-who="2" tabindex="-1"><img id="gr" src="bienvenue/images/leo-ouvre.png" alt="Léo"><span class="q"></span></button>
+  </div>
+
+  <!-- 1 · Tes élèves : ton avis (one tap), then Léo answers and the children's drawings turn over -->
+  <section class="m" id="m1" aria-labelledby="t1">
+    <div class="head"><h1 id="t1"></h1><p id="lead1"></p></div>
+    <div class="poll" id="poll1"></div>
+    <div class="poll" id="poll1b"></div>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <!-- 2 · Et toi ? The six cards -->
+  <section class="m" id="m2" aria-labelledby="t2">
+    <div class="head"><h1 id="t2"></h1><p id="lead2"></p></div>
+    <div class="grid1" id="cards"></div>
+  </section>
+
+  <!-- 3 · Ton parcours: the four guides, and what comes next -->
+  <section class="m" id="m3" aria-labelledby="t3">
+    <div class="head"><h1 id="t3"></h1><p id="lead3"></p></div>
+    <div class="teamsay" id="teamsay" aria-live="polite"></div>
+    <div class="team" id="team"></div>
+  </section>
+  <p class="sr" id="said" aria-live="polite"></p>
+</main>
+
+<footer class="bar3">
+  <div class="wrap bar3-in">
+    <nav class="steps3" id="steps3" aria-label="Les trois moments"></nav>
+    <button type="button" class="btn" id="go" disabled><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <a class="btn" id="choose" hidden><span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+</footer>
+
+<script src="parcours.js"></script>
+<script>
+/* The motivation part of the old Bienvenue (26 Nov 2026: optional, reached from Bienvenue and the player's menu).
+   Same moments and data as before; at the end, back to where the teacher came from. */
+window.BV_END = { label: "Retour", url: (document.referrer && new URL(document.referrer).origin === location.origin) ? document.referrer : "choisir.html" };
+</script>
+<script src="bienvenue.js"></script>
+<script src="config.js" defer></script>
+<script src="relecture.js" defer></script>
+</body>
+</html>

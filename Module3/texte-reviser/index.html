@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usages de l’IA – Réviser</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<style>
+  /* The two exercises after the slides, in the H2 frame (since 26 Nov 2026; before: old/index-avant-h2.html). Léo introduces them,
+     steps aside on the first move and comes back after « Terminer » with the key points. Nothing from him in the middle:
+     what he said between the parts and after « Valider » is now a note on the desk.
+     Part 1 « Cinq usages de l'IA » (the SAMR-D levels), part 2 « Je délègue ou pas ? » (sort, then our proposal). */
+  .desk { display: flex; flex-direction: column; gap: 10px; padding-bottom: clamp(14px, 2.4vh, 24px); --dash: #8C8C8C; --well: #F1F3F1; }
+  body:not(.aside) .desk { padding-bottom: 76px; }
+  .top h2 { font-size: clamp(1.15rem, 2.8vh, 1.45rem); font-weight: 800; color: var(--g-deep); }
+  .top p { font-size: 15px; color: var(--soft); }
+  #play { position: relative; flex: 1; min-height: 0; }
+  /* a card: a white sheet */
+  .card { display: block; width: 100%; position: relative; border: 1px solid var(--hair); border-radius: 8px; background: #fff; font: inherit;
+          text-align: left; color: var(--ink); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.06); transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.10); border-color: var(--g-hell); }
+  .card.sel { outline: 3px solid var(--violet); outline-offset: 2px; }
+  .ghost { position: fixed; z-index: 50; pointer-events: none; opacity: .95; box-shadow: 0 12px 24px rgba(0,0,0,.18); }
+  .tick { position: absolute; right: 8px; top: 8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+          font-size: 13px; font-weight: 800; font-style: normal; color: var(--g-deep); background: var(--g-main); }
+  /* part 1: the five levels (name, « + », the box) on the left, the pile of behaviours on the right */
+  .p1 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: clamp(14px, 2vw, 26px); height: 100%; }
+  .p1 .card { padding: 9px 12px; font-size: clamp(14px, 2vh, 16px); line-height: 1.35; cursor: grab; touch-action: none; animation: deal .35s ease-out both; }
+  .p1 .card.ok { cursor: default; padding-right: 40px; background: var(--g-tint); border-color: var(--g-hell); box-shadow: none; animation: drop .35s ease-out both; }
+  .p1 .card.ok:hover { transform: none; }
+  .p1 .tick { top: 50%; margin-top: -11px; }
+  .levels { display: grid; grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 8px; min-height: 0; }
+  .level { display: grid; grid-template-columns: clamp(110px, 11vw, 150px) 44px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 0; }
+  .level h3 { font-size: clamp(15px, 2.2vh, 18px); font-weight: 800; color: var(--g-deep); }
+  .plus { width: 44px; height: 44px; border: 1.5px solid var(--g-hell); border-radius: 50%; background: var(--g-tint); color: var(--g-deep); font: 600 24px/1 Inter, sans-serif; cursor: pointer; }
+  .plus:hover { background: var(--g-deep); color: #fff; }
+  .slot { height: 100%; min-height: 52px; display: flex; align-items: center; padding: 4px; border: 2px dashed var(--dash); border-radius: 10px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .slot.over, .picking .slot:not(.full):hover { border-style: solid; border-color: var(--g-deep); background: var(--g-tint); }
+  .slot.full { border-color: transparent; cursor: default; }
+  .slot.no { animation: shake .4s; border-color: #D9776C; }
+  .pile { min-height: 0; overflow-y: auto; padding: 12px; border-radius: 12px; background: var(--well); display: grid; align-content: start; gap: 10px; }
+  .pile .empty { margin: 30px 10px; font-size: 18px; font-weight: 700; color: var(--g-deep); text-align: center; }
+  /* part 2: the pile of situations on the left, the three boxes; then our proposal over the whole width */
+  .p2 { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr); gap: 14px; height: 100%; }
+  .p2.verif { grid-template-columns: minmax(0, 1fr); }
+  .p2 .card { padding: 7px 11px; font-size: clamp(13px, 1.9vh, 15px); line-height: 1.3; }
+  .tri .card { touch-action: none; cursor: grab; animation: deal .35s ease-out both; }
+  .deck { min-height: 0; overflow-y: auto; padding: 10px; border: 2px dashed transparent; border-radius: 12px; background: var(--well); }
+  .deck.over { border-color: var(--g-deep); }
+  .deck h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; color: var(--g-deep); }
+  .deck .in { display: grid; gap: 6px; }
+  .deck .empty { margin: 20px 6px; font-size: 15px; line-height: 1.4; color: var(--g-deep); text-align: center; }
+  .cols { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .col { display: flex; flex-direction: column; min-height: 0; padding: 10px; border: 2px dashed var(--dash); border-radius: 12px; background: #fff; transition: border-color .15s, background .15s; }
+  .col.over, .tri.picking .col:hover { border-style: solid; border-color: var(--g-deep); background: var(--g-tint); }
+  .col-head { display: block; width: 100%; margin: 0 0 8px; padding: 0; border: 0; background: none; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
+  .col-head b { display: inline-block; font-size: clamp(15px, 2.2vh, 18px); font-weight: 800; line-height: 1.15; padding-bottom: 5px; color: var(--g-deep);
+                background: linear-gradient(var(--chalk), var(--chalk)) left bottom / 100% 4px no-repeat; }
+  .col-head span { display: block; margin-top: 6px; font-size: 13px; line-height: 1.35; color: var(--soft); }
+  .col .in { flex: 1; min-height: 0; display: grid; align-content: start; gap: 6px; overflow-y: auto; padding: 2px; }
+  .verif .card { font-size: clamp(14px, 2vh, 16px); padding: 9px 36px 9px 12px; }
+  .mine { display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--violet); background: var(--lilac-tint); }
+  /* under the board: ‹ n / 2 ›, the message or the counter, the buttons of the part */
+  .nav { display: flex; align-items: center; gap: 12px; }
+  .arr { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 1px solid var(--hair); background: #fff; color: var(--g-deep); display: grid; place-items: center; cursor: pointer; }
+  .arr:disabled { opacity: .35; cursor: default; }
+  .arr.go { background: var(--g-main); border-color: var(--g-main); }
+  .count { font-weight: 700; color: var(--g-deep); min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+  .foot { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+  .msg { font-size: 15px; font-weight: 700; color: #8A2A22; } .msg.good { color: var(--g-deep); } .msg:empty { display: none; }
+  .tally { margin-right: auto; font-size: 15px; color: var(--soft); white-space: nowrap; }
+  .tally b { color: var(--g-deep); }
+  .nav .chip { min-height: 48px; font-size: 16px; }
+  .nav .chip:disabled { background: var(--hair); border-color: var(--hair); color: var(--soft); cursor: default; }
+  body:not(.aside) .nav { visibility: hidden; }   /* Léo is there: his mint button is the way on */
+  @keyframes deal { from { opacity: 0; transform: translateY(12px); } }
+  @keyframes drop { from { opacity: 0; transform: scale(1.06); } }
+  @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  /* the comment next to a « + » (part 1) or a card (part 2), inside the desk */
+  .shade { position: absolute; inset: 0; z-index: 9; background: rgba(31, 31, 31, .14); }
+  .comment { position: absolute; z-index: 10; width: min(440px, calc(100% - 24px)); padding: 20px 24px; border-radius: 12px; background: #fff;
+             box-shadow: 0 18px 40px rgba(0,0,0,.16); animation: pop-in .25s ease-out both; }
+  .shade[hidden], .comment[hidden], .note[hidden] { display: none; }
+  .comment .x { position: absolute; right: 10px; top: 10px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--g-tint); color: var(--g-deep); font-size: 26px; line-height: 1; cursor: pointer; }
+  .comment .x:hover { background: var(--g-deep); color: #fff; }
+  .comment small { display: block; margin-right: 50px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--g-deep); opacity: .75; }
+  .comment h2 { margin: 0 50px 8px 0; font-size: 22px; font-weight: 800; color: var(--g-deep); }
+  .comment h3 { margin: 10px 0 2px; font-size: 16px; font-weight: 800; color: var(--g-deep); }
+  .comment p { font-size: 15px; line-height: 1.5; }
+  /* the note between the parts and after « Valider »: a sheet on the desk with one button */
+  .note { position: absolute; z-index: 8; left: 50%; top: 50%; translate: -50% -50%; rotate: -.6deg; width: min(560px, calc(100% - 24px));
+          padding: 22px 26px; border-radius: 6px; background: var(--g-tint); box-shadow: 0 18px 40px rgba(11, 81, 77, .2); animation: pop-in .3s ease-out both; }
+  .note p { font-size: 16px; line-height: 1.45; margin-bottom: .6em; }
+  .note .q { font-size: 20px; font-weight: 800; line-height: 1.25; color: var(--g-deep); }
+  .note .part { margin-top: 1em; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--g-deep); opacity: .75; }
+  .note .chip { margin-top: 6px; min-height: 48px; font-size: 16px; }
+  @keyframes pop-in { from { opacity: 0; transform: scale(.94); } }
+  @media (prefers-reduced-motion: reduce) { .card, .comment, .note { animation: none !important; } }
+  /* tablets (≤ 1024 px): the pile on top in one scrolling row, the board under it at full width */
+  @media (max-width: 1024px) and (min-width: 761px) {
+    .p1, .p2 { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .p2.verif { grid-template-rows: minmax(0, 1fr); }
+    .pile { order: -1; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); overflow-x: auto; overflow-y: hidden; align-content: stretch; }
+    .deck { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overflow-y: hidden; }
+    .deck h3 { flex: none; writing-mode: vertical-rl; rotate: 180deg; margin: 0; }
+    .deck .in { display: flex; gap: 8px; } .deck .in .card { width: 200px; flex: none; }
+    .level { grid-template-columns: 120px 44px minmax(0, 1fr); }
+  }
+  /* phones: everything one below the other, tap a card then a box */
+  @media (max-width: 760px) {
+    #play { flex: none; }
+    .p1, .p2, .cols { display: flex; flex-direction: column; height: auto; }
+    .pile { order: -1; overflow: visible; }
+    .level { grid-template-columns: 1fr 44px; }
+    .slot { grid-column: 1 / -1; }
+    .deck, .col .in { overflow: visible; }
+    .col .in { min-height: 44px; }
+    .card, .p1 .card, .tri .card { touch-action: auto; cursor: pointer; }
+    .nav { flex-wrap: wrap; } .foot { flex: 0 0 100%; flex-wrap: wrap; }
+    body:not(.aside) .nav { visibility: visible; }
+    .comment, .note { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; translate: none; rotate: none; }
+    .shade { position: fixed; }
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" aria-label="Les exercices">
+    <div class="top"><h2 id="title"></h2><p id="hint"></p></div>
+    <section id="play" aria-live="polite"></section>
+    <div class="nav">
+      <button type="button" class="arr" id="prev" aria-label="Partie précédente"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span class="count" id="count"></span>
+      <button type="button" class="arr" id="next" aria-label="Partie suivante"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      <div class="foot" id="foot"></div>
+    </div>
+    <div class="shade" id="shade" hidden></div>
+    <section class="comment" id="comment" role="dialog" aria-modal="true" hidden></section>
+    <section class="note" id="note" role="dialog" aria-modal="true" hidden></section>
+  </section>
+</main>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   ============================================================ */
+const TITLE = "Les usages de l’IA";
+const SUBTITLE = "2 exercices";          /* à droite du bandeau ; « Terminé ✓ » une fois fini */
+
+/* Ce que dit Léo au début */
+const START_TEXT = `<p class="q">Revoyons le texte en deux exercices.</p>
+  <p>D’abord, cinq façons d’utiliser l’IA pour préparer une même séance : à quel niveau correspond chacune ?</p>
+  <p>Ensuite, neuf situations de la vie d’un·e enseignant·e : je délègue à l’IA, ou pas ?</p>`;
+
+/* ---------- Partie 1 : Cinq usages de l'IA (modèle SAMR-D) ---------- */
+const P1_TITLE = "Cinq usages de l’IA";
+const P1_HINT = "Glisse chaque comportement dans la case du niveau qui lui correspond.";
+/* Les cinq niveaux ; def = ce qui s'affiche quand on clique sur le « + » */
+const LEVELS = [
+  { id: "S", name: "Substitution", def: "L’IA remplace une tâche existante sans changement majeur." },
+  { id: "A", name: "Augmentation", def: "L’IA améliore la tâche avec des fonctionnalités supplémentaires." },
+  { id: "M", name: "Modification", def: "L’IA transforme la tâche en permettant une nouvelle conception." },
+  { id: "R", name: "Redéfinition", def: "L’IA rend possibles des activités auparavant impossibles." },
+  { id: "D", name: "Détérioration", def: "Éléments qui pourraient souffrir de l’utilisation de l’IA." }
+];
+/* Les cinq comportements (mélangés à l'écran) ; level = le niveau qui lui correspond.
+   S et M reprennent les exemples de la diapositive SAMR-D (23 nov. 2026) ; les anciens contredisaient les diapositives. */
+const USAGES = [
+  { id: "correcteur", level: "S", text: "Relire mon texte avec un correcteur IA à la place du correcteur habituel." },
+  { id: "questions", level: "A", text: "Rédiger le texte, puis faire générer des questions de compréhension par l’IA et les corriger." },
+  { id: "niveaux", level: "M", text: "Faire adapter mon texte à trois niveaux de lecture par l’IA, puis vérifier chaque version." },
+  { id: "ipad", level: "R", text: "Créer avec l’IA une séquence interactive que les élèves suivent seuls sur iPad, après l’avoir testée." },
+  { id: "activite", level: "D", text: "Faire générer une activité complète par l’IA et la donner telle quelle aux élèves." }
+];
+/* Ce qui s'écrit sur le rebord du tableau : après une erreur, après une bonne réponse */
+const WRONG_TEXT = "Pas tout à fait… Clique sur le + pour relire la définition.";
+const RIGHT_TEXT = "Bien vu !";
+
+/* Ce que dit Léo entre les deux parties */
+const MIDDLE_TEXT = `<p class="q">Bravo, les cinq usages sont à leur place !</p>
+  <p>Passer de l’amélioration (S, A) à la transformation (M, R), c’est là que l’IA aide vraiment à gagner en autonomie.
+  Et pense toujours au D : qu’est-ce qui pourrait souffrir de l’usage de l’IA ?</p>
+  <p class="part">Partie 2 · Je délègue ou pas ?</p>
+  <p>Voici neuf situations. Glisse chaque carte dans la case qui te semble la plus juste. Tu peux les déplacer tant que tu n’as pas validé.</p>`;
+
+/* ---------- Partie 2 : Je délègue ou pas ? ---------- */
+const P2_TITLE = "Je délègue ou pas ?";
+const P2_HINT_TRI = "Glisse chaque carte dans la case qui te semble la plus juste.";
+const P2_HINT_VERIF = "Clique sur chaque carte : pourquoi cette case, et jusqu’où ?";
+/* Ce que dit Léo après « Valider » */
+const AFTER_VALIDATE = `<p class="q">Tes choix sont enregistrés.</p>
+  <p>Voici notre proposition : clique sur chaque carte pour comprendre pourquoi elle se trouve dans cette case, et jusqu’où on peut aller.</p>`;
+/* Les trois cases (chalk = couleur du trait sous le titre) */
+const BOXES = [
+  { id: "delegue", name: "Je délègue", chalk: "#77E5B6", def: "Tâche simple, résultat vérifiable d’un coup d’œil, aucune donnée sensible." },
+  { id: "valide", name: "Je délègue, puis je valide", chalk: "#F2C94C", def: "L’IA propose un brouillon. Avant de l’utiliser, je vérifie le contenu et je l’adapte à ma classe." },
+  { id: "pas", name: "Pas avec l’IA", chalk: "#E59A90", def: "Je m’en charge personnellement : jugement professionnel ou données d’élèves." }
+];
+/* Les neuf situations (mélangées à l'écran). box : la case de notre proposition ; why : « Pourquoi cette case ? » ; how : « Jusqu'où ? » */
+const SITUATIONS = [
+  { id: "orthographe", box: "delegue", text: "Corriger l’orthographe et la grammaire de mon propre texte",
+    why: "Le risque est faible : je relis le texte corrigé et je vois tout de suite si le sens a changé.",
+    how: "L’IA corrige la forme, elle ne doit pas réécrire mon propos. Je vérifie que les noms propres et les termes techniques sont restés intacts." },
+  { id: "idees", box: "delegue", text: "Trouver des idées d’activités pour introduire un thème",
+    why: "Ce ne sont que des pistes : c’est moi qui choisis ce qui convient à ma classe.",
+    how: "Les idées servent de point de départ. L’adaptation au plan d’études et aux élèves reste ma tâche." },
+  { id: "reformuler", box: "delegue", text: "Reformuler une phrase de ma consigne pour la rendre plus claire",
+    why: "Une phrase se juge en quelques secondes : je vois immédiatement si elle est plus claire.",
+    how: "Pour une consigne entière liée à une évaluation, je passe à « Je délègue, puis je valide »." },
+  { id: "traduction", box: "valide", text: "Traduire une lettre aux parents en allemand (sans nom d’élève)",
+    why: "La traduction est un bon brouillon, mais une erreur de ton ou de terme peut passer inaperçue si je ne maîtrise pas la langue.",
+    how: "Possible pour un courrier courant. Pour une communication délicate, je demande une relecture à une personne qui maîtrise la langue. Je retire toujours les noms avant de coller le texte." },
+  { id: "exercices", box: "valide", text: "Créer des exercices avec corrigé sur un thème",
+    why: "L’IA produit vite, mais le corrigé peut contenir des erreurs présentées avec assurance.",
+    how: "Je résous chaque exercice avant de le donner. Je vérifie aussi que le niveau correspond à mes élèves et au plan d’études." },
+  { id: "sequence", box: "valide", text: "Préparer un plan de séquence",
+    why: "C’est une bonne trame de départ, mais l’IA ne connaît ni ma classe, ni mes contraintes, ni le plan d’études.",
+    how: "Je lui donne le cadre (niveau, durée, objectifs), puis j’ajuste. Je contrôle la conformité au plan d’études (PER)." },
+  { id: "note", box: "pas", text: "Attribuer la note finale d’un élève",
+    why: "C’est une décision aux conséquences directes pour l’élève, qui relève de ma responsabilité professionnelle.",
+    how: "L’IA ne décide pas. Au mieux, elle m’aide à construire une grille de critères, que j’applique personnellement. Je n’envoie jamais une copie d’élève à un outil externe." },
+  { id: "bulletin", box: "pas", text: "Rédiger le commentaire personnel du bulletin d’un élève",
+    why: "C’est un jugement sur une personne que je connais, qui touche à des données personnelles.",
+    how: "Au mieux, je demande des tournures générales, sans aucune information sur l’élève, puis je personnalise entièrement." },
+  { id: "liste", box: "pas", text: "Coller la liste de ma classe avec les noms et les notes dans un chatbot",
+    why: "Ce geste transmet des données personnelles d’élèves à un outil externe dont je ne maîtrise pas l’usage des données.",
+    how: "Si j’ai besoin de statistiques, je supprime d’abord les noms et je ne garde que les notes, selon les règles de mon établissement." }
+];
+
+/* Ce que dit Léo à la fin, et son bouton « Retour à la question » */
+const END_TEXT = `<p class="q">Bravo, tu as terminé les deux exercices !</p>
+  <p>Plus une tâche touche au jugement professionnel ou aux données des élèves, plus c’est important de garder le contrôle.</p>`;
+const NEXT_LABEL = "Retour à la question";   /* same words on every page (usability review, 26 Nov 2026; Moodle: « Retour au cours ») */
+const NEXT_URL = "../../play.html?a=Module3/intro-module";
+
+const INTRO = "";
+const LINKS = [];   /* pas de boutons sous l'activité : Léo mène d'une partie à l'autre, puis retour au cours */
+
+/* ---------- Nouveaux textes du cadre H2 (26 nov. 2026, brouillons de Claude) ---------- */
+/* (Plus utilisés dans le cadre H2 : SUBTITLE, la durée est dans les étapes ; INTRO, LINKS.
+   START_TEXT et END_TEXT : Léo dit la première ligne en gras, puis le reste. MIDDLE_TEXT et AFTER_VALIDATE : une note sur le bureau, Léo reste à l'écart.) */
+/* Les étapes de la question, en haut de la colonne de Léo (NOW = celle-ci) */
+const STEPS = ["Les diapositives", "Les exercices · 10&nbsp;min"];                       //
+const NOW = 2;
+const START_LABEL = "Commencer";                                                          //
+/* Les boutons des notes sur le bureau (avant : dans la bulle de Léo) */
+const MIDDLE_LABEL = "Commencer la partie 2";
+const AFTER_LABEL = "Voir notre proposition";
+/* Ce que dit Léo à la fin : 2 ou 3 idées clés */
+const KEEP = [
+  "L’IA peut améliorer une tâche (S, A) ou la transformer (M, R)&nbsp;; pense aussi à ce qui pourrait en souffrir (D).",   //
+  "Une tâche simple et vite vérifiable se délègue&nbsp;; un brouillon de l’IA se vérifie et s’adapte avant usage.",        //
+  "Le jugement sur un élève et les données des élèves restent chez toi."                                                   //
+];
+const AGAIN_LABEL = "Recommencer";
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const frame = Frame.init({ guide: "Léo", pose: "leo", steps: STEPS, now: NOW, narrow: true });
+const { scorm } = frame;
+const nb = s => s.replace(/ ([:;?!»])/g, " $1").replace(/« /g, "« ");   // French non-breaking spaces
+const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
+const usage = id => USAGES.find(c => c.id === id), level = id => LEVELS.find(l => l.id === id);
+const situation = id => SITUATIONS.find(c => c.id === id), boxOf = id => BOXES.find(b => b.id === id);
+const phone = () => matchMedia("(max-width: 760px)").matches;
+// Léo's texts: the first line (<p class="q">) is what he says in bold, the rest goes under it
+function split(html) {
+  const d = document.createElement("div"); d.innerHTML = nb(html);
+  const q = d.querySelector(".q"); const say = q ? q.innerHTML : ""; q?.remove();
+  return { say, more: d.innerHTML.trim() };
+}
+
+/* ---------- Progress, kept in suspend_data so the learner resumes where they stopped (unchanged) ----------
+     part : 1 or 2;  placed, tries, defs : part 1 (cards in their level, levels tried, definitions opened)
+     phase : part 2, "tri" (sorting), "verif" (our proposal), "fin";  choix : the box chosen for each card;  ouvertes : the cards opened */
+let state = { part: 1, placed: {}, tries: {}, defs: [], phase: "tri", choix: {}, ouvertes: [] };
+try { const s = JSON.parse(scorm.get("cmi.suspend_data") || "null"); if (s && s.part) state = { ...state, ...s }; } catch {}
+function save() { scorm.set("cmi.suspend_data", JSON.stringify(state)); scorm.commit(); }
+
+/* ---------- Learning data (Interaktionsbericht, unchanged) ----------
+     samrd_<carte>          part 1: the levels tried, e.g. "M > S"; correct if right the first time
+     samrd_erreurs          part 1: the number of wrong drops
+     samrd_definitions      part 1: the levels whose definition was opened, e.g. "S M D"
+     tri_<carte>            part 2: the box chosen (delegue, valide, pas); correct if it is the box of our proposal
+     tri_score              part 2: cards in the box of our proposal, e.g. "7/9"
+     verif_cartes_ouvertes  part 2: the cards opened in our proposal
+   Completed when the learner clicks « Terminer » at the end of part 2. */
+const errors = () => Object.values(state.tries).reduce((n, t) => n + t.length - 1, 0);
+
+/* ---------- Léo: the start, the end (after « Terminer ») ---------- */
+const start = () => frame.talk({ pose: "ouvre", ...split(START_TEXT),
+  replies: [[START_LABEL, () => { frame.aside(true); $("#play .card")?.focus({ preventScroll: true }); }, true]] });
+const end = () => frame.talk({ pose: "ouvre", say: split(END_TEXT).say, keep: KEEP,
+  replies: [[NEXT_LABEL, NEXT_URL, true], [AGAIN_LABEL, () => { restartAll(); frame.aside(true); }]] });
+
+/* ---------- The note on the desk (between the parts, after « Valider ») ---------- */
+function note(html, label) {
+  closeComment();
+  $("#note").innerHTML = `${nb(html)}<button type="button" class="chip go" id="note-ok">${label}</button>`;
+  $("#note").hidden = $("#shade").hidden = false;
+  $("#note-ok").addEventListener("click", closeNote);
+  $("#note-ok").focus({ preventScroll: true });
+}
+function closeNote() { $("#note").hidden = $("#shade").hidden = true; }
+
+/* ---------- The board: one part at a time ---------- */
+let view = state.part;   // the part on the board; state.part = the furthest part reached
+let order1 = shuffle(USAGES.map(c => c.id)), order2 = shuffle(SITUATIONS.map(c => c.id)), sel = null;
+function draw() {
+  if (view === 1) drawP1(); else if (state.phase === "tri") drawSort(); else drawVerif();
+  const p1done = Object.keys(state.placed).length === USAGES.length;
+  $("#count").textContent = `${view} / 2`;
+  $("#prev").disabled = view === 1;
+  $("#next").disabled = !(view === 1 && p1done);
+  $("#next").classList.toggle("go", view === 1 && p1done);
+}
+$("#prev").addEventListener("click", () => { closeComment(); sel = null; view = 1; draw(); });
+$("#next").addEventListener("click", () => { closeComment(); sel = null; if (state.part < 2) return toPart2(); view = 2; draw(); });
+
+/* Part 1: five levels, the pile of behaviours */
+function drawP1() {
+  const left = order1.filter(id => !state.placed[id]);
+  $("#title").textContent = P1_TITLE; $("#hint").textContent = P1_HINT;
+  $("#play").className = `p1${sel ? " picking" : ""}`;
+  $("#play").innerHTML = `<div class="levels">${LEVELS.map(l => {
+      const c = USAGES.find(c => state.placed[c.id] === l.id);
+      return `<div class="level"><h3>${l.name}</h3>
+        <button type="button" class="plus" data-def="${l.id}" aria-label="Définition : ${l.name}">+</button>
+        <div class="slot${c ? " full" : ""}" data-level="${l.id}" role="button" tabindex="${c ? -1 : 0}" aria-label="Case ${l.name}">${c
+          ? `<div class="card ok">${c.text}<i class="tick">✓</i></div>` : ""}</div></div>`; }).join("")}</div>
+    <div class="pile">${left.length ? left.map(id => `<button type="button" class="card${sel === id ? " sel" : ""}" data-id="${id}">${usage(id).text}</button>`).join("")
+      : `<p class="empty">Tout est à sa place !</p>`}</div>`;
+  $("#foot").innerHTML = `<span class="tally"><b>${Object.keys(state.placed).length} / ${USAGES.length}</b> placées</span><span class="msg" id="msg"></span>`;
+}
+function msg(text, good) { const m = $("#msg"); if (m) { m.textContent = text; m.classList.toggle("good", !!good); } }
+function tryPlace(id, lv) {
+  if (!id || state.placed[id]) return;
+  const slot = $(`.slot[data-level="${lv}"]`);
+  if (!slot || slot.classList.contains("full")) return;
+  const c = usage(id);
+  (state.tries[id] ||= []).push(lv);
+  scorm.record(`samrd_${id}`, state.tries[id].join(" > "), { result: state.tries[id][0] === c.level ? "correct" : "wrong" });
+  scorm.record("samrd_erreurs", errors(), { type: "numeric" });
+  sel = null;
+  if (lv === c.level) {
+    state.placed[id] = lv; save(); drawP1(); msg(RIGHT_TEXT, true);
+    if (Object.keys(state.placed).length === USAGES.length && state.part === 1) setTimeout(toPart2, 900);
+  } else {
+    save(); drawP1(); msg(WRONG_TEXT);
+    const s = $(`.slot[data-level="${lv}"]`); s.classList.remove("no"); void s.offsetWidth; s.classList.add("no");
+  }
+}
+// Between the two parts: a note comments part 1 and introduces part 2
+function toPart2() {
+  state.part = 2; state.phase = "tri"; save();
+  view = 2; sel = null; draw();
+  note(MIDDLE_TEXT, MIDDLE_LABEL);
+}
+
+/* Part 2, step 1: the sort */
+const cardBtn = (c, extra = "") => `<button type="button" class="card${sel === c.id ? " sel" : ""}" data-id="${c.id}">${c.text}${extra}</button>`;
+const colHtml = (b, inner) => `<div class="col" data-box="${b.id}" style="--chalk:${b.chalk}">
+    <button type="button" class="col-head" data-box="${b.id}"><b>${b.name}</b><span>${b.def}</span></button><div class="in">${inner}</div></div>`;
+function drawSort() {
+  const placed = Object.keys(state.choix).length, left = order2.filter(id => !state.choix[id]);
+  $("#title").textContent = P2_TITLE; $("#hint").textContent = P2_HINT_TRI;
+  $("#play").className = `p2 tri${sel ? " picking" : ""}`;
+  $("#play").innerHTML = `<div class="deck" data-box=""><h3>Les situations</h3><div class="in">${left.length
+      ? left.map(id => cardBtn(situation(id))).join("") : `<p class="empty">Toutes les cartes sont placées.<br>Tu peux encore les déplacer, puis valider.</p>`}</div></div>
+    <div class="cols">${BOXES.map(b => colHtml(b, order2.filter(id => state.choix[id] === b.id).map(id => cardBtn(situation(id))).join(""))).join("")}</div>`;
+  $("#foot").innerHTML = `<span class="tally"><b>${placed} / ${SITUATIONS.length}</b> placées</span>
+      <button class="chip${placed === SITUATIONS.length ? " go" : ""}" type="button" id="validate"${placed === SITUATIONS.length ? "" : " disabled"}>Valider</button>`;
+}
+function place(id, box) {
+  if (box) state.choix[id] = box; else delete state.choix[id];
+  sel = null; save(); drawSort();
+}
+function validate() {
+  if (Object.keys(state.choix).length < SITUATIONS.length) return;
+  state.phase = "verif"; save();
+  SITUATIONS.forEach(c => scorm.record(`tri_${c.id}`, state.choix[c.id], { result: state.choix[c.id] === c.box ? "correct" : "wrong" }));
+  scorm.record("tri_score", `${SITUATIONS.filter(c => state.choix[c.id] === c.box).length}/${SITUATIONS.length}`); scorm.commit();
+  drawVerif();
+  note(AFTER_VALIDATE, AFTER_LABEL);
+}
+
+/* Part 2, step 2: our proposal; each card opens its comment */
+const mine = c => state.choix[c.id] && state.choix[c.id] !== c.box ? `<span class="mine">Ton choix : ${boxOf(state.choix[c.id]).name}</span>` : "";
+function drawVerif() {
+  const all = state.ouvertes.length === SITUATIONS.length;
+  $("#title").textContent = P2_TITLE; $("#hint").textContent = P2_HINT_VERIF;
+  $("#play").className = "p2 verif";
+  $("#play").innerHTML = `<div class="cols">${BOXES.map(b => colHtml(b, SITUATIONS.filter(c => c.box === b.id)
+      .map(c => cardBtn(c, `${mine(c) ? `<br>${mine(c)}` : ""}${state.ouvertes.includes(c.id) ? `<i class="tick">✓</i>` : ""}`)).join(""))).join("")}</div>`;
+  $("#foot").innerHTML = `<span class="tally"><b>${state.ouvertes.length} / ${SITUATIONS.length}</b> cartes ouvertes</span>
+      <button class="chip" type="button" id="restart2">Recommencer le tri</button>
+      <button class="chip${all ? " go" : ""}" type="button" id="finish">Terminer</button>`;
+}
+
+/* ---------- Clicks on the board (the first move: Léo steps aside) ---------- */
+let suppress = false;
+$("#play").addEventListener("click", e => {
+  if (suppress) return;
+  frame.aside(true);
+  if (view === 1) {
+    const p = e.target.closest(".plus"); if (p) return openDef(p);
+    const c = e.target.closest(".pile .card");
+    if (c) { sel = sel === c.dataset.id ? null : c.dataset.id; drawP1(); if (sel) $(`.card[data-id="${sel}"]`).focus({ preventScroll: true }); return; }
+    const s = e.target.closest(".slot"); if (s && sel) tryPlace(sel, s.dataset.level);
+    return;
+  }
+  if (state.phase === "tri") {
+    const c = e.target.closest(".card");
+    if (c) { sel = sel === c.dataset.id ? null : c.dataset.id; drawSort(); if (sel) $(`.card[data-id="${sel}"]`).focus({ preventScroll: true }); return; }
+    const z = e.target.closest(".col, .deck"); if (z && sel) place(sel, z.dataset.box);
+    return;
+  }
+  const b = e.target.closest(".card"); if (!b) return;
+  const c = situation(b.dataset.id);
+  openComment(b, `<small>${boxOf(c.box).name}</small><h3>Pourquoi cette case ?</h3><p>${c.why}</p><h3>Jusqu’où ?</h3><p>${c.how}</p>${mine(c)}`);
+  if (!state.ouvertes.includes(c.id)) {
+    state.ouvertes.push(c.id); save();
+    scorm.record("verif_cartes_ouvertes", state.ouvertes.join(" ")); scorm.commit();
+    drawVerif();
+  }
+});
+$("#play").addEventListener("keydown", e => {
+  const s = e.target.closest(".slot");
+  if (view === 1 && s && sel && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tryPlace(sel, s.dataset.level); }
+});
+$("#foot").addEventListener("click", e => {
+  if (e.target.closest("#validate")) validate();
+  else if (e.target.closest("#finish")) finish();
+  else if (e.target.closest("#restart2")) restart2();
+});
+
+// Drag and drop (mouse, pen, touch screen); not on phones, where the page must scroll
+let drag = null;
+const dragCard = () => view === 1 ? ".pile .card" : state.phase === "tri" ? ".tri .card" : null;
+const dropZone = () => view === 1 ? ".slot:not(.full)" : ".col, .deck";
+$("#play").addEventListener("pointerdown", e => {
+  const sel = dragCard(), el = sel && e.target.closest(sel);
+  if (!el || e.button > 0 || phone()) return;
+  const r = el.getBoundingClientRect();
+  drag = { el, x0: e.clientX, y0: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, ghost: null, over: null };
+});
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  if (!drag.ghost) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+    frame.aside(true);
+    drag.ghost = drag.el.cloneNode(true); drag.ghost.classList.add("ghost"); drag.ghost.classList.remove("sel");
+    drag.ghost.style.width = `${drag.el.offsetWidth}px`;
+    document.body.appendChild(drag.ghost); drag.el.style.opacity = .3;
+  }
+  drag.ghost.style.left = `${e.clientX - drag.dx}px`; drag.ghost.style.top = `${e.clientY - drag.dy}px`;
+  const z = document.elementFromPoint(e.clientX, e.clientY)?.closest(dropZone());
+  if (z !== drag.over) { drag.over?.classList.remove("over"); z?.classList.add("over"); drag.over = z; }
+});
+window.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const { el, ghost, over } = drag; drag = null;
+  if (!ghost) return;
+  ghost.remove(); el.style.opacity = "";
+  over?.classList.remove("over");
+  suppress = true; setTimeout(() => suppress = false);      // the click that follows a drop is not a pick
+  if (!over) return;
+  if (view === 1) tryPlace(el.dataset.id, over.dataset.level); else place(el.dataset.id, over.dataset.box);
+});
+
+/* ---------- The comment: next to a « + » (a level's definition) or a card (our proposal), always inside the desk ---------- */
+function openComment(anchor, html) {
+  const box = $("#comment");
+  box.innerHTML = `<button class="x" type="button" id="c-x" aria-label="Fermer">×</button>${html}`;
+  box.hidden = $("#shade").hidden = false;
+  if (!phone()) {
+    const desk = $(".desk").getBoundingClientRect(), r = anchor.getBoundingClientRect();
+    const W = box.offsetWidth, H = box.offsetHeight, gap = 16, x = r.left - desk.left, y = r.top - desk.top;
+    let left = x + r.width + gap;
+    if (left + W > desk.width - 12) left = x - W - gap;
+    left = Math.min(Math.max(12, left), desk.width - W - 12);
+    box.style.left = `${left}px`; box.style.top = `${Math.min(Math.max(12, y - 12), desk.height - H - 12)}px`;
+  } else { box.style.left = box.style.top = ""; }
+  $("#c-x").addEventListener("click", closeComment);
+  $("#c-x").focus({ preventScroll: true });
+}
+function openDef(btn) {
+  const l = level(btn.dataset.def);
+  openComment(btn, `<h2>${l.name}</h2><p>${l.def}</p>`);
+  if (!state.defs.includes(l.id)) { state.defs.push(l.id); save(); scorm.record("samrd_definitions", state.defs.join(" ")); scorm.commit(); }
+}
+function closeComment() { $("#comment").hidden = true; $("#shade").hidden = $("#note").hidden; }
+$("#shade").addEventListener("click", () => { if ($("#note").hidden) closeComment(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("#comment").hidden) closeComment(); else if (!$("#note").hidden) closeNote(); } });
+
+/* ---------- End: completed (unchanged rule), Léo comes back with the key points ---------- */
+function finish() {
+  state.phase = "fin"; save();
+  if (scorm.get("cmi.core.lesson_status") !== "completed") scorm.set("cmi.core.lesson_status", "completed");
+  scorm.commit();
+  closeComment();
+  end(); frame.aside(false);
+}
+function restart2() { state.phase = "tri"; state.choix = {}; state.ouvertes = []; sel = null; order2 = shuffle(order2); save(); draw(); }
+function restartAll() {
+  state = { part: 1, placed: {}, tries: {}, defs: state.defs, phase: "tri", choix: {}, ouvertes: [] };
+  view = 1; sel = null; order1 = shuffle(order1); order2 = shuffle(order2); save(); draw();
+}
+
+/* ---------- Start: Léo introduces (first visit); coming back in the middle: straight to the board; done: his key points ---------- */
+if (state.phase === "fin") state.phase = "verif";
+draw();
+const fresh = state.part === 1 && !Object.keys(state.placed).length && !Object.keys(state.tries).length;
+if (scorm.get("cmi.core.lesson_status") === "completed") end();
+else { start(); if (!fresh) frame.aside(true); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>

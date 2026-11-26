@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Machine à Histoires</title>
+<link rel="stylesheet" href="../../shared/frame.css">
+<!--
+  La Machine à Histoires, matériel éducatif (ECM), dans le cadre H2 depuis le 26 nov. 2026 (comme Robot dessine, module 1) ;
+  avant : old/index-avant-h2.html (mise en page v3 : colonne de Claudia, jeu à droite, tiroir « Pour comprendre »).
+  Le jeu, ses textes et ses données sont les mêmes ; depuis le 26 nov. 2026, le plateau est dessiné à la taille du pupitre (plus de mise à l'échelle), les fiches imprimées sont redessinées en HTML.
+  Les textes sont tous dans la partie CONTENU du script, plus bas ; les nouveaux libellés du cadre sont marqués.
+-->
+<style>
+  /* La Machine à Histoires in the H2 frame. Claudia stays beside the work as tutor: what you do now (her line), « Demande à
+     Claudia » (Pourquoi ce moment ? · Pourquoi cette étape ? · Les élèves pensent · Ce que le jeu simplifie · Peu de temps ?),
+     the way on as the one mint button. 7 screens: ? Pourquoi · Avant la séance · the 4 steps · ✓ Fin (the lesson sheet). */
+
+  .desk { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+  .desk h2.dt { font-size: calc(15 * var(--u)); font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--violet); }
+  .under { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-height: 44px; }
+  .under .grow { flex: 1; }
+  #acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  #acts .chip { min-height: 44px; font-size: calc(16 * var(--u)); }
+  .tool[hidden] { display: none; }
+  .card-consigne[hidden] { display: none; }
+  /* at the top of the desk, as in Module 1: always in the same place (user, 26 Nov 2026); same width and at least 3 lines on every
+     screen of a step, so the board under it does not move; with nothing to say, the card is kept but left blank */
+  .desk > .card-consigne { align-self: flex-start; flex: none; width: 100%; }
+  .desk > .card-consigne.blank { visibility: hidden; }
+  /* ? Pourquoi: the notions */
+  .notions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .ncard { padding: 18px 20px; } .ncard:nth-child(2) { rotate: .6deg; }
+  .ncard h3 { font-size: calc(21 * var(--u)); color: var(--g-deep); margin-bottom: 6px; } .ncard p { font-size: calc(17 * var(--u)); line-height: 1.45; }
+  .after { font-size: calc(15 * var(--u)); color: var(--soft); }
+  /* Avant la séance */
+  .plan { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .stepc { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; border: 1.5px solid var(--hair); background: #fff; text-align: left; font: inherit; cursor: pointer; }
+  .stepc:hover { border-color: var(--g-deep); }
+  .stepc .sn { display: flex; align-items: center; gap: 8px; font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .stepc .sn i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); border: 2px solid var(--g-deep); }
+  .stepc.done .sn i { background: var(--g-deep); color: #fff; }
+  .stepc h3 { font-size: calc(18 * var(--u)); line-height: 1.25; color: var(--g-deep); } .stepc p { font-size: calc(15 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .total { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--g-deep); text-align: right; margin-top: -6px; }
+  .prep { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .mat { padding: 14px 16px; } .mat h3 { font-size: calc(19 * var(--u)); color: var(--g-deep); margin-bottom: 8px; }
+  .mat ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: calc(17 * var(--u)); line-height: 1.4; }
+  .side { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+  .thumb { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border: 0; cursor: pointer; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); rotate: -1deg; text-align: left; }
+  .thumb + .thumb { rotate: .8deg; }
+  .thumb img { width: 84px; height: auto; border-radius: 4px; }
+  .pdfs { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* ✓ Fin: « Ce que l'activité simplifie » */
+  .simp { width: 100%; border-collapse: collapse; font-size: calc(14 * var(--u)); line-height: 1.4; background: #fff; }
+  .simp th { text-align: left; padding: 8px 10px; font-size: calc(13 * var(--u)); color: var(--g-deep); border-bottom: 2px solid var(--g-deep); }
+  .simp th.ai, .simp td.ai { background: var(--lilac-tint); }
+  .simp td { padding: 7px 10px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .simp td .st { display: block; font-size: calc(12 * var(--u)); color: var(--soft); }
+  .scroll { min-height: 0; overflow: auto; }
+  /* the last screen: the lesson as a sheet (as in Module 1) */
+  .lesson { --u: clamp(1px, calc(.08px + .1vh), 1.35px); display: grid; grid-template-columns: minmax(0, 1fr) clamp(200px, 22vw, 280px); grid-template-rows: auto 1fr; gap: 6px clamp(20px, 2.6vw, 36px); align-self: start; padding: clamp(18px, 3vh, 28px) clamp(20px, 2.6vw, 32px); rotate: -.3deg; }
+  .ls-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--g-tint); }
+  .ls-head h2 { font-size: clamp(1.3rem, 3vh, 1.7rem); color: var(--g-deep); }
+  .ls-head span { font-size: calc(15 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .ls-steps::before { content: ""; position: absolute; left: 17px; top: 24px; bottom: 24px; width: 2px; background: var(--g-hell); }
+  .ls-step { position: relative; width: 100%; display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 6px 10px 6px 0; border: 0; border-radius: 10px; background: none; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+  .ls-step:hover { background: var(--g-tint); }
+  .ls-step i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--g-deep); background: #fff; border: 2px solid var(--g-deep); }
+  .ls-step.done i { background: var(--g-deep); color: #fff; }
+  .ls-body { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .ls-body b { font-size: clamp(16px, 2.2vh, 18px); color: var(--g-deep); }
+  .ls-body small { font-size: calc(14 * var(--u)); font-weight: 700; color: var(--soft); }
+  .ls-found { grid-column: 1 / -1; font-size: calc(14 * var(--u)); line-height: 1.35; color: var(--soft); }
+  .ls-say { grid-column: 1 / -1; margin-top: 2px; padding: 4px 8px; border-radius: 8px; background: var(--g-tint); font-size: calc(14 * var(--u)); line-height: 1.35; color: var(--g-deep); }
+  .ls-say em { display: inline; margin-right: 4px; font-style: normal; font-size: calc(12 * var(--u)); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .ls-mat { grid-row: 2; grid-column: 2; display: flex; flex-direction: column; gap: 10px; padding-left: clamp(16px, 2vw, 28px); border-left: 2px dashed var(--hair); }
+  .ls-mat h3 { font-size: calc(13 * var(--u)); font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--violet); }
+  .ls-sheet { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; border: 1.5px solid var(--hair); background: #fff; font: 700 calc(15 * var(--u)) Inter, sans-serif; color: var(--g-deep); cursor: pointer; }
+  .ls-sheet:hover { border-color: var(--g-deep); }
+  .ls-sheet img { width: 100%; max-height: 26vh; object-fit: contain; box-shadow: var(--paper-shadow); rotate: 1.5deg; }
+  .ls-mat .tool { justify-content: center; }
+  /* a picture, large (the printed sheets, the classroom) */
+  .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(11, 81, 77, .45); display: grid; place-items: center; padding: 24px; }
+  .lightbox[hidden] { display: none; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: var(--paper-shadow); background: #fff; }
+  .lightbox .x { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border-radius: 10px; border: 0; background: #fff; color: var(--g-deep); cursor: pointer; display: grid; place-items: center; }
+  /* short screens (laptops at 720 px): the plan without its summaries, smaller papers, so « Avant la séance » stays on one screen */
+  @media (max-height: 800px) and (min-width: 761px) {
+    .stepc p { display: none; } .stepc { padding: 8px 10px; }
+    .mat { padding: 10px 14px; } .mat ul { font-size: calc(14 * var(--u)); gap: 4px; }
+    .thumb { padding: 6px 10px 6px 6px; font-size: calc(14 * var(--u)); } .thumb img { width: 60px; }
+    .side .card-consigne p { font-size: calc(14 * var(--u)); }
+    .notions .ncard p { font-size: calc(14 * var(--u)); line-height: 1.4; }
+    .lesson { padding: 14px 18px; gap: 4px 20px; } .ls-head { padding-bottom: 6px; } .ls-steps { gap: 0; } .ls-step { padding-block: 3px; }
+    .ls-found { display: none; } .ls-say { font-size: calc(13 * var(--u)); margin-top: 0; padding: 3px 8px; }
+    .ls-sheet img { max-height: 18vh; } .ls-mat { gap: 6px; }
+  }
+  @media (max-height: 640px) and (min-width: 761px) { .ls-say { display: none; } .ls-found { display: block; } }
+  @media (max-width: 1100px) { .notions { grid-template-columns: 1fr; } .plan { grid-template-columns: repeat(2, minmax(0, 1fr)); } .prep { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .lesson { grid-template-columns: 1fr; } .ls-mat { grid-row: auto; grid-column: 1; padding-left: 0; border-left: 0; } }
+  @media (max-width: 760px) { .card-consigne { max-width: none; } }
+  /* a tablet held upright: the game's button and « Revenir en arrière » take two lines; both are kept, so the board does not move */
+  @media (min-width: 761px) and (max-width: 1050px) and (orientation: portrait) { .under { height: 96px; align-content: center; } }
+
+  /* ---------- The game board, drawn at the desk's real size (26 Nov 2026; before: the old 1176 × 700 board, scaled down).
+     Steps 1 to 3: three rows that keep their place and height on every screen of the step, so the table does not move:
+     the path of the request (.btop) · the moment, large, on the table (.moment) · « Ce qui se passe » (.bcap).
+     The printed sheets are drawn in HTML with their words and codes; « Voir la fiche imprimée » opens the printed picture.
+     The board reflows with container queries (laptop: one row; a tablet held upright or a phone: stacked). Text: 15 px or more. ---------- */
+  .board { --fy: #f6d548; --fg: #00b050; --fb: #0047ab; --table: #f4f1ea; --line: #d6d1c4; --brown: #5b574d; --teal: #12968a; --red: #C4314F;
+    flex: 1; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; container: board / inline-size; color: var(--ink); }
+  .board.b4 { grid-template-rows: minmax(0, 1fr); }
+  @keyframes g-fade { from { opacity: 0; } }
+  .board .fy { border-color: var(--fy) !important; } .board .fg { border-color: var(--fg) !important; } .board .fb { border-color: var(--fb) !important; }
+  .board .rc { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border: 3px solid; border-radius: 4px; background: #fff; }
+  .outbig .rc, .slot img, .desk2 .rc { animation: g-fade .35s both; }
+  .board .rc img { height: 74%; width: auto; }
+  .board .kcode { display: inline-block; padding: 0 7px; border: 2px solid #1f1f1f; border-radius: 6px; background: #fff; font: 700 calc(15 * var(--u))/1.4 "Arial Narrow", Arial, sans-serif; white-space: nowrap; vertical-align: middle; }
+  .board .nw { white-space: nowrap; }
+  .btop { height: 80px; display: flex; align-items: flex-end; justify-content: center; }
+  .blabel { align-self: center; font: 600 calc(17 * var(--u))/1.3 Inter, sans-serif; color: var(--soft); }
+  .moment { position: relative; min-height: 0; overflow: hidden; display: flex; align-items: safe center; justify-content: safe center; gap: clamp(14px, 3cqw, 28px); padding: 12px 14px; border-radius: 12px; background: var(--table); }
+  .bcap { height: 46px; overflow: hidden; }
+  .capt { font-size: calc(16 * var(--u)); line-height: 1.4; } .capt b { font-weight: 600; color: #4a463e; }
+  .board .zoom { flex: none; min-height: 40px; padding: 2px 14px; border: 1px solid var(--hair); border-radius: 999px; background: #fff; font: 600 calc(15 * var(--u))/1.2 Inter, sans-serif; color: var(--g-deep); cursor: pointer; }
+  .board .zoom:hover { background: var(--g-tint); }
+
+  /* the path of the request: who passed what to whom (the token under each arrow) */
+  .path { display: flex; align-items: flex-start; justify-content: center; padding-top: 22px; }
+  .mband { position: relative; display: flex; align-items: flex-start; padding: 5px 8px; border-radius: 12px; background: #efece4; }
+  .mband .ml { position: absolute; left: 10px; top: -22px; font: 600 calc(15 * var(--u))/1.2 Inter, sans-serif; color: var(--brown); }
+  .pnode { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 3px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff;
+    font: 600 calc(15 * var(--u))/1.2 Inter, sans-serif; color: var(--brown); white-space: nowrap; }
+  .pnode .n { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--line); color: #fff; font: 800 calc(15 * var(--u))/22px Inter, sans-serif; text-align: center; }
+  .pnode.done { color: var(--g-deep); border-color: var(--g-hell); } .pnode.done .n { background: var(--g-deep); }
+  .pnode.on { color: var(--g-deep); background: var(--g-tint); border: 3px solid var(--g-main); } .pnode.on .n { background: var(--g-deep); }
+  .hop { display: flex; flex-direction: column; align-items: center; min-width: 30px; padding: 0 3px; }
+  .hop .ar { font: 400 calc(20 * var(--u))/36px Inter, sans-serif; color: var(--teal); }
+  .hop.empty .ar { color: #c9c3b4; }
+  .hop .tk { display: flex; gap: 0 6px; align-items: center; min-height: 18px; font: 700 calc(15 * var(--u))/1.15 "Arial Narrow", Arial, sans-serif; white-space: nowrap; }
+  .hop .tk .mini { display: block; width: 34px; height: 24px; } .hop .tk .mini .rc { border-width: 2px; }
+
+  /* the printed sheets, drawn: DEMANDE (Auteurs), the bande (Encodeur), the chances sheet (Calculateur), RÉSULTAT (Rédacteur) */
+  .sheet { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 12px; color: #111; rotate: -.5deg; }
+  .sheet .bt { font: 800 calc(19 * var(--u))/1.15 Inter, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: #1f2a28; }
+  .sheet .sfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; }
+  .sheet .sfoot small { font-size: calc(15 * var(--u)); letter-spacing: .03em; text-transform: uppercase; color: var(--soft); }
+  .slot { position: relative; width: 150px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 5px solid; background: #fff; }
+  .slot img { height: 58%; width: auto; }
+  .slot small { font: 700 calc(15 * var(--u))/1.2 Inter, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #6b6b6b; }
+  .demande { width: min(100%, 330px); align-items: center; text-align: center; } .demande .bt { font-size: calc(17 * var(--u)); } .demande .slot { height: 88px; }
+  .bande { width: min(100%, 620px); flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 22px; padding: 18px 22px; }
+  .bande .bt { flex: 1 1 180px; }
+  .bande .slot { width: 170px; height: 96px; }
+  .bande .codebig { font: 700 calc(44 * var(--u))/1 "Arial Narrow", Arial, sans-serif; color: #1f1f1f; animation: g-fade .6s both; }
+  .bande .sfoot { flex: 1 1 100%; }
+  .resultat .slots { display: flex; gap: 12px; justify-content: center; }
+  .resultat { gap: 8px; padding-top: 10px; padding-bottom: 10px; } .resultat .slot { width: 124px; height: 78px; } .resultat .storyline { font-size: calc(17 * var(--u)); padding: 4px 12px; }
+  .resultat .storyline { margin: 0; }
+  .fiche .fh { font: 400 calc(16 * var(--u))/1.2 Inter, sans-serif; color: var(--soft); } .fiche .fh b { margin-right: 6px; font-size: calc(18 * var(--u)); font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
+  .frow { display: flex; align-items: center; gap: 10px; padding-top: 8px; }
+  .frow .ar { font-size: calc(22 * var(--u)); color: var(--teal); }
+  .code { position: relative; width: 60px; height: 52px; display: grid; place-items: center; border: 3px solid; border-radius: 8px; background: #fff; font: 700 calc(17 * var(--u))/1 Inter, sans-serif; white-space: nowrap; }
+  .code i { position: absolute; top: -12px; right: -10px; padding: 1px 7px; border-radius: 999px; background: var(--g-deep); color: #fff; font: 700 calc(15 * var(--u))/1.3 Inter, sans-serif; font-style: normal; }
+  .fiche .fn { font-size: calc(16 * var(--u)); color: var(--soft); } .fiche .fn.rare { color: var(--red); font-weight: 600; }
+  /* the Auteurs' cards to choose (step 1) */
+  .desk2 { display: grid; grid-template-columns: repeat(3, 92px); gap: 12px; }
+  .desk2 .pc2 { width: 92px; height: 70px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 4px; }
+  .desk2 .pc2:hover .rc, .desk2 .pc2:focus-visible .rc { outline: 4px solid var(--g-main); outline-offset: 2px; }
+  /* « Dans le sac Lieu » : the cards, their copies, their codes */
+  .tkeys { flex: none; display: flex; flex-direction: column; gap: 10px; }
+  .tkeys h4 { margin: 0; font: 600 calc(18 * var(--u))/1.25 Inter, sans-serif; color: var(--g-deep); }
+  .tkv { display: grid; grid-template-columns: 56px 40px auto auto; align-items: center; gap: 10px; font-size: calc(18 * var(--u)); }
+  .tkv .tcp { width: 56px; height: 42px; } .tkv b { font-size: calc(22 * var(--u)); font-variant-numeric: tabular-nums; }
+  .nosh { max-width: 300px; padding: 8px 12px; border: 2px dashed #b8b2a3; border-radius: 6px; background: #fff; font-size: calc(16 * var(--u)); line-height: 1.35; }
+  .nosh em { color: var(--red); font-style: normal; font-weight: 600; } .nosh b { color: var(--g-deep); }
+  /* the draw: the bag, its copies, the card that came out */
+  .drawv { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; }
+  .bagbox { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: calc(17 * var(--u)); font-weight: 600; }
+  .bagbox svg { width: 62px; height: 72px; }
+  .cps { display: grid; grid-template-columns: repeat(3, 60px); gap: 8px; }
+  .cps .tcp { width: 60px; height: 46px; } .cps .tcp:not(.win) { opacity: .4; } .cps .tcp.win .rc { outline: 4px solid var(--g-main); outline-offset: 1px; }
+  .drawv .arrow { font-size: calc(34 * var(--u)); color: var(--teal); }
+  .outbig { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: calc(22 * var(--u)); font-weight: 600; }
+  .outbig .tcp { width: 132px; height: 98px; } .outbig small { font-size: calc(17 * var(--u)); font-weight: 400; color: var(--brown); }
+  /* the story, word after word: the words produced in bold */
+  .storyline { padding: 6px 14px; border-radius: 8px; background: #F7F7F7; font-size: calc(18 * var(--u)); font-style: italic; line-height: 1.4; text-align: center; }
+  .storyline b { font-weight: 600; color: var(--g-deep); }
+  .storyline .gap { display: inline-block; min-width: 48px; border-bottom: 3px solid var(--g-deep); color: var(--g-deep); font-style: normal; font-weight: 600; text-align: center; }
+
+  /* step 2: the sheet's copies with the counter as its last column (« Combien de fois ? »), then the rounds */
+  .s2 { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: center; }
+  .ktab { display: grid; grid-template-columns: 44px auto auto auto auto; align-items: center; gap: 8px 10px; padding: 12px 14px; border: 2px solid transparent; border-radius: 8px; background: #fff; }
+  .ktab h4 { grid-column: 1 / 5; margin: 0; font: 600 calc(17 * var(--u))/1.25 Inter, sans-serif; color: var(--g-deep); }
+  .ktab .kh { grid-column: 5; align-self: end; max-width: 9ch; font: 600 calc(15 * var(--u))/1.2 Inter, sans-serif; color: var(--soft); text-align: center; }
+  .ktab .tkv { display: contents; font-size: calc(17 * var(--u)); } .ktab .kcode { justify-self: start; } .ktab .tcp { width: 44px; height: 34px; } .ktab .tkv b { font-size: calc(20 * var(--u)); }
+  .ktab .cnt { justify-self: center; min-width: 46px; padding: 2px 8px; border-radius: 8px; background: var(--g-tint); font: 800 calc(22 * var(--u))/1.3 Inter, sans-serif; color: var(--g-deep); text-align: center; font-variant-numeric: tabular-nums; }
+  .ktab.ask { border-color: var(--g-deep); } .ktab.ask .kh { color: var(--g-deep); font-weight: 800; }
+  .ktab .tkv.on .cnt { background: var(--g-main); box-shadow: 0 0 0 3px var(--g-main); } .ktab .tkv.on .rc { outline: 3px solid var(--g-main); outline-offset: 2px; }
+  .rounds { display: grid; gap: 8px; }
+  .round { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 4px 10px; border-radius: 8px; background: #fff; }
+  .round > b { flex: none; width: 50px; font: 600 calc(16 * var(--u))/1.2 Inter, sans-serif; color: var(--soft); }
+  .round .ic { flex: none; display: flex; gap: 8px; } .round .ic img { width: 36px; height: 36px; object-fit: contain; }
+  .round:not(.empty) .ic img:nth-child(2) { outline: 3px solid var(--fg); outline-offset: 2px; border-radius: 4px; }
+  .round.new { background: var(--g-tint); }
+  .round .wait { font-size: calc(16 * var(--u)); color: var(--soft); }
+  .round q { font-style: italic; font-size: calc(16 * var(--u)); line-height: 1.3; quotes: none; }
+  .s2 .round q { display: none; }
+
+  /* step 3: all its chances sheets (sized to the table's height), what comes back often (ringed), what is never there */
+  .moment.deckm { container: deck / size; }
+  .deck { --mi: clamp(26px, calc((100cqh - 30px) / 7 - 5px), 46px); }
+  .deck .sheets { display: flex; gap: 0 clamp(18px, 4cqw, 40px); align-items: flex-start; }
+  .deck .scol { display: flex; flex-direction: column; gap: 5px; }
+  .deck .scol > p { font: 600 calc(16 * var(--u))/1.3 Inter, sans-serif; color: var(--soft); }
+  .srow { display: flex; align-items: center; gap: 8px; }
+  .srow > i { font-style: normal; color: var(--teal); font-weight: 600; font-size: calc(18 * var(--u)); }
+  .mi { position: relative; width: var(--mi, 44px); height: var(--mi, 44px); flex: none; display: grid; place-items: center; border: 3px solid; border-radius: 7px; background: #fff; }
+  .mi img { width: 72%; height: 72%; object-fit: contain; }
+  .mi .x { position: absolute; top: -9px; right: -11px; padding: 0 5px; border-radius: 999px; background: var(--g-deep); color: #fff; font: 600 calc(15 * var(--u))/1.25 Inter, sans-serif; }
+  .srow .mi + .mi { margin-left: 14px; }
+  .srow small { font-size: calc(15 * var(--u)); color: var(--soft); margin-left: 6px; white-space: nowrap; }
+  .srow.rare small { color: var(--red); font-weight: 600; }
+  .mi.hot { box-shadow: 0 0 0 4px var(--g-main); }
+  .mi.gone { border-style: dashed; border-color: #BFBFBF; opacity: .6; }
+  .missrow { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; animation: g-fade .35s both; }
+  .missrow .mi + .mi { margin-left: 0; }
+  .missrow > p { font: 600 calc(16 * var(--u))/1.3 Inter, sans-serif; color: var(--red); } .missrow .obsc { display: flex; gap: 8px; }
+
+  /* step 4: what the class must find, the 4 sentences (« Pareil dans une vraie IA » / « Seulement dans le jeu »), then the trace écrite */
+  .claudia-ans { max-width: 560px; display: flex; flex-direction: column; gap: 8px; padding: 18px 22px; font-size: calc(19 * var(--u)); line-height: 1.45; }
+  .claudia-ans b { font: 800 calc(15 * var(--u))/1.3 Inter, sans-serif; letter-spacing: .03em; text-transform: uppercase; color: var(--violet); }
+  .s4 { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .vote { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .vote .sent { grid-column: 1 / -1; padding: 8px 16px; border-radius: 8px; background: #fff; font-size: calc(19 * var(--u)); font-weight: 600; line-height: 1.3; text-align: center; }
+  .vote .sent small { display: block; font: 500 calc(15 * var(--u))/1.3 Inter, sans-serif; color: var(--soft); }
+  .vbtn { min-height: 48px; padding: 4px 12px; border-radius: 8px; font: 600 calc(17 * var(--u))/1.2 Inter, sans-serif; border: 2px solid; cursor: pointer; }
+  .vbtn.ai { border-color: var(--violet); background: var(--lilac-tint); color: var(--violet); } .vbtn.ai:hover { background: var(--lilac); }
+  .vbtn.jeu { border-color: var(--soft); background: #fff; color: var(--ink); } .vbtn.jeu:hover { background: #F7F7F7; }
+  .bridge { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bcol { min-height: 0; overflow: hidden; border-radius: 8px; padding: 8px 14px; }
+  .bcol.ai { background: #FBF7FF; border: 1px solid var(--lilac); } .bcol.jeu { background: #fff; border: 1px solid var(--hair); }
+  .bcol h4 { margin: 0 0 6px; padding-bottom: 4px; font: 600 calc(16 * var(--u))/1.3 Inter, sans-serif; border-bottom: 2px solid; }
+  .bcol.ai h4 { color: var(--violet); border-color: var(--lilac); } .bcol.jeu h4 { color: var(--soft); border-color: var(--hair); }
+  .bcol .it { margin-bottom: 8px; } .bcol .it p { font-size: calc(16 * var(--u)); font-weight: 600; line-height: 1.3; } .bcol .it span { display: block; font-size: calc(15 * var(--u)); line-height: 1.3; color: var(--soft); }
+  .bcol .it.now { animation: g-fade .4s both; } .bcol .it.now p::before { content: "● "; color: var(--g-dunkel, #16AAA1); }
+  .trace { flex: none; padding: 12px 20px 14px; rotate: -.3deg; }
+  .trace .pt, .tshow .pt { margin: 0 0 6px; font: 600 calc(16 * var(--u))/1.3 Inter, sans-serif; color: var(--soft); }
+  .trace ol { margin: 0; padding: 0 0 0 26px; display: grid; gap: 6px; }
+  .trace li { font-size: calc(17 * var(--u)); line-height: 1.4; } .trace li::marker { font-weight: 600; color: var(--g-deep); } .trace li b { color: var(--g-deep); }
+  .trace li.todo { color: #BFBFBF; } .trace li.new { animation: g-fade .5s var(--ease) both; }
+  .tshow { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 8px; animation: g-fade .4s both; }
+  .tshow .pt { text-align: center; margin: 0; }
+  .tshow .ktab { align-self: center; }
+  .tshow .vres { text-align: center; font-size: calc(17 * var(--u)); color: var(--soft); } .tshow .vres b { color: var(--g-deep); }
+  .tshow .bridge { flex: none; }
+  .tshow .round { min-height: 0; padding: 3px 10px; } .tshow .round .ic img { width: 30px; height: 30px; } .tshow .rounds { gap: 6px; }
+  .request { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: calc(16 * var(--u)); color: var(--soft); }
+  .rchip { display: inline-flex; align-items: center; gap: 8px; padding: 2px 12px 2px 6px; border: 1px solid var(--hair); border-radius: 999px; background: #fff; font-weight: 500; color: var(--ink); }
+  .rchip img { width: 28px; height: 28px; object-fit: contain; }
+
+  /* narrower desks. The path loses its numbers; then (a tablet held upright, a phone) it keeps only the number of the stations not working,
+     and the moment is stacked; the rows above and below the table keep a fixed height there too */
+  @container board (max-width: 700px) { .pnode .n { display: none; } .pnode { padding: 3px 10px; } }
+  @container board (max-width: 560px) {
+    .path { padding-top: 4px; } .mband { padding: 5px 4px; } .mband .ml { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .pnode .n { display: block; width: 26px; height: 26px; line-height: 26px; } .pnode:has(.n) { padding: 3px; }
+    .pnode .nm, .pnode.story span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .pnode.story { padding: 3px 8px; } .pnode.story::before { content: "📖"; font-size: calc(18 * var(--u)); line-height: 26px; }
+    .hop { min-width: 24px; padding: 0 2px; } .hop .tk { flex-direction: column; min-height: 36px; }
+    .moment { flex-direction: column; }
+    .s2 { grid-template-columns: 1fr; justify-items: stretch; } .ktab { justify-self: center; }
+    .frow { gap: 6px; } .code { width: 52px; }
+    .drawv { display: grid; grid-template-columns: auto auto; justify-content: center; justify-items: center; gap: 8px 14px; }
+    .drawv .arrow { grid-column: 1 / -1; rotate: 90deg; line-height: 1; } .outbig { grid-column: 1 / -1; flex-direction: row; } .outbig .tcp { width: 100px; height: 74px; }
+    .cps { grid-template-columns: repeat(3, 56px); } .cps .tcp { width: 56px; height: 42px; }
+    .tkv { grid-template-columns: 44px 34px auto auto; gap: 8px; } .tkv .tcp { width: 44px; height: 34px; } .tkeys { gap: 6px; }
+    .s2 .rounds { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .s2 .round { flex-direction: column; gap: 4px; min-height: 0; padding: 6px 4px; text-align: center; }
+    .s2 .round > b { width: auto; } .s2 .round .ic { gap: 4px; } .s2 .round .ic img { width: 26px; height: 26px; } .s2 .round .wait { font-size: calc(15 * var(--u)); line-height: 1.2; }
+    .ktab { padding: 8px 10px; gap: 6px 8px; }
+    .slot { width: 120px; height: 78px; } .demande .bt { font-size: calc(17 * var(--u)); }
+    .fiche .fh b { font-size: calc(16 * var(--u)); } .fiche { gap: 8px; padding: 10px 14px; }
+    .desk2 { grid-template-columns: repeat(3, 64px); gap: 8px; } .desk2 .pc2 { width: 64px; height: 48px; }
+    .resultat .storyline { font-size: calc(16 * var(--u)); }
+    .resultat .slot { width: 86px; height: 74px; } .resultat .slots { gap: 8px; }
+    .sheet .sfoot { flex-wrap: wrap; }
+    .deck { --mi: 24px; } .deck .sheets { gap: 0 12px; } .deck .scol { gap: 3px; flex: none; } .deck .scol:first-child { flex: 1 1 auto; min-width: 0; }
+    .srow { flex-wrap: wrap; gap: 1px 4px; } .srow > i { font-size: calc(15 * var(--u)); } .mi { border-width: 2px; border-radius: 5px; }
+    .mi .x { top: -8px; right: -9px; padding: 0 3px; line-height: 1.1; }
+    .srow small { flex-basis: 100%; margin: 0; line-height: 1.1; }
+    .nosh { font-size: calc(15 * var(--u)); padding: 5px 10px; }
+    .tshow .round q { display: none; }
+    .missrow .obsc { gap: 4px; } .moment.deckm { padding: 12px 12px 12px 10px; } .srow .mi + .mi { margin-left: 9px; }
+    .srow small { margin-left: 2px; }
+    .bridge { grid-template-columns: 1fr; }
+    .btop { height: 80px; } .bcap { height: 92px; }
+  }
+  /* phones: the page scrolls, so the board takes the height of what it holds */
+  @media (max-width: 760px) {
+    .btop, .bcap { height: auto; } .board { flex: none; }
+    .moment.deckm { container-type: inline-size; } .deck { --mi: 34px; } .deck .sheets { flex-direction: column; gap: 14px; } .srow small { flex-basis: auto; margin-left: 4px; }
+  }
+
+  /* few items on the desk (notions, plan, material): the group sits in the middle of the desk, not against the top
+     (layout brief, 26 Nov 2026); the Consigne card stays at the top. Only here: other pages' desks are grids. */
+  .desk > :first-child:not(.card-consigne):not(.rotate) { margin-top: auto; }
+  .desk > :last-child:not(.card-consigne) { margin-bottom: auto; }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="tutor" id="tutor"></section>
+  <section class="desk" id="desk" aria-label="Ton pupitre"></section>
+</main>
+<div class="lightbox" id="lightbox" hidden><button type="button" class="x" id="lb-close" aria-label="Fermer"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><img id="lb-img" src="" alt=""></div>
+
+<script src="../../shared/shell.js"></script>
+<script src="../../shared/frame.js"></script>
+<script>
+/* ============================================================
+   CONTENU — modifie seulement cette partie.
+   Version 2 (20 nov. 2026), d'après docs/m2-machine-histoires-v2-spec.md : la machine produit l'histoire mot après mot ;
+   pour chaque mot, le Calculateur remplit le sac avec la « fiche des chances » du mot d'avant, puis tire au sort.
+   10 écrans : 4 écrans pour toi (pourquoi, les notions, préparer la séance, le plan), puis les 4 étapes,
+   puis « Pour aller plus loin : ce que l'activité simplifie », puis la fin.
+   En haut de chaque écran, le bandeau avec le titre de l'écran, fait avec WHERE (plus bas).
+   Chaque étape : la bulle « En classe » de Claudia (now = ce que tu fais ; say = « Consigne : … » ; 2 phrases au plus), le tableau (le jeu),
+   et les trois onglets « Pour toi » (HELP ; un clic ouvre le tiroir, un 2e clic le ferme).
+   On passe à l'écran suivant SEULEMENT avec la flèche → en bas.
+   Les espaces avant : ? ! ; » et après « , et les apostrophes ’ sont mis tout seuls à l'affichage (fonction nb).
+   Les mots pour la machine : « calcule », « tire au sort », « produit » (jamais « lit », « cherche », « choisit », « comprend », « écrit » comme un fait).
+   Les phrases à dire partout de la même façon : « elle calcule les mots les plus probables » · « un mot à la fois » · « tirer au sort parmi les plus probables » ·
+   « ce qui revient souvent sort plus souvent » · « plausible, pas vérifié » · « c’est une image » · « personne n’écrit ».
+   ============================================================ */
+const TITLE = "La Machine à Histoires";
+const GUIDE_PDF = "media/page-machine-histoires.pdf";   // la page enseignant·e à imprimer (20 nov. 2026), faite par docs/print_textseite.py ; l’ancien guide v4 n’est plus lié
+const MATERIAL_PDF = "media/materiel-machine-histoires.pdf";   // fait par guide/build-materiel.py (v2 : fiches des chances, cartes pour les sacs ; tout en recto verso)
+const CALC_IMG = "images/calculateur-pas-a-pas.png";   // la page « Le Calculateur, pas à pas » du matériel (fait par guide/build-materiel.py)
+const SETUP_IMG = "images/mise-en-place-v2.png";   // fait par guide/build-materiel.py (aussi la 1re page des Fiches)                    // l'installation de la classe, vue d'en haut
+
+/* Les boutons (1 à 3 mots) */
+const BTN = {
+  prev: "Écran précédent", next: "Écran suivant", plan: "Plan de la leçon", close: "Fermer",
+  nextStep: "Étape suivante", finish: "Terminer", undo: "Revenir en arrière (annuler la dernière action)",   // la flèche ← du bas, dans une étape
+  toCalc: "Au Calculateur ›", toWriter: "Au Rédacteur ›",                                   // étape 1
+  shortStep: "Peu de temps ?", reveal: "Voir la réponse ›", drawPlace: "Tirer au sort : le lieu", drawObj: "Tirer au sort : l’objet", nextSheet: w => `La fiche « après ${w} » ›`,                  // étapes 1 et 3
+  draw: n => `Tirer au sort · tour ${n}`, drawAgain: "Tirer encore",                          // étape 2
+  voteYes: "Oui", voteNo: "Pas vraiment", toBee: "En option : une abeille ›", toDeck: "Ses fiches ›", toOften: "Ce qui revient souvent ›", toMissing: "Ce qui n’y est pas ›",                             // étape 3
+  toSort: "Les 4 phrases ›", same: "Pareil dans une vraie IA", game: "Seulement dans le jeu",
+  write: n => `Écrire la ligne ${n}`,                                                       // étape 4 (trace écrite)
+  validate: "Valider", skip: "Passer",                                                      // la question ouverte
+  guide: "Guide (PDF)", material: "Matériel (PDF)", again: "Recommencer la leçon", materialShort: "Le matériel (PDF)",
+  setup: "Voir l’installation de la classe", calcSteps: "Le Calculateur, pas à pas"
+};
+
+/* ---------- Écran 1 : Avant de commencer. Le texte de Claudia (écrit et validé par l'équipe : ne pas changer sans accord).
+   TALE_DRAFT = "" : texte validé, pas d'étiquette « Brouillon ». ---------- */
+const TALE_DRAFT = "";
+const TALE = [
+  "« L'IA, elle sait tout ! » m'a dit un jour un élève. Beaucoup d'adultes le pensent aussi.",
+  "Pourtant, elle <b>ne comprend pas comme nous</b> : elle <b>calcule</b>. Nos élèves grandissent avec ces outils. Pour ne pas les croire magiques, ni leur faire une confiance aveugle, ils doivent savoir ce qu'il y a derrière.",
+  "Les mots ne suffisent pas. Alors on a <b>joué la machine</b> : simplifiée, découpée en <b>personnages</b> qui ont chacun leur rôle, <b>sans écran</b>. Pour la première fois, la classe a vu ce qui se passe entre la demande et la réponse.",
+];
+const IDEA_LABEL = "L'idée à faire passer";
+const IDEA = "Une IA qui écrit <b>ne comprend pas</b> la demande comme nous : elle <b>calcule</b> ce qui est probable, puis <b>tire au sort</b>.";   // texte de l'équipe, inchangé (v5)
+
+/* ---------- Écran 2 : les notions de la séance (pour toi). Les codes proches et l'entraînement ne sont plus enseignés ici :
+   ils sont dans le module « Comment concevons-nous l'IA ? ». ---------- */
+const NOTIONS_TITLE = "Les notions de la séance";
+const NOTIONS = [   // ce que l’enseignant·e apprend sur une vraie IA (20 nov. 2026) : le vrai terme, comment ça marche, puis le moment du jeu
+  { term: "Un modèle de langage prédit le mot suivant", def: "Les IA qui écrivent, comme ChatGPT, sont des <b>modèles de langage</b>. Pendant leur entraînement, elles ont calculé, sur des milliards de phrases, quels mots viennent souvent après quels autres. Quand elles écrivent, elles calculent pour chaque nouveau mot une liste de mots possibles, chacun avec ses chances. <i>Dans le jeu :</i> la fiche des chances, c’est cette liste." },
+  { term: "Le tirage au sort rend chaque réponse différente", def: "La machine ne prend pas toujours le mot le plus probable : elle en <b>tire un au sort</b> parmi les plus probables. Un réglage, appelé la <b>« température »</b>, décide de la part de hasard. C’est pour cela que la même question donne des réponses différentes. <i>Dans le jeu :</i> le sac et les trois tours de l’étape 2." },
+  { term: "Les données d’entraînement décident de ce qui peut sortir", def: "Tout ce que la machine produit vient des textes qu’elle a vus. Ce qui y est fréquent sort souvent ; ce qui est rare ou absent sort peu, ou jamais : c’est un <b>biais</b>. Avec peu d’exemples, elle produit quand même une réponse qui a l’air juste mais peut être fausse : on parle d’<b>« hallucination »</b>. <i>Dans le jeu :</i> le loup (peu d’exemples) et l’abeille (aucun)." }
+];
+const NOTIONS_AFTER = "Dans le jeu, c’est une image : une fiche des chances pour le calcul, un sac pour le tirage au sort, une phrase toute faite pour l’histoire.";
+
+/* ---------- Écran 9, avant la fin : ce que l'activité simplifie (step = le texte affiché ; at = les étapes où la ligne revient dans « Pour toi » ;
+   risk = l'idée fausse que la simplification peut donner, affichée « Attention » dans le tiroir) ---------- */
+const SIMP_TITLE = "Pour aller plus loin : ce que l'activité simplifie";
+const SIMP_HEAD = ["Dans l'activité", "Pourquoi on simplifie", "Dans une vraie IA"];
+const SIMP = [
+  { game: "Des enfants jouent la machine", step: "étapes 1 et 4", at: [1, 4], why: "On voit chaque étape séparément.",
+    ai: "Un seul programme qui calcule. Personne ne lit, personne n’écrit : le même calcul produit chaque mot.",
+    risk: "les élèves peuvent croire que quelqu’un, dans la machine, lit ou écrit la réponse." },
+  { game: "Un code par carte", step: "étape 1", at: [1], why: "Un mot, un code : facile à noter.",
+    ai: "Chaque mot (ou morceau de mot) devient une longue liste de nombres." },
+  { game: "Une fiche des chances toute prête", step: "étapes 1 et 2", at: [1, 2], why: "Les chances se voient et se comptent avec les mains.",
+    ai: "Les chances sont calculées à chaque mot, à partir de tous les mots déjà là. Il n’y a pas de fiches.",
+    risk: "les élèves peuvent croire que la machine garde des fiches et va les chercher." },
+  { game: "L’objet dépend seulement du lieu", step: "étape 1", at: [1], why: "Une seule fiche à la fois : on suit le calcul pas à pas.",
+    ai: "Elle tient compte de tous les mots déjà là : la demande, le personnage, le lieu…" },
+  { game: "Sans fiche, le Calculateur prend la fiche d’un mot qui lui ressemble", step: "étape 3", at: [3], why: "On voit ce qu’elle fait avec un mot qu’elle n’a jamais vu.",
+    ai: "Il n’y a pas de fiches, mais l’idée est proche : un mot qu’elle a peu vu est traité comme les mots qui reviennent dans les mêmes phrases que lui (pour « abeille » : « oiseau », « papillon »…). Ce qui sort peut être plausible et faux." },
+  { game: "Une carte qui n’est sur aucune fiche ne sort jamais", step: "étape 3", at: [3], why: "On voit tout de suite ce qui manque dans ses données.",
+    ai: "Elle n’a pas de liste fermée de mots : un mot très rare dans ses données peut quand même sortir, mais très rarement.",
+    risk: "dis « rarement », pas « jamais », pour une vraie IA." },
+  { game: "Une phrase toute faite", step: "étapes 1 et 2", at: [1, 2], why: "Une histoire par tirage, facile à lire et à comparer.",
+    ai: "Il n’y a pas de phrase toute faite : chaque mot est produit de la même façon, l’un après l’autre.",
+    risk: "les élèves peuvent croire que l’histoire existe déjà quelque part." }
+];
+const SIMP_AFTER = "Tes élèves l’ont découvert à l’étape 4. Le calcul des chances et le tirage au sort, eux, sont vrais.";
+
+/* ---------- Écran 4 : le plan de la leçon (ess = Essentiel ; sinon « Peut se raccourcir ») ; found = ce qu'on y fait (le seul résumé de l'étape) ---------- */
+const STEPS = [
+  { n: 1, title: "Une demande, une histoire", min: 12, ess: true, found: "Un personnage demandé ; la machine produit le lieu, puis l’objet, avec ses fiches des chances." },
+  { n: 2, title: "Toujours la même histoire ?", min: 10, ess: true, found: "La même demande, plusieurs tirages : ce qui revient souvent sort plus souvent… mais pas toujours." },
+  { n: 3, title: "Et sur ce qu’elle a peu vu ?", min: 9, ess: true, found: "Un loup vu dans 2 histoires seulement : plausible, pas vérifié. Puis : qu’est-ce qui manque ? (En option : une abeille jamais vue.)" },
+  { n: 4, title: "Qui écrit l’histoire ?", min: 11, ess: true, found: "Dans le jeu, qui a fait l’histoire ? Et dans une vraie IA ? 4 phrases à trier, puis la trace écrite." }
+];
+const TAGS = { ess: "Essentiel", short: "Peut se raccourcir" };   // seule l'étiquette « Peut se raccourcir » est affichée (plan et bandeau)
+const PLAN_TITLE = "clique sur une étape pour l’ouvrir";                 // à droite du bandeau du haut, après PLAN_SUB
+const PLAN_SUB = "4 étapes · 42 min + 10 min d’installation";           // 12 + 10 + 9 + 11 = 42 (l’abeille en option : + 3 min ; avant le 21 nov. 2026, étape 3 = 12 min) (l'addition sous la ligne des étapes est calculée avec STEPS)
+const DONE_MARK = "fait ✓";
+
+/* ---------- Écran 3 : préparer la séance (le matériel, les rôles, la règle à dire, l'installation de la classe) ---------- */
+const BEFORE_TITLE = "Avant la séance : imprime le matériel, choisis les rôles";
+const BEFORE_MAT = [
+  ["Le matériel", "les fiches des chances (une par personnage, une par lieu), les cartes rôles, les cartes Auteurs et les cartes du Calculateur avec leurs exemplaires."],
+  ["6 rôles", "3 Auteurs choisissent un personnage ; l’Encodeur note son code ; le Calculateur remplit le sac et tire au sort ; le Rédacteur place les cartes dans la phrase."],
+  ["Le reste de la classe", "par deux, la fiche Observateurs : prédire, puis noter ce qui sort (étapes 1 à 3)."],
+  ["Installation", "10 min, avant la séance si possible : côté Machine, côté Humains (voir l’écran suivant)."]
+];
+const BEFORE_SAY = "« Aujourd’hui, la classe devient une machine qui fabrique des histoires. Chacun a un rôle et ne fait que son rôle. Les Auteurs, vous ne regardez pas ce que fait la machine. »";
+const BEFORE_NOTE = "Garde la fiche du loup à part jusqu’à l’étape 3.";
+const CALC_ALT = "Le Calculateur, pas à pas : 1. il lit le code sur la bande ; 2. il prend la fiche des chances de ce code ; 3. il prend dans les piles autant de cartes que le nombre × et les met dans le sac ; 4. il secoue et tire une carte sans regarder, puis la donne au Rédacteur. Ensuite il recommence avec la fiche du lieu tiré et le sac Objet.";
+/* Écran « Installer la classe » : [numéro sur le plan, qui, avec quoi] ; 0 = pas de numéro */
+const SETUP_LEG = [
+  [1, "Les 3 Auteurs (Humains)", "la fiche DEMANDE et les 6 cartes personnages. Le loup et l’abeille restent à part jusqu’à l’étape 3."],
+  [2, "L’Encodeur", "les bandes de transmission et un crayon."],
+  [3, "Le Calculateur", "les fiches des chances, les cartes en piles (une pile par carte), 2 sacs (Lieu, Objet) et la page « pas à pas »."],
+  [4, "Le Rédacteur", "la fiche résultat."],
+  [0, "Le reste de la classe", "par deux, la fiche Observateurs."]
+];
+const SETUP_NOTE = "Les Auteurs ne voient pas les fiches de la machine : une rangée de tables ou un cartable debout fait la séparation.";
+const SETUP_ALT = "L’installation de la classe. Côté Machine : l’Encodeur avec les bandes ; le Calculateur avec les 12 fiches des chances, les cartes en piles (une pile par carte) et 2 sacs, Lieu et Objet ; le Rédacteur avec la fiche résultat. Côté Humains : les 3 Auteurs avec la fiche DEMANDE et les 6 cartes personnages ; le reste de la classe avec la fiche Observateurs.";
+
+/* La séance en 30 minutes (derrière le bouton « Peu de temps ? ») : 8 + 7 + 7 + 8 = 30 ; l'installation est faite avant */
+const SHORT_TITLE = "La séance en 30 minutes";
+const SHORT_BTN = "Peu de temps ? <span>La séance en 30 minutes</span> ›";
+const SHORT = [
+  ["1 · 8 min", "la règle, puis une demande (un personnage) jusqu’à l’histoire."],
+  ["2 · 7 min", "trois tours de la même demande, le compteur, « Quel lieu sort le plus souvent ? Pourquoi ? »."],
+  ["3 · 7 min", "le loup et le vote, puis ses fiches : ce qui n’y est pas, en une minute (sans l’abeille)."],
+  ["4 · 8 min", "« Dans le jeu, qui a fait l’histoire ? Et dans une vraie IA ? », les phrases 1 et 2, puis la trace écrite lue et copiée."]
+];
+const SHORT_INTRO = "42 min → 30 min : dans chaque étape, garde l’essentiel, allège le reste.";
+const SHORT_COLS = ["Étape", "Garde", "Allège"];
+const SHORT_MIN = [8, 7, 7, 8];   // la durée de chaque étape dans la séance de 30 minutes (STEPS[k].min = la durée complète)
+const SHORT_ROWS = [   // 25 nov. 2026 : quelques mots par case (le détail reste dans HELP keep / cut, onglet « Ce moment »)
+  ["Les rôles, puis une demande jouée en entier", "Le code dit à voix haute"],
+  ["3 tours et le compteur", "2 tours, réponse à main levée"],
+  ["Le loup et le vote", "Pas d’abeille ; les fiches en une phrase"],
+  ["« Qui a fait l’histoire ? » et la trace écrite", "Phrases 1 et 2 ; tu écris la trace"]
+];
+const LONG = "<b>Plus de temps ? + 10 min.</b> Change les données : sur la fiche du dragon, mets 4 forêts au lieu de 2. Même demande : « Pourquoi les histoires changent-elles ? »";
+
+/* Les mots à dire et à éviter, et le lien avec l'autre activité */
+const WORDS_TITLE = "Les mots à dire et à éviter";
+const WORDS_USE = "elle calcule les mots les plus probables · un mot à la fois · tirer au sort parmi les plus probables · ce qui revient souvent sort plus souvent · plausible, pas vérifié · c’est une image · personne n’écrit";
+const WORDS_AVOID = "elle cherche · elle comprend · elle sait · elle lit · elle choisit · elle aime · elle change d’avis · le Rédacteur écrit (comme un fait) · « jamais », « toujours » (pour une vraie IA) · « la plus probable » · « codes proches » (module de conception)";
+const LINK_LABEL = "Et ensuite";
+const LINK_TEXT = "Ici, les chances sont données. Dans « Comment concevons-nous l’IA ? », la classe les calcule elle-même, par l’entraînement.";
+
+/* Le bandeau du haut de chaque écran : [le titre, à gauche ; l'info en gris, à droite ("" = rien)]. Aussi le nom des stations de la barre du bas. */
+const WHERE = {
+  intro: ["Avant de commencer", "Pourquoi ce jeu"],
+  notions: [NOTIONS_TITLE, "Avant de commencer"],
+  prep: ["Préparer la séance", "Ce qu’il faut imprimer et installer"],
+  setup: ["Installer la classe", "Où se met chacun, avec quoi"],
+  plan: ["Le plan de la leçon", `${PLAN_SUB} · ${PLAN_TITLE}`],
+  simp: [SIMP_TITLE, ""],
+  end: ["Fin de la leçon", ""],
+  step: s => [`Étape ${s.n} : ${s.title}`, `${s.min} min`]
+};
+const CLASSE_LABEL = "En classe";
+const SAY_LABEL = "Consigne :";
+
+/* ---------- « Pour toi » : les trois onglets et le tiroir ---------- */
+const ME_TITLE = "Pour toi";
+const ME_TABS = { moment: "Pour comprendre", why: "Pour comprendre", ideas: "Pour comprendre", simp: "Pour comprendre" };   // le titre du tiroir
+const ME_SHORT = { moment: "Ce moment", why: "L’étape", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };   // les 3 onglets du bord droit, dans cet ordre
+const ME_LBL = { keep: "Essentiel", cut: "Peut se raccourcir", idea: "Idée fréquente", fact: "En fait", ask: "Demande", use: "Préférer :", avoid: "Éviter :",
+  simpIntro: "Les simplifications de cette étape. Le tableau complet est à la fin de la leçon.",
+  why2: "Pourquoi", ai: "Dans une vraie IA", more: "Pour aller plus loin", relances: "Les relances, avec une réponse possible",
+  anne: "Ce que fait Claudia", because: "Pourquoi ils le pensent", risk: "Attention",
+  whyStep: "Pourquoi cette étape", useT: "Préférer", avoidT: "Éviter",
+  kidSays: "Un élève dit :", inGame: "Dans le jeu", flipHint: "Retourner ›", simpFlip: "Chaque carte montre ce que fait le jeu. Retourne-la : que se passe-t-il dans une vraie IA ?", relTurn: "Une réponse possible ›", guess: "Que répondrais-tu ? Pense à ta réponse, puis retourne la carte.", turn: "Retourner la carte ›", nextIdea: "Idée suivante ›",
+  ideaN: (i, n) => `Idée ${i} sur ${n}` };
+/* Pour chaque étape (1 à 4) : why = pourquoi cette étape ; anne = ce que fait Claudia (le champ s'appelle « anne » comme dans Robot dessine 1,
+   pour que le code reste le même : c'est bien la ligne de Claudia) ; keep / cut = ce qui est essentiel, ce qui peut se raccourcir ;
+   ideas = idée fréquente (idea), pourquoi les élèves le pensent (because) et idée juste (fact) ; ask = ce que tu demandes ; use / avoid = les mots ;
+   more = « Pour aller plus loin » (dans l'onglet « Simplification ») */
+const HELP = [
+  { why: "D’abord on joue une demande en entier, sans rien expliquer. La classe voit qu’à partir d’un seul mot, le personnage, la machine ajoute un lieu, puis un objet : chaque fois, elle tire une carte dans un sac rempli d’après une fiche des chances. Les explications viennent aux étapes suivantes.",
+    anne: () => `Avant de remplir le sac, je fais lire la fiche à voix haute. Par exemple : « Après ${bare(askedNow())}, ${SHEET.get(askedNow()).next.map(([q, x]) => `${bare(q)} ${x} fois`).join(", ")}. »`,   // suit le personnage choisi à l’étape 1
+    keep: "expliquer les rôles : chaque enfant fait seulement sa tâche. Puis jouer une demande en entier, du personnage jusqu’à l’histoire.",
+    cut: "l’Encodeur dit le code à voix haute au lieu de l’écrire sur la bande.",
+    ideas: [{ idea: "« La machine sait que les dragons vivent dans des châteaux. »",
+              because: "L’histoire a l’air logique : on pense que quelqu’un l’a voulue ainsi.",
+              fact: "Elle a calculé : après « dragon », « château » revient souvent dans ses histoires d’entraînement. Elle ne sait rien des dragons." }],
+    ask: "« Pourquoi le château a-t-il 3 exemplaires dans le sac, et l’espace un seul ? »",
+    use: "la fiche des chances · tirer au sort · mot après mot · les mots déjà là",
+    avoid: "elle sait, elle choisit, elle a compris la demande, elle cherche la fiche",
+    more: "Une vraie IA n’a pas de fiche toute prête : pour chaque nouveau mot, elle calcule les chances de tous les mots possibles, à partir de tous les mots déjà là. Dans le module « Comment concevons-nous l’IA ? », la classe fabrique elle-même ses fiches à partir d’histoires." },
+  { why: "Sans le tirage au sort, les élèves croient qu’une machine donne toujours la même réponse, ou qu’elle change d’avis.",
+    anne: "Moi, avant chaque tour, je fais prédire : « Que va-t-il sortir ? » Les Observateurs notent, puis on compare avec le compteur.",
+    keep: "trois tours de la même demande, le compteur, puis « Quel lieu sort le plus souvent ? Pourquoi ? ».",
+    cut: "deux tours seulement, et la question à main levée.",
+    ideas: [{ idea: "« La machine choisit ce qu’elle préfère. »",
+              because: "Quand une personne prend souvent la même chose, c’est qu’elle la préfère.",
+              fact: "Elle n’a pas de goûts : elle tire au sort parmi les plus probables. Le château sort souvent parce qu’il revient souvent après « dragon » dans ses données." },
+            { idea: "« Si l’histoire change, la machine change d’avis. »",
+              because: "Quand une personne répond autrement, c’est qu’elle a changé d’avis.",
+              fact: "Le calcul est le même à chaque tour ; c’est le tirage au sort qui change. Pas n’importe quoi, pas toujours la même chose." }],
+    ask: "« Le château pouvait-il ne pas sortir ? Et la mer, pouvait-elle sortir ? »",
+    use: "tirer au sort parmi les plus probables · ce qui revient souvent sort plus souvent · mais pas toujours",
+    avoid: "elle préfère, elle choisit, elle change d’avis, « toujours », « jamais » (pour une vraie IA)",
+    more: "Dans une vraie IA, un réglage, la « température », élargit ou resserre le tirage au sort : plus elle est basse, plus les mêmes suites reviennent." },
+  { why: "Une phrase bien tournée n’est pas forcément juste : sur ce qu’elle a peu vu, la machine se trompe plus souvent. On vérifie.",
+    anne: "Moi, je laisse voter avant de dire quoi que ce soit ; puis je montre « appris dans 2 histoires » sur la fiche du loup.",
+    keep: "le loup, sa fiche « appris dans 2 histoires » et le vote, puis ses fiches : ce qui revient souvent, ce qui n’y est pas.",
+    cut: "l’abeille est en option ; ses fiches : montre seulement ce qui n’y est pas, en une phrase.",
+    ideas: [{ idea: "« Les loups vivent dans la forêt : elle aurait dû le savoir. »",
+              because: "Pour nous, c’est évident : on en a vu dans beaucoup d’histoires.",
+              fact: "Elle n’a vu que 2 histoires de loup, et le loup y était dans une chambre : ses chances viennent de là." },
+            { idea: "« Si elle ne sait pas, elle va dire qu’elle ne sait pas. »",
+              because: "Nous, quand on ne sait pas, on peut le dire : ils pensent qu’elle fait pareil.",
+              fact: "Elle calcule toujours une suite plausible : elle ne vérifie pas si elle sait. C’est pour ça qu’on vérifie." }],
+    ask: "« Dans combien d’histoires a-t-elle vu un loup ? Que faudrait-il pour qu’elle se trompe moins ? »",
+    use: "plausible, pas vérifié · elle se trompe plus souvent sur ce qu’elle a peu vu · on vérifie · ce qui est rare sort rarement",
+    avoid: "elle ment, elle invente exprès, elle ne sait pas que…, « jamais » (pour une vraie IA)",
+    more: "On dit parfois qu’une IA « hallucine » : elle produit une réponse bien tournée mais fausse. Ça arrive plus souvent sur ce qui est rare dans ses données." },
+  { why: "Le jeu est une image : sans cette étape, les élèves gardent l’idée de fiches qu’on va chercher et de quelqu’un qui écrit.",
+    anne: "Moi, la classe vote avant que je donne la réponse ; on ne discute que les phrases où elle hésite.",
+    keep: "« Dans le jeu, qui a fait l’histoire ? Et dans une vraie IA ? », les 4 phrases, la trace écrite copiée.",
+    cut: "seulement les phrases 1 et 2 ; écris toi-même la trace et lis-la avec la classe.",
+    ideas: [{ idea: "« Elle cherche dans une boîte, comme le Calculateur avec ses fiches. »",
+              because: "Dans le jeu, le Calculateur prend vraiment une fiche et remplit un sac.",
+              fact: "Seulement dans le jeu. Elle n’a ni fiches ni boîte : elle calcule les chances à chaque mot." },
+            { idea: "« Il y a quelqu’un derrière l’écran qui écrit. »",
+              because: "La réponse ressemble à ce qu’écrirait une personne.",
+              fact: "Personne n’écrit : le même calcul produit chaque mot, l’un après l’autre." }],
+    ask: "« Où seraient les fiches, dans la machine ? Que fait-elle à chaque mot ? »",
+    use: "c’est une image, seulement dans le jeu · elle calcule les mots les plus probables · personne n’écrit · elle produit",
+    avoid: "elle cherche, elle retrouve, elle se souvient, elle écrit, le Rédacteur écrit",
+    more: "Certains assistants lancent aussi une recherche sur internet ; mais la réponse elle-même est produite par le calcul, mot après mot. Un texte répété très souvent dans les données peut ressortir presque mot pour mot." }
+];
+
+/* ---------- Les cartes : trois familles, d'après « MàH – Fiches cartes et numéros » et « MaH – Cartes symbole IA ».
+   Le code est au dos de chaque carte : une lettre et un nombre (il sert seulement à passer du mot au nombre, et retour).
+   Les dessins sont dans images/c-….png. name = avec son article ; at = le lieu dans une phrase (« vivait dans une forêt ») ---------- */
+const FAMILIES = ["Personnage", "Lieu", "Objet"];
+const C = (file, name, code, at) => ({ file, name, code, at });
+const ALL = {
+  abeille: C("abeille", "une abeille", "A 1"), bebe: C("bebe", "un bébé", "P 45"), oiseau: C("oiseau", "un oiseau", "A 3"), enfant: C("enfant", "un enfant", "P 46"),
+  chat: C("chat", "un chat", "A 8"), papa: C("papa", "un papa", "P 50"), chien: C("chien", "un chien", "A 9"), chevalier: C("chevalier", "un chevalier", "P 52"),
+  loup: C("loup", "un loup", "A 10"), dragon: C("dragon", "un dragon", "A 16"),
+  espace: C("espace", "l’espace", "E 30", "dans l’espace"), ruche: C("ruche", "une ruche", "H 80", "dans une ruche"), foret: C("foret", "une forêt", "E 34", "dans une forêt"),
+  ferme: C("ferme", "une ferme", "H 82", "dans une ferme"), mer: C("mer", "la mer", "E 36", "au bord de la mer"), chambre: C("chambre", "une chambre", "H 86", "dans une chambre"),
+  piscine: C("piscine", "une piscine", "E 37", "près d’une piscine"), chateau: C("chateau", "un château", "H 90", "dans un château"),
+  place: C("place-de-jeux", "une place de jeux", "E 39", "près d’une place de jeux"), carrosse: C("carrosse", "un carrosse", "E 44", "dans un carrosse"),
+  tele: C("television", "une télévision", "L 65"), chaudron: C("chaudron", "un chaudron", "N 17"), baguette: C("baguette-magique", "une baguette magique", "L 68"),
+  lait: C("lait", "une bouteille de lait", "N 20"), couronne: C("couronne", "une couronne", "L 70"), fromage: C("fromage", "un fromage", "N 21"),
+  cadeau: C("cadeau", "un cadeau", "L 72"), gateau: C("gateau", "un gâteau", "N 26"), ballon: C("ballon", "un ballon", "L 74"), balle: C("balle", "une balle", "L 75")
+};
+const pick = keys => keys.split(" ").map(k => ALL[k]);
+
+/* ---------- Les fiches des chances (« la machine les a calculées à partir de beaucoup d'histoires ») : pour le mot d'avant, les cartes qui peuvent venir
+   après et leur nombre d'exemplaires dans le sac. n = « appris dans n histoires » (affiché seulement si n est donné).
+   Jamais sur aucune fiche : la mer, la piscine, la place de jeux, le carrosse, la ruche (pour « Qu'est-ce qui manque ? »). ---------- */
+const CHANCES_PERSO = {   // après un personnage : les lieux
+  dragon:    { n: 6, next: { chateau: 3, foret: 2, espace: 1 } },
+  chevalier: { n: 5, next: { chateau: 4, foret: 1 } },
+  chat:      { n: 6, next: { chambre: 3, ferme: 2, foret: 1 } },
+  chien:     { n: 6, next: { ferme: 3, chambre: 2, foret: 1 } },
+  bebe:      { n: 5, next: { chambre: 4, ferme: 1 } },
+  oiseau:    { n: 4, next: { foret: 3, ferme: 1 } },
+  loup:      { n: 2, next: { chambre: 2 } }          // rare : seulement 2 histoires (étape 3)
+};
+const CHANCES_LIEU = {    // après un lieu : les objets (simplification : l'objet dépend seulement du lieu)
+  chateau: { next: { couronne: 3, chaudron: 1 } },
+  foret:   { next: { chaudron: 2, balle: 1, gateau: 1 } },
+  chambre: { next: { ballon: 2, tele: 2, gateau: 1 } },
+  ferme:   { next: { lait: 3, fromage: 2 } },
+  espace:  { next: { ballon: 1, tele: 1 } }
+};
+const ASK_CARDS = pick("dragon chevalier chat chien bebe oiseau");   // étape 1 : les personnages que les Auteurs peuvent demander (pas le loup)
+const DEFAULT_ASK = ALL.dragon;                                       // la demande prise à l'étape 2 si l'étape 1 n'a pas été jouée
+const RARE = ALL.loup;                                                // la demande de l'étape 3
+const NO_SHEET = ALL.abeille;                                         // étape 3, 2e cas : un personnage sans aucune fiche (dans aucune histoire d'entraînement).
+const LIKE = ALL.oiseau;                                              // le Calculateur prend alors la fiche d'un mot qui lui ressemble : l'oiseau (un petit animal qui vole)
+/* L'histoire du Rédacteur, avec les trois cartes */
+const STORY = (p, l, o) => `Il était une fois ${p.name} qui vivait ${l.at}. Un jour, en se promenant, ${/(^|>)une /.test(p.name) ? "elle" : "il"} trouva ${o.name}… et l’aventure commença !`;   // « elle » pour une abeille
+/* Les mots sur la fiche des chances et le sac */
+const CH = { title: "Fiche des chances", after: w => `après « ${w} »`, learned: n => `appris dans ${n} histoires`,
+  bag: f => `Sac ${FAMILIES[f]}`, bagN: n => `${n} cartes : une par exemplaire`, notYet: "pas encore tiré",
+  waitObj: "La fiche suivante dépend du lieu tiré au sort.", tally: "Combien de fois ?", tallyAsk: "Le plus souvent ?",
+  like: "fiche d’un mot qui lui ressemble :", learned0: "appris dans 0 histoire", none: "aucune fiche",
+  machine: "Machine", humans: "Humains : ils ne voient pas la machine", outLbl: "sorti", story: "L’histoire assemblée par le Rédacteur",
+  storyWait: "L’histoire : le Rédacteur l’assemblera avec les codes", zoom: "Voir la fiche imprimée", bagIn: f => `Dans le sac ${FAMILIES[f]}`,
+  waitAsk: "attend la demande", waitCode: "attend le code", waitCodes: "attend les codes",
+  sheetsAll: "Toutes ses fiches des chances", sheetsPerso: "Après un personnage", sheetsLieu: "Après un lieu" };
+
+/* ---------- Étape 1 : une demande, une histoire. Auteurs et Encodeur sur le même tableau (le code apparaît tout seul),
+   puis le Calculateur (une fiche des chances et un sac pour le lieu, puis pour l'objet), puis le Rédacteur ---------- */
+const PHASES = ["Auteurs", "Encodeur", "Calculateur", "Rédacteur"];   // Auteurs et Encodeur groupés
+const FICHES = { author: "Je veux une histoire avec…", encoder: "On demande une histoire avec…", writer: "Résultat",
+  footAuthor: "Fiche DEMANDE · Auteurs", footEncoder: "Bande de transmission · Encodeur", footWriter: "Fiche résultat · Rédacteur" };
+const FLIP_MS = 1500;   // la durée de l'animation « la carte se retourne en son code » (ms)
+const SAY1 = {
+  author: { now: "Tu joues les Auteurs : choisis un personnage.", say: "« Auteurs, à vous : quel personnage voulez-vous dans votre histoire ? »" },
+  coding: name => ({ now: "L’Encodeur retourne la carte et note son code sur la bande.", say: `« Je veux une histoire avec ${name}. »` }),
+  coded: { now: "La bande part chez le Calculateur : il ne verra que le code.", say: "« Voici une nouvelle demande. »" },
+  calc: (code, list) => ({ now: "Le Calculateur remplit le sac Lieu et tire sans regarder.", say: "« Regardez la fiche : quelle carte y est le plus de fois ? Laquelle a le plus de chances de sortir ? »" }),
+  got: w => ({ now: `Sorti : ${w}. Le Calculateur remet les autres cartes dans les piles.`, say: "« Pourquoi ce lieu-là ? Il avait plus d’exemplaires… ou c’est le hasard ? »" }),
+  calcObj: (w, list) => ({ now: "Il remplit le sac Objet et tire.", say: "« Maintenant, l’objet : il dépend du lieu qui est sorti. »" }),
+  calcDone: { now: "Le Calculateur a ses 3 codes : il les passe au Rédacteur.", say: "" },
+  end: { now: "Lis l’histoire à la classe.",
+         say: "« Voilà notre histoire ! Et si on recommence avec le même personnage, vous pensez qu’on aura la même ? »" }
+};
+
+/* ---------- Étape 2 : toujours la même histoire ? La même demande, ROUNDS tours, le compteur des lieux, puis la question ---------- */
+const ROUNDS = 3;   // la même demande, rejouée trois fois (« Tirer encore » en ajoute)
+const REQUEST_LABEL = "La demande des Auteurs :";
+const ROUND_LABEL = n => `Tour ${n}`;
+const ROUND_WAIT = "pas encore tiré";
+const SAY2 = {
+  start: { now: "Même demande qu’à l’étape 1 : rejoue-la, tour après tour. Le compteur note le lieu sorti.", say: "« On recommence avec le même personnage. À votre avis, qu’est-ce qui va sortir ? »" },
+  mid: n => ({ now: `Tour ${n} noté. Rejoue la même demande.`, say: "« Même personnage… même histoire ? »" }),   // garde « Tour n noté. » (le code l'enlève si besoin)
+  same: "Encore la même histoire ! Ça arrive : le hasard peut donner deux fois la même chose.",
+  ask: { now: "Laisse la classe répondre à voix haute, puis montre la réponse.", say: "« Regardez le compteur. Quel lieu est sorti le plus souvent ? Pourquoi, d’après vous ? »" },
+  right: w => `Réponse : ${w} a le plus d’exemplaires sur la fiche. C’est le lieu qui revient le plus souvent après ce personnage dans les histoires.`,
+  other: (w, best) => `Dans nos tours, peut-être. Mais sur la fiche, c’est ${best} qui a le plus d’exemplaires : à force de tirer, c’est lui qui sort le plus souvent.`,
+  end: { say: "« Le lieu qui a le plus de cartes dans le sac sort plus souvent… mais pas à tous les coups. C’est le tirage au sort. »" }
+};
+/* Les relances, avec une réponse possible : dans l'onglet « Pourquoi » de l'étape 2 */
+const RELANCES = [
+  { q: "« Quel lieu sort le plus souvent ? Pourquoi ? »", a: "Celui qui a le plus d’exemplaires : il revient le plus souvent après ce personnage dans les histoires." },
+  { q: "« Pourquoi pas toujours le même ? »", a: "C’est un tirage au sort : un lieu qui a moins d’exemplaires peut sortir aussi." }
+];
+
+/* ---------- Étape 3 : et sur ce qu'elle a peu vu ? Un loup (appris dans 2 histoires) et le vote, puis une abeille (aucune fiche : la fiche d'un mot qui lui ressemble),
+   puis ses fiches et « Qu'est-ce qui manque ? » ---------- */
+const OBSERVE = {   // « Ses fiches » : la classe observe, l'enseignant·e montre (plus de question à choix)
+  often: "Revient souvent", oftenText: (w, n, f) => `${w} : ${n} exemplaires, sur ${f} fiches. C’est le lieu qui sort le plus souvent.`,
+  missing: "N’y est pas", missingText: "la mer, la piscine, la ruche, la place de jeux, le carrosse : elles ne sortent jamais dans le jeu." };
+const MISSING = pick("mer piscine ruche place carrosse");
+const cap = w => w.charAt(0).toUpperCase() + w.slice(1);   // jamais sur aucune fiche
+const SAY3 = {
+  start: { now: "Les Auteurs demandent un loup. Sa fiche des chances dit : appris dans 2 histoires seulement.", say: "« Maintenant, les Auteurs demandent un loup. Écoutez bien l’histoire. »" },
+  vote: { now: "Lis l’histoire avec la classe, fais voter à main levée, puis clique la réponse.", say: "« Levez la main : qui trouve que c’est une vraie histoire de loup ? »" },
+  votedYes: "La classe a dit oui : la phrase a l’air juste. Mais un loup qui vit dans une chambre ?",
+  votedNo: "La classe a dit non : un loup qui vit dans une chambre, ce n’est pas vraiment une histoire de loup.",
+  conclude: "« Regardez sa fiche : la machine n’a vu le loup que dans deux histoires, et les deux fois, il était dans une chambre. Alors elle le met dans une chambre. Elle ne dit pas « je ne sais pas » : même avec très peu d’exemples, elle répond, l’air sûr. Bien écrit ne veut pas dire juste : c’est à nous de vérifier. »",
+  bee: { now: "Les Auteurs demandent une abeille. Le Calculateur n’a pas de fiche : il prend celle de l’oiseau.",
+         say: "« La machine n’a vu aucune histoire d’abeille. Elle prend la fiche d’un mot qui lui ressemble, l’oiseau, et fait quand même une histoire. Le jeu ne lui permet pas de dire « je ne sais pas ». Une vraie IA peut le dire, mais rarement : le plus souvent, elle répond quand même, avec une réponse qui a l’air sûre. »" },
+  beeEnd: { now: "Lis l’histoire de l’abeille à la classe, puis montre toutes ses fiches.",
+            say: "« La machine n’a vu aucune histoire d’abeille. Elle prend la fiche d’un mot qui lui ressemble, l’oiseau, et fait quand même une histoire. Le jeu ne lui permet pas de dire « je ne sais pas ». Une vraie IA peut le dire, mais rarement : le plus souvent, elle répond quand même, avec une réponse qui a l’air sûre. »" },
+  deck: { now: "Voici toutes ses fiches des chances : c’est tout ce qui peut sortir. Laisse la classe observer.", say: "« Ces fiches, c’est tout ce que la machine a appris. Qu’est-ce qui revient souvent ? »" },
+  often: { now: "La chambre revient sur beaucoup de fiches, avec beaucoup d’exemplaires : elle sort souvent dans ses histoires.", say: "« Et qu’est-ce qui n’y est pas du tout ? Dans le jeu, ça ne sort jamais ; dans une vraie IA, cela sort avec une probabilité très faible. »" },
+  deckOk: { now: "Ce qui n’est sur aucune fiche ne sort jamais dans le jeu. Termine par : « Mais alors, qui écrit l’histoire ? »", say: "« Dans une vraie IA, ce qui revient souvent sort souvent ; ce qui est rare sort rarement. »" }
+};
+/* ---------- « Comprendre » (étapes 1 à 3) : sous chaque moment du jeu, une ligne « Ce qui se passe » toujours visible ;
+   « Pourquoi ? › » ouvre la raison et le lien avec une vraie IA (same = « Pareil dans une vraie IA », game = « Seulement dans le jeu »).
+   Textes repris des notions, du tableau « Ce que l’activité simplifie », du tri et de la trace écrite ; les phrases nouvelles sont à relire (20 nov. 2026).
+   v = { who, w (le mot sorti ou le lieu), list (les exemplaires), n, of (chances du mot sorti : n sur of) } ---------- */
+const COMP = { sameShort: "= vraie IA", gameShort: "≠ vraie IA", noMoment: "Avance dans l’étape : ici s’affiche le pourquoi de chaque moment du jeu.", now: "À ce moment du jeu", step: "Pour toute l’étape", label: "Ce qui se passe", open: "Pourquoi ? ›", close: "‹ Retour", why: "Pourquoi", same: "Pareil dans une vraie IA", game: "Seulement dans le jeu", more: "En savoir plus ›" };
+const MOMENTS = {
+  author: { what: () => "Les Auteurs ne choisissent que le premier mot : le personnage. Tout le reste, la machine le produit.",
+    why: "Une IA générative part du texte qu’on lui donne et produit la suite.", tag: ["same", "On lui donne un début, elle produit la suite."] },
+  code: { what: v => `L’Encodeur remplace la carte par son code : ${v.who.code}. La machine ne reçoit que ce code.`,
+    why: "Une machine calcule avec des nombres : chaque mot est d’abord changé en nombres.", tag: ["same", "Une vraie IA découpe le texte en petits morceaux (des « tokens ») et change chacun en nombres."] },
+  sheet: { what: v => `La fiche « après ${v.w} » dit ce qui peut venir ensuite, et combien d’exemplaires : ${v.list}.`,
+    why: "Ces nombres viennent des histoires d’entraînement : ce qui suit souvent ce mot a plus d’exemplaires.", tag: ["game", "Elle n’a pas de fiches toutes faites : elle calcule les chances à chaque mot, à partir de tous les mots déjà là."] },
+  draw: { what: v => `${cap(v.w)} avait ${v.n} chance${v.n > 1 ? "s" : ""} sur ${v.of}. Cette fois, c’est ${v.w} qui est sorti.`,
+    why: "La machine tire au sort parmi les plus probables : le plus probable sort plus souvent, mais pas toujours.", tag: ["same", "C’est pour ça que la même demande peut donner des réponses différentes."] },
+  sheet2: { what: v => `Le mot suivant dépend du lieu sorti : la fiche « après ${v.w} » remplit le sac Objet (${v.list}).`,
+    why: "Chaque nouveau mot est calculé à partir des mots déjà là.", tag: ["game", "Ici l’objet dépend seulement du lieu ; une vraie IA tient compte de tous les mots déjà là."] },
+  writer: { what: () => "Le Rédacteur décode : il change les trois codes en mots et les met dans la phrase toute faite. Le personnage demandé est bien dans l’histoire.",
+    why: "À la fin, les nombres redeviennent des mots pour qu’on puisse lire. Personne n’écrit : chaque mot vient du même calcul et d’un tirage au sort.", tag: ["game", "Il n’y a ni Rédacteur ni phrase toute faite : chaque mot est produit de la même façon, l’un après l’autre."] },
+  rounds: { what: v => v.n ? `Même demande, nouveau tirage : tour ${v.n}, ${v.w}.` : "La même demande, rejouée plusieurs fois : le compteur note le lieu sorti.",
+    why: "Le tirage au sort explique que la même demande donne des histoires différentes.", tag: ["same", "Une vraie IA peut donner une réponse différente à la même demande."] },
+  count: { what: () => "Le compteur montre combien de fois chaque lieu est sorti.",
+    why: "Ce qui a le plus d’exemplaires sort plus souvent : ce qui revient souvent dans les données sort plus souvent.", tag: ["same", "Ce qui revient souvent dans ses données sort plus souvent ; ce qui est rare sort rarement."] },
+  rare: { what: v => `La fiche « après ${v.w} » a été apprise dans 2 histoires seulement : ${v.list}.`,
+    why: "Avec très peu d’exemples, les chances viennent de presque rien : la suite peut être plausible mais fausse.", tag: ["same", "Elle se trompe plus souvent sur ce qu’elle a peu vu."] },
+  rareStory: { what: () => "La phrase est bien formée. Mais un loup qui vit dans une chambre ? La machine ne vérifie pas.",
+    why: "Elle produit ce qui est plausible d’après ses données, pas ce qui est vérifié.", tag: ["same", "Plausible, pas vérifié : on vérifie."] },
+  like: { what: () => "Aucune histoire d’abeille dans ses données : pas de fiche. Le Calculateur prend celle de l’oiseau, un mot qui lui ressemble.",
+    why: "La machine produit quand même une suite : elle ne signale pas qu’elle a très peu de données.", tag: ["same", "Un mot rare est traité comme les mots qui reviennent dans les mêmes phrases que lui."] },
+  likeStory: { what: () => "Une histoire bien formée, sans une seule histoire d’abeille dans ses données.",
+    why: "Elle produit toujours une suite plausible, même sans données sur ce mot.", tag: ["same", "Elle produit une réponse même sur ce qui est rare dans ses données : on vérifie."] }
+};
+const PATH_LABELS = { band: "Machine", story: "L’histoire" };
+const VOTE_SHOWN = v => `Le vote de la classe : <b>${v}</b>`;   // à l'étape 4, sous l'histoire du loup
+
+/* ---------- Étape 4 : qui écrit l'histoire ? La question pour toi, la réponse de Claudia, 4 phrases à trier, puis la trace écrite.
+   BRIDGE : same = true si c'est pareil dans une vraie IA ; real = la réponse. ---------- */
+const BRIDGE = [   // dans l’ordre de la question : qui écrit ? d’où ça vient ? comment ? et donc ? (ordre changé le 20 nov. 2026 : la donnée pont_vraie_ia suit ce nouvel ordre)
+  { text: "Un Rédacteur écrit l’histoire.", same: false, real: "Personne n’écrit : le même calcul produit chaque mot." },
+  { text: "La machine va chercher les cartes dans une boîte.", same: false, real: "Elle n’a ni cartes ni boîte : elle a gardé des nombres, et calcule les mots les plus probables." },
+  { text: "La machine produit un mot à la fois, en tenant compte des mots déjà là.", same: true, real: "Pareil : elle tient compte de tous les mots déjà là, pas seulement du dernier." },
+  { text: "Si on redemande, l’histoire peut changer.", same: true, real: "Pareil : elle tire au sort parmi les plus probables." }
+];
+const VOTE_LABEL = (k, n) => `Phrase ${k} sur ${n}`;
+const LEAD4 = { label: "Ce que la classe doit découvrir", text: "Dans le jeu, c’est vous qui avez fait l’histoire. Dans une vraie IA, personne n’écrit : le même calcul produit chaque mot, l’un après l’autre, et tire au sort parmi les plus probables." };   // étape 4, avant le tri
+const SAY4 = {
+  lead: { now: "Pose la question à la classe et écoute les idées. Puis la classe trie 4 phrases.", say: "« Dans le jeu, qui a fait l’histoire ? Vous : les Auteurs, l’Encodeur, le Calculateur, le Rédacteur. Et dans une vraie IA, sur un ordinateur : est-ce que quelqu’un écrit l’histoire ? »" },
+  sort: { now: "Lis la phrase ; la classe vote, puis clique sa réponse.", say: "« Est-ce que c’est pareil dans une vraie IA, ou seulement dans notre jeu ? »" },
+  right: "Oui ! ", wrong: "Pas tout à fait : la réponse est sur le tableau. ", nextOne: "Lis la phrase suivante.",
+  wrongLast: col => `Pas tout à fait : c’était « ${col} ». `,   // après le dernier vote, le tableau passe à la trace écrite
+  line: n => ({ now: n === 1 ? "La trace écrite : pose la question, écoute, puis écris la ligne au tableau." : "Ligne suivante." }),
+  end: { now: "Les élèves copient la trace écrite dans leur cahier.", say: "« Les fiches, le sac et vous, les enfants, c’était pour jouer. Mais calculer les chances et tirer au sort, ça, une vraie IA le fait vraiment. »" }
+};
+/* La trace écrite : q = la question à poser à la classe, a = la ligne à écrire au tableau ;
+   show = ce qu'on montre dessous (rounds = les tours de l'étape 2 ; sheet = la fiche et le compteur de l'étape 2 ; loup = l'histoire du loup et le vote ;
+   bridge = les 4 phrases triées). Si l'étape n'a pas été faite, seul le titre s'affiche. */
+const TRACE_LABEL = "La trace écrite";
+const TRACE = [
+  { show: "rounds", q: "« Alors, qui a écrit les histoires ? Et pourquoi la même demande a-t-elle donné des histoires différentes ? »",
+    a: "<b>Personne n’écrit</b> : la machine produit l’histoire <b>un mot à la fois</b> et <b>tire au sort parmi les plus probables</b>. La même demande peut donner des histoires différentes." },
+  { show: "sheet", q: "« Quel lieu sortait le plus souvent ? Pourquoi ? »",
+    a: "<b>Ce qui revient souvent</b> dans ses données sort plus souvent." },
+  { show: "loup", q: "« Et l’histoire du loup ? »",
+    a: "Elle produit ce qui est <b>plausible</b>, pas ce qui est vérifié : sur ce qu’elle a peu vu, elle se trompe plus souvent. <b>On vérifie.</b>" }
+];   // 3 lignes : « personne n’écrit » est dit dans la réponse de Claudia et le tri, pas dans la trace (choix de l’enseignante, 20 nov. 2026)
+const SHOW_LABEL = { rounds: "Les tours (étape 2)", sheet: "La fiche des chances et le compteur (étape 2)", loup: "L’histoire du loup (étape 3)", bridge: "Les 4 phrases triées" };
+
+/* ---------- La question ouverte (pour l'étude) : même clé et MÊME QUESTION que la v5 ; seule la réponse de Claudia change.
+   Enregistrée telle quelle, 255 signes au plus ; « Passer » enregistre "(passé)" ---------- */
+const OQ_LABEL = "Ta réponse";
+const OQ_SKIPPED = "(passé)";
+const OQ_SKIPPED_SHOWN = "Tu as passé la question.";
+const OPEN_Q = {
+  q_quelquun_ecrit: { q: "« Il y a quelqu’un dans la machine qui écrit ? » Que répondrais-tu à un élève ?", hint: "2 ou 3 phrases",
+    answerLabel: "La réponse de Claudia",
+    answer: "Non : personne n’écrit. Le même calcul produit chaque mot, l’un après l’autre : elle tire au sort parmi les plus probables. Dans le jeu, le Rédacteur, c’est une image." }
+};
+
+/* ---------- La fin (la trace écrite de l'étape 4 remplace les lignes « À retenir » : TAKEAWAY = [] ; si tu y mets des lignes, elles s'affichent) ---------- */
+const END_TITLE = "Voilà ta séance prête.";
+const TAKEAWAY = [];
+const INTRO = "";
+const LINKS = [];
+
+/* ---------- Le cadre H2 (26 nov. 2026) : les écrans regroupés comme dans Robot dessine (module 1).
+   ? Pourquoi (le récit, les notions) · Avant la séance (le matériel, l'installation, le plan) · les 4 étapes · ✓ Fin (la séance sur une feuille).
+   Les textes ci-dessus restent ceux de l'activité ; seuls ces libellés sont nouveaux (✎ brouillons de Claude). ---------- */
+const SCREEN_LABELS = { why: "Pourquoi", prep: "Avant la séance", end: "Fin" };          //
+const WHY_Q = "Avant de commencer, mon histoire.";                                       // ? Pourquoi : la grande ligne de Claudia ; son récit (TALE) suit
+const WHY_NEXT = "Avant la séance";                                                      // le bouton vert
+const PREP_Q = "Avant la séance&nbsp;: imprime le matériel, choisis les rôles.";          // (BEFORE_TITLE) ; BEFORE_NOTE suit
+const PREP_NEXT = "Commencer l’étape 1";                                                 //
+const SETUP_CHIP = "Installer la classe";                                                // (le titre de l'ancien écran)
+const BACK_LABEL = "Retour à l’étape";                                                   //
+const BACK_PREP = "Retour";                                                              //
+const ME_CHIPS = { moment: "Pourquoi ce moment&nbsp;?", why: "Pourquoi cette étape&nbsp;?", ideas: "Les élèves pensent", simp: "Ce que le jeu simplifie" };   //
+const ASK_LEAD = "Demande à Claudia&nbsp;:";                                             //
+const IDEA_ASK = "Que lui répondrais-tu&nbsp;? Réfléchis, puis regarde la réponse.";      // (ME_LBL.guess, plus court)
+const IDEA_SHOW = "Voir la réponse", NEXT_IDEA = (i, n) => `Idée suivante (${i} sur ${n})`;   //
+const SIMP_ASK = "Dans le jeu, c’est simplifié. Et dans une vraie IA&nbsp;?";            //
+const FLIP = "Voir la réponse", NEXT_CARD = (i, n) => `Simplification suivante (${i} sur ${n})`;   //
+const SIMP_BTN = "Ce que l’activité simplifie", SIMP_BACK = "Fermer le tableau";        // Fin
+const CONSIGNE_LABEL = "À dire à ta classe";                                             // (avant : « Consigne : »)
+const BACK_TO_Q = "Retour à la question";                                                // le bouton vert, sur le dernier écran
+const BACK_URL = "../../play.html?a=Module2/intro-module";              // la page de la question (le site la remplace)
+const SHEET_HEAD = "Ta séance";                                                          //
+const SHEET_META = min => `${min}&nbsp;min · 4–6P`;                                        //
+const MATERIAL = "Le matériel";                                                          //
+const OPEN_STEP = "Revoir l’étape";                                                      //
+const KEEP_END = TRACE.map(t => t.a);                                                    // à la fin, Claudia redit la trace écrite (TAKEAWAY est vide)
+/* ============================================================ */
+
+/* ---------- French typography at display time: ’, and a non-breaking space before : ? ! ; » and after « ---------- */
+const NB = "\u00A0";   // espace insécable
+const nb = s => String(s)
+  .replace(/([A-Za-zÀ-ÿŒœ])'(?=[A-Za-zÀ-ÿŒœ])/g, "$1’")
+  .replace(/« /g, "«" + NB).replace(/ ([»?!:;])/g, NB + "$1");
+const $ = s => document.querySelector(s);
+const put = (el, html) => { el.innerHTML = nb(html); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const img = c => `<img src="images/c-${c.file}.png" alt="${esc(c.name)}">`;
+const bare = c => c.name.replace(/^(un |une |la |l’)/, "");
+const the = c => { const m = c.name.match(/^(une?) (.*)$/); if (!m) return c.name;   // « la chambre », « le chat », « l’oiseau »
+  return /^[aeiouyéèêàâîôh]/i.test(m[2]) ? `l’${m[2]}` : `${m[1] === "un" ? "le" : "la"} ${m[2]}`; };
+const FAM = ["fy", "fg", "fb"];
+
+/* ---------- The chances sheets: card → { n, next: [[card, copies], …] }; the bag holds one card per copy; the draw is uniform over the bag,
+   so it is weighted by the copies ---------- */
+// « 3 chambre, 2 ferme et 1 forêt » : ce que le Calculateur met dans le sac pour la fiche de cette carte
+const copiesTxt = c => { const l = SHEET.get(c).next.map(([q, x]) => `${x} ${bare(q)}`); return l.length > 1 ? `${l.slice(0, -1).join(", ")} et ${l.at(-1)}` : l[0]; };
+const SHEET = new Map([...Object.entries(CHANCES_PERSO), ...Object.entries(CHANCES_LIEU)].map(([k, v]) =>
+  [ALL[k], { n: v.n, next: Object.entries(v.next).map(([q, x]) => [ALL[q], x]) }]));
+const bagOf = c => SHEET.get(c).next.flatMap(([q, x]) => Array(x).fill(q));
+const drawFrom = c => { const b = bagOf(c), i = Math.floor(Math.random() * b.length); return { c: b[i], i }; };
+const mostCopies = c => SHEET.get(c).next.reduce((a, b) => b[1] > a[1] ? b : a)[0];
+const mark = c => ({ name: `<b>${c.name}</b>`, at: `<b>${c.at}</b>` }), GAP = { name: `<span class="gap">?</span>`, at: `<span class="gap">?</span>` };
+const storyHTML = (p, l, o) => `<p class="storyline">${STORY(mark(p), l ? mark(l) : GAP, o ? mark(o) : GAP)}</p>`;
+const requestHTML = c => `<div class="request">${REQUEST_LABEL} <span class="rchip">${img(c)}${bare(c)} <span class="kcode">${c.code}</span></span></div>`;
+
+/* ---------- Learning data (Interaktionsbericht), v2 (20 Nov 2026) ----------
+     intro_vue             the screens for the teacher seen (unchanged codes; since 26 Nov 2026: 1 and 2 on « ? Pourquoi », 3, 4 and 6 on « Avant la séance », 5 from « ✓ Fin »), e.g. "1 2 3 4" (1 = pourquoi, 2 = les notions, 3 = préparer la séance, 4 = le plan,
+                           5 = ce que l'activité simplifie, screen 9)                                                       as machine-histoires-ecm
+     demande               step 1: the character chosen by the Authors, e.g. "dragon"                                      (was: the 3 cards)
+     histoire_1            step 1: the story produced, as 3 words, e.g. "dragon, château, couronne"                        NEW
+     tirages_hasard        step 2: the rounds, « lieu, objet | … », e.g. "château, couronne | forêt, balle | château, chaudron"   (was: 3 cards per round)
+     plus_souvent          step 2: "réponse montrée" when the teacher reveals the place with the most copies (the class answers aloud; no click on the counter since 20 Nov 2026)
+     loup_vote             step 3: « Est-ce une vraie histoire de loup ? » → "oui" or "pas vraiment"                       NEW
+     comprendre            steps 1–3: the game moments on screen when the « Pourquoi » tab was opened, e.g. "draw sheet2 rare"   NEW (20 Nov 2026)
+     abeille_histoire      step 3: the abeille's story (no sheet, the oiseau's sheet), as 3 words, e.g. "abeille, forêt, gâteau"   NEW
+     biais_manque          step 3: "observé" once the class has looked at what comes back often and what is never there   CHANGED (was "n essai(s)": the choice question is gone)
+     q_quelquun_ecrit      no longer recorded (the question was removed on 21 Nov 2026)
+     pont_vraie_ia         step 4: the answers for the 4 sentences, 1 = right, 0 = wrong, e.g. "1 1 0 1" (correct if all right)
+     trace_ecrite          step 4: "3" once the three lines of the trace écrite are written (was 4)
+     pourtoi_ouvert        the « Pour toi » tabs opened, as step:tab, in the order of first opening, e.g. "2:idees 3:simp"     as before
+   No longer recorded (the step that held them is gone): recu, calcul, suivi_demande, codes_phrases, codes_retournes, q_codes_proches.
+   Completed when step 4 is done (the trace écrite written). */
+const rec = (id, v, opt) => { scorm.record(id, v, opt); scorm.commit(); };
+
+/* ---------- The open question: « Ta réponse », « Valider » once something is typed, « Passer » records "(passé)" ---------- */
+const qDone = new Set(), qText = {};
+function oqHTML(id, big = false) {
+  const q = OPEN_Q[id];
+  if (qDone.has(id)) return `<div class="oq done"><p class="oql">${OQ_LABEL}</p><p class="oqt">${qText[id] ? esc(qText[id]) : OQ_SKIPPED_SHOWN}</p></div>`;
+  return `<div class="oq ${big ? "big" : ""}"><p class="oql">${OQ_LABEL}</p><p class="oqq">${q.q}</p>
+    <textarea id="oq" data-q="${id}" maxlength="255" placeholder="${q.hint}…" aria-label="${esc(OQ_LABEL + " : " + q.q)}"></textarea>
+    <div class="oqa"><button type="button" class="b primary" data-act="oqok" data-q="${id}" ${(qText[id] || "").trim() ? "" : "disabled"}>${BTN.validate}</button>
+    <button type="button" class="b secondary" data-act="oqskip" data-q="${id}">${BTN.skip}</button></div></div>`;
+}
+function oqFill() { const t = $("#oq"); if (t) t.value = qText[t.dataset.q] || ""; }
+document.addEventListener("input", e => {
+  if (e.target.id !== "oq") return;
+  qText[e.target.dataset.q] = e.target.value;
+  const ok = document.querySelector('[data-act="oqok"]'); if (ok) ok.disabled = !e.target.value.trim();
+});
+function answer(id, skip) {
+  const v = skip ? "" : (qText[id] || "").trim();
+  qText[id] = v; qDone.add(id);
+  rec(id, v || OQ_SKIPPED);
+  render();
+}
+
+
+/* ============ The table of the class (steps 1–3), seen from above: the Machine (Encodeur, Calculateur, Rédacteur) above the line, the Humains below.
+   Only the station working now (o.on) shows its real printed sheet, large (images/f-*.png, made by guide/build-materiel.py); the others are one-line chips.
+   o: on = the working station ("" = none: the class is counting) · who = the requested character · code = the code is on the bande ·
+      sheet = the card whose chances sheet the Calculateur reads, before a draw · like = the abeille case (no sheet: a word that resembles it) ·
+      bag + drawn = after a draw: the bag of that sheet and the card that came out · tray = [place, object] drawn so far ·
+      res = the cards on the fiche résultat (Rédacteur) · side = the Humains side, right of the Auteurs ============ */
+const PAPER = { demande: "images/f-demande.png", bande: "images/f-bande.png", resultat: "images/f-resultat.png" };
+const SHEET_IMG = c => `images/f-chances-codes-${c.file}.png`;   // 25 nov. 2026 : la fiche avec les codes seulement (découpée de la « Fiche des chances (codes) » du dossier media) ; avant : images/f-chances-…png, avec les images
+const rcard = (c, f) => `<div class="rc ${FAM[f]}">${img(c)}</div>`;
+const famOf = c => Object.keys(CHANCES_LIEU).some(k => ALL[k] === c) ? 1 : Object.keys(CHANCES_PERSO).some(k => ALL[k] === c) || c === NO_SHEET ? 0 : 2;
+const BAGSVG = `<svg viewBox="0 0 60 70" aria-hidden="true"><path d="M14 14 Q30 22 46 14 L52 60 Q30 70 8 60 Z" fill="#6b5a4a"/><path d="M14 14 Q30 6 46 14" fill="none" stroke="#3d3128" stroke-width="3"/></svg>`;
+const CHECK = `<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const TBL = { aut: [1, "Auteurs"], enc: [2, "Encodeur"], calc: [3, "Calculateur"], red: [4, "Rédacteur"] };
+const zoomBtn = (src, alt) => `<button type="button" class="zoom" data-act="zoom" data-src="${src}" data-alt="${esc(nb(alt))}">${CH.zoom}</button>`;
+function calcBody(o) {
+  if (o.bag) {   // after a draw: the bag of the sheet, the card that came out
+    const nf = famOf(o.bag) + 1, bag = bagOf(o.bag), d = o.drawn;
+    return `<div class="drawv"><div class="bagbox">${BAGSVG}<span>${CH.bag(nf)}</span></div><div class="cps">${bag.map((q, i) => `<div class="tcp ${d.i === i ? "win" : ""}">${rcard(q, nf)}</div>`).join("")}</div>
+      <span class="arrow" aria-hidden="true">→</span><div class="outbig"><div class="tcp">${rcard(d.c, nf)}</div><span>${bare(d.c)} <span class="kcode">${d.c.code}</span> <small>${CH.outLbl}</small></span></div></div>`;
+  }
+  const nf = famOf(o.sheet) + 1;
+  const note = o.like ? `<p class="nosh">${CH.after(bare(o.who))} : <em>${CH.none}</em>. <b>${CH.like} ${bare(o.like)}.</b></p>` : "";
+  return `${ficheHTML(o.sheet, nf)}<div class="tkeys">${note}<h4>${CH.bagIn(nf)}</h4>${SHEET.get(o.sheet).next.map(([q, x]) => `<div class="tkv"><div class="tcp">${rcard(q, nf)}</div><b>×${x}</b>${bare(q)}<span class="kcode">${q.code}</span></div>`).join("")}</div>`;
+}
+// the chances sheet, drawn as it is printed (codes only): the code before → the codes that can come after, ×copies; « appris dans n histoires »
+function ficheHTML(c, nf) {
+  const s = SHEET.get(c), alt = `${CH.title} ${CH.after(bare(c))}`;
+  return `<div class="sheet fiche paper"><p class="fh"><b>${CH.title}</b><span class="nw">${CH.after(c.code)}</span></p>
+    <div class="frow"><span class="code ${FAM[nf - 1]}">${c.code}</span><span class="ar" aria-hidden="true">→</span>${s.next.map(([q, x]) => `<span class="code ${FAM[nf]}" title="${esc(bare(q))}"><i>×${x}</i>${q.code}</span>`).join("")}</div>
+    <div class="sfoot">${s.n ? `<p class="fn ${c === RARE ? "rare" : ""}">${CH.learned(s.n)}</p>` : "<span></span>"}${zoomBtn(SHEET_IMG(c), alt)}</div></div>`;
+}
+// the path: who passed what to whom; o.on = the working station ("" = none: the class counts), stations before it are done
+const ORDER = ["aut", "enc", "calc", "red"];
+function pathHTML(o) {
+  const at = o.on ? ORDER.indexOf(o.on) : 3, st = k => ORDER.indexOf(k) < at ? "done" : k === o.on ? "on" : "";
+  const node = k => { const [n, name] = TBL[k]; return `<span class="pnode ${st(k)}" title="${name}" ${k === o.on ? 'aria-current="step"' : ""}><span class="n" aria-hidden="true">${n}</span><span class="nm">${name}</span></span>`; };
+  const tray = (o.tray || []).filter(Boolean);
+  const hop = (inner, on) => on && inner ? `<span class="hop"><span class="ar" aria-hidden="true">→</span><span class="tk">${inner}</span></span>` : `<span class="hop empty"><span class="ar" aria-hidden="true">→</span><span class="tk"></span></span>`;
+  const mini = (c, f) => `<span class="mini">${rcard(c, f)}</span>`;
+  return `<div class="path">${node("aut")}${hop(o.who ? mini(o.who, 0) : "", o.who && at > 0)}
+    <span class="mband"><span class="ml">${PATH_LABELS.band}</span>${node("enc")}${hop(o.code ? o.who.code : "", o.code && at > 1)}${node("calc")}${hop(tray.map(c => `<span>${c.code}</span>`).join(""), tray.length && at > 2)}${node("red")}</span>
+    ${hop("", false)}<span class="pnode story ${o.res && o.res.length === 3 ? "done" : ""}" title="${PATH_LABELS.story}"><span>${PATH_LABELS.story}</span></span></div>`;
+}
+// « Comprendre » : what happens (always), then why and the link with a real AI (on demand, recorded under « comprendre »)
+const compOpen = new Set(); let compNow = "", curMoment = "", curV = {}, whyView = "moment";   // curMoment = the moment on the board, for the « Pourquoi » tab
+// « Comprendre » : one caption line under the moment (always), « Pourquoi ? › » opens the reason over the moment (recorded under « comprendre »)
+function captionHTML(m, v) {
+  const M = MOMENTS[m]; if (!M) return "";
+  return `<p class="capt"><b>${COMP.label} :</b> ${M.what(v)}</p>`;
+}
+function whyHTML(m) {
+  const M = MOMENTS[m]; if (!M || compNow !== m) return "";
+  return `<aside class="whypop" role="dialog" aria-label="${COMP.why}"><h4>${COMP.why}</h4><p>${M.why}</p><p class="tag ${M.tag[0]}"><b>${COMP[M.tag[0]]} :</b> ${M.tag[1]}</p>
+    <div class="crow2"><button type="button" class="tog" data-act="comp" data-m="${m}">${COMP.close}</button><button type="button" class="more" data-act="compMore">${COMP.more}</button></div></aside>`;
+}
+function toggleComp(m) {
+  compNow = compNow === m ? "" : m;
+  if (compNow) { compOpen.add(m); rec("comprendre", [...compOpen].join(" ")); }
+  render();
+}
+// the focus: the working station, large, with its printed sheet drawn
+const sheetFoot = (key, foot) => `<div class="sfoot"><small>${foot}</small>${zoomBtn(PAPER[key], foot)}</div>`;
+function focusHTML(o) {
+  if (o.focus) return o.focus;
+  if (o.on === "aut") return `<div class="sheet demande paper"><p class="bt">${FICHES.author}</p><div class="slot ${FAM[0]}">${o.who ? img(o.who) : ""}<small>${FAMILIES[0]}</small></div>${sheetFoot("demande", FICHES.footAuthor)}</div>${o.side || ""}`;
+  if (o.on === "enc") return `<div class="sheet bande paper"><p class="bt">${FICHES.encoder}</p><div class="slot ${FAM[0]}">${o.code ? `<span class="codebig">${o.who.code}</span>` : ""}</div>${sheetFoot("bande", FICHES.footEncoder)}</div>`;
+  if (o.on === "calc") return calcBody(o);
+  if (o.on === "red") return `<div class="sheet resultat paper"><p class="bt">${FICHES.writer}</p><div class="slots">${o.res.map((c, j) => `<div class="slot ${FAM[j]}">${img(c)}<small>${FAMILIES[j]}</small></div>`).join("")}</div>${storyHTML(...o.res)}${sheetFoot("resultat", FICHES.footWriter)}</div>`;
+  return "";
+}
+// the board's three rows: on top the path (or a label), the moment on the table, « Ce qui se passe » under it; they keep their place on every screen
+const boardHTML = (top, body, cap = "", cls = "") => `<div class="btop">${top}</div><div class="moment ${cls}">${body}</div><div class="bcap">${cap}</div>`;
+function tableHTML(o) {
+  curMoment = o.m && MOMENTS[o.m] ? o.m : ""; curV = o.v || {};
+  return boardHTML(pathHTML(o), focusHTML(o), captionHTML(o.m, o.v || {}));
+}
+// which « Comprendre » moment goes with the Calculateur's view (first = the moment of the first sheet: sheet, rare or like)
+function momentOf(sheet1, place, obj, next, first = "sheet") {
+  const bag = c => bagOf(c), chance = (b, c) => b.filter(q => q === c).length;
+  if (!place) return { m: first, v: { w: bare(sheet1), list: copiesTxt(sheet1) } };
+  if (!next) return { m: "draw", v: { w: bare(place.c), n: chance(bag(sheet1), place.c), of: bag(sheet1).length } };
+  if (!obj) return { m: "sheet2", v: { w: bare(place.c), list: copiesTxt(place.c) } };
+  return { m: "draw", v: { w: bare(obj.c), n: chance(bag(place.c), obj.c), of: bag(place.c).length } };
+}
+// the Calculateur, for one word after another: the sheet before each draw, the bag and the card after it
+function calcView(first, place, obj, next) {
+  if (!place) return { sheet: first, tray: [] };
+  if (!next) return { bag: first, drawn: place, tray: [place.c] };
+  if (!obj) return { sheet: place.c, tray: [place.c] };
+  return { bag: place.c, drawn: obj, tray: [place.c, obj.c] };
+}
+const deskHTML = () => `<div class="desk2">${ASK_CARDS.map((c, k) => `<button type="button" class="pc2" data-author="${k}" aria-label="${bare(c)}">${rcard(c, 0)}</button>`).join("")}</div>`;
+/* ============ Step 1: one request, one story. Auteurs + Encodeur on one board (the code appears by itself),
+   then the Calculateur (the sheet and the bag for the place, then for the object), then the Rédacteur ============ */
+const S1 = {};
+function resetS1() { clearTimeout(S1.timer); Object.assign(S1, { phase: "author", who: null, coding: false, coded: false, place: null, obj: null, next: false, timer: 0 }); }
+resetS1();
+function r1() {
+  const { phase, who, place, obj } = S1;
+  if (phase === "author") {
+    board(tableHTML({ on: who ? "enc" : "aut", who, code: S1.coding || S1.coded, side: who ? "" : deskHTML(), m: who ? "code" : "author", v: { who } }));
+    if (!who) return classe(SAY1.author);
+    if (!S1.coded) return classe(SAY1.coding(who.name));
+    return classe(SAY1.coded, [["s1calc", BTN.toCalc]]);
+  }
+  if (phase === "calc") {
+    board(tableHTML({ on: "calc", who, code: true, ...calcView(who, place, obj, S1.next), ...momentOf(who, place, obj, S1.next, "sheet"), v: { ...momentOf(who, place, obj, S1.next).v, who } }));
+    if (!place) return classe(SAY1.calc(who.code, copiesTxt(who)), [["s1draw", BTN.drawPlace]]);
+    if (!obj && !S1.next) return classe(SAY1.got(bare(place.c)), [["s1next", BTN.nextSheet(bare(place.c))]]);
+    if (!obj) return classe(SAY1.calcObj(bare(place.c), copiesTxt(place.c)), [["s1draw", BTN.drawObj]]);
+    return classe(SAY1.calcDone, [["s1writer", BTN.toWriter]]);
+  }
+  // the Rédacteur: the codes become words again, in the fixed sentence
+  const got = [who, place.c, obj.c];
+  board(tableHTML({ on: "red", who, code: true, tray: [place.c, obj.c], res: got, m: "writer" }));
+  classe(SAY1.end);
+}
+function s1click(e) {
+  const a = e.target.closest("[data-author]");
+  if (a && S1.phase === "author" && !S1.who) {
+    S1.who = ASK_CARDS[+a.dataset.author];
+    rec("demande", bare(S1.who));
+    S1.coding = true;   // the Encodeur: the card turns into its code, by itself
+    S1.timer = setTimeout(() => { S1.coding = false; S1.coded = true; if (SCREENS[cur].step === 1) render(); }, FLIP_MS);
+    return render();
+  }
+}
+
+/* ============ Step 2: the same request, again and again. The sheet and the bag of the place, a counter, the rounds, then « Quel lieu sort le plus souvent ? » ============ */
+const S2 = {};
+function resetS2() { Object.assign(S2, { who: null, rounds: [], pick: null }); }
+resetS2();
+const askedNow = () => S1.who || DEFAULT_ASK;
+// the sheet of the place (its copies, their codes) with the counter as its last column; « Le plus souvent ? » once the rounds are played
+function ktabHTML(ask) {
+  const nf = famOf(S2.who) + 1, count = q => S2.rounds.filter(r => r.place.c === q).length;
+  return `<div class="ktab ${ask ? "ask" : ""}"><h4>${CH.title} ${CH.after(bare(S2.who))}</h4><span class="kh">${ask ? CH.tallyAsk : CH.tally}</span>${SHEET.get(S2.who).next.map(([q, x]) =>
+    `<div class="tkv ${S2.pick === q ? "on" : ""}"><div class="tcp">${rcard(q, nf)}</div><b>×${x}</b><span>${bare(q)}</span><span class="kcode">${q.code}</span><span class="cnt">${count(q)}</span></div>`).join("")}</div>`;
+}
+const keyOfCard = c => Object.keys(ALL).find(k => ALL[k] === c);
+function roundsHTML() {
+  const R = S2.rounds, first = Math.max(R.length, ROUNDS) - ROUNDS;
+  return `<div class="rounds">${Array.from({ length: ROUNDS }, (_, k) => { const n = first + k, r = R[n];
+    if (!r) return `<div class="round empty"><b>${ROUND_LABEL(n + 1)}</b><span class="ic"></span><span class="wait">${ROUND_WAIT}</span></div>`;
+    const cs = [S2.who, r.place.c, r.obj.c];
+    return `<div class="round ${n === R.length - 1 ? "new" : ""}"><b>${ROUND_LABEL(n + 1)}</b><span class="ic">${cs.map(img).join("")}</span><q>${STORY(...cs)}</q></div>`; }).join("")}</div>`;
+}
+const sameStory = (a, b) => a.place.c === b.place.c && a.obj.c === b.obj.c;
+function r2() {
+  if (!S2.rounds.length) S2.who = askedNow();
+  const R = S2.rounds, last = R[R.length - 1], ask = R.length >= ROUNDS && !S2.pick;
+  board(tableHTML({ on: ask || S2.pick ? "" : "calc", who: S2.who, code: true, tray: last ? [last.place.c, last.obj.c] : [],
+    focus: `<div class="s2">${ktabHTML(ask)}${roundsHTML()}</div>`,
+    m: ask || S2.pick ? "count" : "rounds", v: { n: R.length, w: last ? bare(last.place.c) : "" } }));
+  const sameAsBefore = R.length > 1 && sameStory(R[R.length - 1], R[R.length - 2]);
+  if (R.length < ROUNDS) {
+    const t = R.length ? SAY2.mid(R.length) : SAY2.start;
+    return classe({ now: sameAsBefore ? `${SAY2.same} ${t.now.replace(/^Tour \d+ noté\. /, "")}` : t.now, say: t.say }, [["s2draw", BTN.draw(R.length + 1)]]);
+  }
+  if (!S2.pick) return classe(SAY2.ask, [["s2reveal", BTN.reveal]]);   // la classe répond à voix haute, puis le bouton montre la réponse
+  const best = mostCopies(S2.who);
+  classe({ now: SAY2.right(the(best)), say: SAY2.end.say }, [["s2draw", BTN.drawAgain, "secondary"]]);
+}
+function s2click(e) {
+  const p = e.target.closest("[data-place]");
+  if (p && S2.rounds.length >= ROUNDS && !S2.pick) {
+    S2.pick = ALL[p.dataset.place];
+    rec("plus_souvent", bare(S2.pick), { result: S2.pick === mostCopies(S2.who) ? "correct" : "wrong" });
+    finishStep(2); return render();
+  }
+}
+
+/* ============ Step 3: what it has seldom seen. A wolf (learned from 2 stories), the vote, then all its sheets and « Qu'est-ce qui manque ? » ============ */
+const S3 = {};
+function resetS3() { Object.assign(S3, { phase: "draw", place: null, obj: null, next: false, vote: null, bplace: null, bobj: null, bnext: false }); }
+// the place with the most copies on the character sheets (« revient souvent »), its copies and the number of sheets it is on
+const OFTEN = (() => { const t = {}, f = {};
+  for (const v of Object.values(CHANCES_PERSO)) for (const [q, x] of Object.entries(v.next)) { t[q] = (t[q] || 0) + x; f[q] = (f[q] || 0) + 1; }
+  const k = Object.keys(t).reduce((a, b) => t[b] > t[a] ? b : a); return { c: ALL[k], n: t[k], f: f[k] }; })();
+resetS3();
+function sheetsHTML() {
+  const row = (k, v, nf) => { const c = ALL[k];
+    return `<div class="srow ${c === RARE ? "rare" : ""}"><span class="mi ${FAM[nf - 1]}">${img(c)}</span><i aria-hidden="true">→</i>${Object.entries(v.next).map(([q, x]) =>
+      `<span class="mi ${FAM[nf]} ${S3.phase !== "deck" && ALL[q] === OFTEN.c ? "hot" : ""}"><span class="x">×${x}</span>${img(ALL[q])}</span>`).join("")}${v.n ? `<small>${CH.learned(v.n)}</small>` : ""}</div>`; };
+  return `<div class="sheets"><div class="scol"><p>${CH.sheetsPerso}</p>${Object.entries(CHANCES_PERSO).map(([k, v]) => row(k, v, 1)).join("")}</div>
+    <div class="scol"><p>${CH.sheetsLieu}</p>${Object.entries(CHANCES_LIEU).map(([k, v]) => row(k, v, 2)).join("")}
+      ${S3.phase === "deckok" ? `<div class="missrow"><p>${OBSERVE.missing}</p><span class="obsc">${MISSING.map(c => `<span class="mi gone">${img(c)}</span>`).join("")}</span></div>` : ""}</div></div>`;
+}
+function r3() {
+  if (S3.phase === "deck" || S3.phase === "often" || S3.phase === "deckok") {   // the class observes: what comes back often, then what is never there
+    const found = S3.phase === "often" ? `<p class="capt"><b>${OBSERVE.often} :</b> ${OBSERVE.oftenText(cap(bare(OFTEN.c)), OFTEN.n, OFTEN.f)}</p>`
+      : S3.phase === "deckok" ? `<p class="capt"><b>${OBSERVE.missing} :</b> ${OBSERVE.missingText}</p>` : "";
+    board(boardHTML(`<p class="blabel">${CH.sheetsAll}</p>`, `<div class="deck">${sheetsHTML()}</div>`, found, "deckm"));
+    if (S3.phase === "deck") return classe(SAY3.deck, [["s3often", BTN.toOften]]);
+    if (S3.phase === "often") return classe(SAY3.often, [["s3missing", BTN.toMissing]]);
+    finishStep(3); return classe(SAY3.deckOk);
+  }
+  if (S3.phase === "bee") {   // no sheet for the abeille: the Calculateur takes the sheet of a word that resembles it (oiseau)
+    const { bplace: pl, bobj: ob } = S3;
+    board(tableHTML(ob ? { on: "red", who: NO_SHEET, code: true, tray: [pl.c, ob.c], res: [NO_SHEET, pl.c, ob.c], m: "likeStory" }
+      : { on: "calc", who: NO_SHEET, code: true, ...calcView(LIKE, pl, ob, S3.bnext), like: pl ? null : LIKE, ...momentOf(LIKE, pl, ob, S3.bnext, "like") }));
+    if (!pl) return classe(SAY3.bee, [["s3draw", BTN.drawPlace]]);
+    if (!S3.bnext) return classe(SAY1.got(bare(pl.c)), [["s3next", BTN.nextSheet(bare(pl.c))]]);
+    if (!ob) return classe(SAY1.calcObj(bare(pl.c), copiesTxt(pl.c)), [["s3draw", BTN.drawObj]]);
+    return classe(SAY3.beeEnd, [["s3deck", BTN.toDeck]]);
+  }
+  const { place: pl, obj: ob } = S3;
+  board(tableHTML(ob ? { on: "red", who: RARE, code: true, tray: [pl.c, ob.c], res: [RARE, pl.c, ob.c], m: "rareStory" }
+    : { on: "calc", who: RARE, code: true, ...calcView(RARE, pl, ob, S3.next), ...momentOf(RARE, pl, ob, S3.next, "rare") }));
+  if (!pl) return classe(SAY3.start, [["s3draw", BTN.drawPlace]]);
+  if (!S3.next) return classe(SAY1.got(bare(pl.c)), [["s3next", BTN.nextSheet(bare(pl.c))]]);
+  if (!ob) return classe(SAY1.calcObj(bare(pl.c), copiesTxt(pl.c)), [["s3draw", BTN.drawObj]]);
+  if (!S3.vote) return classe(SAY3.vote, [["s3yes", BTN.voteYes], ["s3no", BTN.voteNo]]);
+  classe({ now: S3.vote === "oui" ? SAY3.votedYes : SAY3.votedNo, say: SAY3.conclude }, [["s3deck", BTN.toDeck], ["s3bee", BTN.toBee, "secondary"]]);   // 21 nov. 2026 : l’abeille est un exemple en option
+}
+function s3click(e) {
+}
+function vote3(v) { if (S3.vote || !S3.obj) return; S3.vote = v; rec("loup_vote", v); render(); }
+
+/* ============ Step 4: who writes the story? The open question, Claudia's answer, 4 sentences, then the trace écrite (one line at a time) ============ */
+const S4 = {};
+function resetS4() { Object.assign(S4, { phase: "lead", at: 0, ans: [], shown: 0, fresh: false }); }
+resetS4();
+function bridgeCols(compact = false) {
+  const col = same => BRIDGE.slice(0, S4.at).map((b, k) => b.same === same ? `<div class="it ${!compact && k === S4.at - 1 ? "now" : ""}"><p>${b.text}</p>${compact ? "" : `<span>${b.real}</span>`}</div>` : "").join("");
+  return `<div class="bridge"><div class="bcol ai"><h4>${BTN.same}</h4>${col(true)}</div><div class="bcol jeu"><h4>${BTN.game}</h4>${col(false)}</div></div>`;
+}
+// what the class looks at for the line being discussed (only the label if that step was not played)
+function traceShow(k) {
+  const t = TRACE[k], lbl = `<p class="pt">${SHOW_LABEL[t.show]}</p>`;
+  if (t.show === "rounds") return lbl + (S2.rounds.length ? `${requestHTML(S2.who)}${roundsHTML()}` : "");
+  if (t.show === "sheet") return lbl + (S2.rounds.length ? ktabHTML(false) : "");
+  if (t.show === "loup") return lbl + (S3.obj ? `${storyHTML(RARE, S3.place.c, S3.obj.c)}${S3.vote ? `<p class="vres">${VOTE_SHOWN(S3.vote === "oui" ? BTN.voteYes : BTN.voteNo)}</p>` : ""}` : "");
+  return lbl + (S4.at ? bridgeCols(true) : "");
+}
+function r4() {
+  if (S4.phase === "lead") {   // 21 nov. 2026 : plus de question ouverte pour l'enseignant·e (« Il y a quelqu'un dans la machine qui écrit ? ») ; on pose directement la question à la classe
+    board(`<div class="moment"><div class="claudia-ans paper"><b>${LEAD4.label}</b>${LEAD4.text}</div></div>`, "b4");
+    return classe(SAY4.lead, [["s4sort", BTN.toSort]]);
+  }
+  if (S4.phase === "sort") {
+    const b = BRIDGE[S4.at];
+    board(`<div class="moment"><div class="s4"><div class="vote"><p class="sent"><small>${VOTE_LABEL(S4.at + 1, BRIDGE.length)}</small>« ${b.text} »</p>
+      <button type="button" class="vbtn ai" data-vote="1">${BTN.same}</button><button type="button" class="vbtn jeu" data-vote="0">${BTN.game}</button></div>${bridgeCols()}</div></div>`, "b4");
+    const lead = S4.at ? (S4.ans[S4.at - 1] ? SAY4.right : SAY4.wrong) + SAY4.nextOne : SAY4.sort.now;
+    return classe({ now: lead, say: SAY4.sort.say });
+  }
+  // the trace écrite
+  const k = Math.min(S4.shown, TRACE.length - 1);
+  board(`<div class="moment"><div class="s4"><div class="trace paper"><p class="pt">${TRACE_LABEL}</p><ol>${TRACE.map((t, j) => j < S4.shown
+    ? `<li class="${S4.fresh && j === S4.shown - 1 ? "new" : ""}">${t.a}</li>` : `<li class="todo">…</li>`).join("")}</ol></div>
+    <div class="tshow" aria-live="polite">${traceShow(k)}</div></div></div>`, "b4");
+  S4.fresh = false;
+  if (S4.shown < TRACE.length) {
+    const L = BRIDGE.length - 1, fb = S4.shown ? "" : S4.ans[L] ? SAY4.right : SAY4.wrongLast(BRIDGE[L].same ? BTN.same : BTN.game);
+    return classe({ now: fb + SAY4.line(S4.shown + 1).now, say: TRACE[S4.shown].q }, [["write", BTN.write(S4.shown + 1)]]);
+  }
+  classe(SAY4.end);
+}
+function s4click(e) {
+  const v = e.target.closest("[data-vote]"); if (!v || S4.phase !== "sort" || S4.at >= BRIDGE.length) return;
+  S4.ans[S4.at] = (v.dataset.vote === "1") === BRIDGE[S4.at].same ? 1 : 0; S4.at++;
+  if (S4.at === BRIDGE.length) { rec("pont_vraie_ia", S4.ans.join(" "), { result: S4.ans.every(x => x) ? "correct" : "wrong" }); S4.phase = "trace"; }
+  render();
+}
+function writeLine() {
+  if (S4.shown >= TRACE.length) return;
+  S4.shown++; S4.fresh = true;
+  if (S4.shown === TRACE.length) { rec("trace_ecrite", String(S4.shown)); finishStep(4); }
+  render();
+}
+
+/* « Revenir en arrière » dans une étape : avant chaque clic, on garde une copie de l’état de l’étape ; si le clic l’a changé, la copie va dans HIST.
+   Les cartes restent les mêmes objets (copie de surface). Les données déjà envoyées (SCORM) ne sont pas effacées. */
+const STATE = { 1: S1, 2: S2, 3: S3, 4: S4 };
+const HIST = { 1: [], 2: [], 3: [], 4: [] };
+function clearHist() { for (const k in HIST) HIST[k].length = 0; }
+function snap(n) {
+  const o = {};
+  for (const [k, v] of Object.entries(STATE[n])) o[k] = Array.isArray(v) ? v.slice() : v instanceof Set ? new Set(v) : v;
+  if (n === 4) { o.__q = new Set(qDone); o.__t = { ...qText }; }   // la question ouverte vit hors de S4
+  return o;
+}
+const sig = o => JSON.stringify(o, (k, v) => v instanceof Set ? [...v] : v && v.code && v.file ? v.code : k === "timer" ? 0 : v);
+function undo() {
+  const n = SCREENS[cur].step, o = HIST[n].pop(); if (!o) return;
+  if (n === 1) clearTimeout(S1.timer);
+  const { __q, __t, ...rest } = o; Object.assign(STATE[n], rest);
+  if (n === 4) { qDone.clear(); __q.forEach(x => qDone.add(x)); for (const k in qText) delete qText[k]; Object.assign(qText, __t); }
+  render();
+}
+
+const icon = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${{ undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', pdf: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>' }[k]}</svg>`;
+
+/* ---------- Screens: ? Pourquoi · Avant la séance · the 4 steps · ✓ Fin (before 26 Nov 2026: 11 screens) ---------- */
+const SCREENS = [{ id: "why" }, { id: "prep" }, ...STEPS.map(s => ({ id: "step", step: s.n })), { id: "end" }];
+const MARKS = { why: "?", prep: "✎", end: "✓" };
+const stepAt = n => 1 + n, LAST = STEPS.length;
+let cur = 0;
+const seen = new Set(), done = new Set(), introSeen = new Set();
+const frame = Frame.init({ guide: "Claudia", pose: "claudia", now: 1, onStep: k => go(k - 1),
+  steps: SCREENS.map(S => S.step ? { mark: S.step, label: `Étape ${S.step} · ${STEPS[S.step - 1].min}&nbsp;min` } : { mark: MARKS[S.id], label: SCREEN_LABELS[S.id] }) });
+const { scorm } = frame;
+const talk = t => frame.talk({ ...t, say: nb(t.say || ""), more: nb(t.more || ""), keep: (t.keep || []).map(nb), replies: (t.replies || []).map(([l, a, g]) => [nb(l), a, g]) });
+const INTRO_CODE = { intro: 1, notions: 2, prep: 3, plan: 4, simp: 5, setup: 6 };   // the numbers recorded in intro_vue (unchanged)
+const sawIntro = (...ids) => { const before = introSeen.size; ids.forEach(id => introSeen.add(INTRO_CODE[id])); if (introSeen.size > before) rec("intro_vue", [...introSeen].sort().join(" ")); };
+
+const isDone = k => k !== cur && (SCREENS[k].step ? done.has(SCREENS[k].step) : seen.has(k));
+const canNext = () => { const S = SCREENS[cur]; if (S.id === "end") return false; return S.step ? done.has(S.step) : true; };
+function drawSteps() { frame.steps(cur + 1, k => ({ done: isDone(k - 1), can: seen.has(k - 1) || !!SCREENS[k - 1].step })); }
+function go(i) {
+  try { scorm.set("cmi.core.lesson_location", String(i)); scorm.commit(); } catch {}   // the screen, for coming back (as in Module 1)
+  closeLb(false);
+  cur = i; seen.add(i); me = null;
+  const S = SCREENS[i];
+  $("#desk").scrollTop = 0;
+  if (S.id === "why") { sawIntro("intro", "notions"); drawWhy(); }
+  else if (S.id === "prep") { sawIntro("prep", "plan"); drawPrep(); }
+  else if (S.id === "end") drawEnd(false);
+  else { drawStepDesk(); render(); }
+  drawSteps();
+}
+function finishStep(n) {
+  if (done.has(n)) return;
+  done.add(n);
+  if (n === LAST && scorm.get("cmi.core.lesson_status") !== "completed") { scorm.set("cmi.core.lesson_status", "completed"); scorm.commit(); }
+  drawSteps();
+}
+
+/* ---------- A step: the Consigne card on top, the board (drawn at the desk's size), its buttons under it; Claudia says what you do ---------- */
+// every « À dire à ta classe » of a step (a sample for the ones that depend on a card), to size the card once: the same height for steps 1 to 3
+// (they share the board with the path), so the table does not move from one screen to the next
+const STEP_SAYS = n => [
+  [SAY1.author, SAY1.coding(ALL.chevalier.name), SAY1.coded, SAY1.calc(), SAY1.got("château"), SAY1.calcObj(), SAY1.calcDone, SAY1.end],
+  [SAY2.start, SAY2.mid(1), SAY2.ask, SAY2.end],
+  [SAY3.start, SAY3.vote, { say: SAY3.conclude }, SAY3.bee, SAY3.beeEnd, SAY3.deck, SAY3.often, SAY3.deckOk, SAY1.got("château"), SAY1.calcObj()],
+  [SAY4.lead, SAY4.sort, SAY4.end, ...TRACE.map(t => ({ say: t.q }))]][n - 1].map(t => t.say || "");
+function sizeConsigne() {
+  const c = $("#consigne"), p = $("#consigne-t"), n = SCREENS[cur].step; if (!c || !n) return;
+  c.style.minHeight = ""; let h = 0;
+  const narrow = $("#desk").clientWidth < 600;   // a tablet held upright: the card is tall there, so it is sized for its own step only
+  for (const t of n <= 3 && !narrow ? [1, 2, 3].flatMap(STEP_SAYS) : STEP_SAYS(n)) { put(p, t); h = Math.max(h, c.offsetHeight); }
+  c.style.minHeight = `${h}px`;
+}
+addEventListener("resize", () => { sizeConsigne(); if (last) put($("#consigne-t"), last.t.say || ""); });
+function drawStepDesk() {
+  $("#desk").innerHTML = `<aside class="card-consigne" id="consigne"><span class="lab">${CONSIGNE_LABEL}</span><p id="consigne-t"></p></aside><div class="board" id="board" aria-label="Le jeu"></div>
+    <div class="under"><button type="button" class="tool" data-act="undo" id="undo" hidden>${icon("undo")}${nb(BTN.undo.replace(/ \(.*\)$/, ""))}</button><span class="grow"></span><div id="acts" aria-label="Actions du jeu"></div></div>`;
+  sizeConsigne();
+}
+
+let last = null, me = null;   // the step's current line and buttons; the « Pour toi » answer open in her bubble (null = none)
+const nextLabel = () => SCREENS[cur].step === LAST ? BTN.finish : BTN.nextStep;
+function classe(t, acts = []) {
+  last = { t, acts };
+  put($("#acts"), acts.map(([act, label, kind = "primary"]) => `<button type="button" class="chip ${kind === "primary" ? "go" : ""}" data-act="${act}">${label}</button>`).join(""));
+  const n = SCREENS[cur].step; $("#undo").hidden = !(n && HIST[n].length);
+  if (!me) showStep();
+}
+function showStep() {
+  const { t } = last, n = SCREENS[cur].step;
+  $("#consigne").classList.toggle("blank", !t.say); put($("#consigne-t"), t.say || "");   // kept in place when blank, so the board does not move
+  talk({ pose: done.has(n) ? "ouvre" : /^(Pas |Oui|Encore|La classe a dit)/.test(t.now) ? "pense" : "pointe", say: t.now, lead: ASK_LEAD,
+    wait: canNext() ? "" : nextLabel(),
+    replies: [...(canNext() ? [[nextLabel(), () => go(cur + 1), true]] : []),
+              ...meTabs(n).map(k => [ME_CHIPS[k], () => openMe(k)]), [BTN.shortStep, () => openShort()]] });
+}
+function board(html, cls = "") { const b = $("#board"); b.className = `board ${cls}`; put(b, html); }
+function render() { const n = SCREENS[cur].step; if (!n) return; [r1, r2, r3, r4][n - 1](); }
+
+/* ---------- « Pour toi »: buttons answered in Claudia's bubble (the texts of the old drawer) ---------- */
+const TAB_KEY = { moment: "moment", why: "pourquoi", ideas: "idees", simp: "simp" };
+const meTabs = n => [...(n <= 3 ? ["moment"] : []), "why", "ideas", ...(SIMP.some(s => s.at.includes(n)) || HELP[n - 1].more ? ["simp"] : [])];
+const meOpened = [], ideaSeen = new Set(), simpSeen = new Set(), compOpen2 = new Set();
+const back = () => [BACK_LABEL, () => { me = null; showStep(); }];
+function openMe(tab) {
+  const n = SCREENS[cur].step, item = `${n}:${TAB_KEY[tab]}`;
+  if (!meOpened.includes(item)) { meOpened.push(item); rec("pourtoi_ouvert", meOpened.join(" ")); }
+  if (tab === "moment" && curMoment && !compOpen.has(curMoment)) { compOpen.add(curMoment); rec("comprendre", [...compOpen].join(" ")); }
+  me = { tab, k: 0 }; drawMe();
+}
+function drawMe() {
+  const n = SCREENS[cur].step, h = HELP[n - 1], { tab, k } = me;
+  if (tab === "moment") {
+    const M = curMoment ? MOMENTS[curMoment] : null;
+    if (!M) return talk({ pose: "pense", say: COMP.noMoment, replies: [back()] });
+    return talk({ pose: "pense", say: M.why, more: `<p><b>${COMP[M.tag[0]]}&nbsp;:</b> ${M.tag[1]}</p>`, replies: [back()] });
+  }
+  if (tab === "why") {
+    const anne = typeof h.anne === "function" ? h.anne() : h.anne;
+    const rel = n === 2 ? `<h4>${ME_LBL.relances}</h4>${RELANCES.map(r => `<p>${r.q} ${r.a}</p>`).join("")}` : "";
+    return talk({ pose: "pense", say: h.why, more: `<h4>${ME_LBL.anne}</h4><p>${anne}</p>${rel}`, replies: [back()] });
+  }
+  if (tab === "ideas") {
+    const d = h.ideas[k], turned = ideaSeen.has(`${n}:${k}`), lastIdea = k === h.ideas.length - 1;
+    return talk({ pose: turned ? "pointe" : "pense", say: `${ME_LBL.kidSays} ${d.idea}`,
+      more: turned ? `${d.because ? `<p><b>${ME_LBL.because}&nbsp;:</b> ${d.because}</p>` : ""}<p><b>${ME_LBL.fact}&nbsp;:</b> ${d.fact}</p>${lastIdea ? `<p><b>${ME_LBL.ask}&nbsp;:</b> ${h.ask}</p><p><b>${ME_LBL.useT}&nbsp;:</b> ${h.use}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${h.avoid}</p>` : ""}`
+        : IDEA_ASK,
+      replies: [...(!turned ? [[IDEA_SHOW, () => { ideaSeen.add(`${n}:${k}`); rec("idees_retournees", [...ideaSeen].join(" ")); drawMe(); }]]
+        : !lastIdea ? [[NEXT_IDEA(k + 2, h.ideas.length), () => { me.k++; drawMe(); }]] : []), back()] });
+  }
+  const rows = SIMP.filter(s => s.at.includes(n));
+  if (!rows.length || k >= rows.length) return talk({ pose: "pense", say: ME_LBL.more, more: h.more, replies: [back()] });
+  const r = rows[k], flipped = simpSeen.has(`${n}:${k}`), lastCard = k === rows.length - 1;
+  talk({ pose: "pense", say: `${ME_LBL.inGame}&nbsp;: ${r.game}`,
+    more: flipped ? `<p><b>${ME_LBL.ai}&nbsp;:</b> ${r.ai}</p>${r.risk ? `<p><b>${ME_LBL.risk}&nbsp;:</b> ${r.risk}</p>` : ""}${lastCard && h.more ? `<h4>${ME_LBL.more}</h4><p>${h.more}</p>` : ""}` : SIMP_ASK,
+    replies: [...(!flipped ? [[FLIP, () => { simpSeen.add(`${n}:${k}`); rec("simp_retournees", [...simpSeen].join(" ")); drawMe(); }]]
+      : !lastCard ? [[NEXT_CARD(k + 2, rows.length), () => { me.k++; drawMe(); }]] : []), back()] });
+}
+// « Peu de temps ? » on a step: what to keep and what can be shortened, and the step in the 30-minute lesson
+function openShort() {
+  const n = SCREENS[cur].step, h = HELP[n - 1];
+  me = { tab: "short", k: 0 };
+  talk({ pose: "pense", say: `${SHORT_TITLE}&nbsp;: ${SHORT_MIN[n - 1]}&nbsp;min`, more: `<p><b>${ME_LBL.keep}&nbsp;:</b> ${h.keep}</p><p><b>${TAGS.short}&nbsp;:</b> ${h.cut}</p>`, replies: [back()] });
+}
+
+/* ============ ? Pourquoi · Avant la séance · ✓ Fin ============ */
+function drawWhy() {
+  put($("#desk"), `<h2 class="dt">${NOTIONS_TITLE}</h2><div class="notions">${NOTIONS.map(c => `<div class="ncard paper"><h3>${c.term}</h3><p>${c.def}</p></div>`).join("")}</div><p class="after">${NOTIONS_AFTER}</p>`);
+  const tale = () => talk({ pose: "salue", say: WHY_Q, more: `${TALE_DRAFT ? `<p><b>${TALE_DRAFT}</b></p>` : ""}${TALE.map(p => `<p>${p}</p>`).join("")}`,
+    replies: [[WHY_NEXT, () => go(1), true], [IDEA_LABEL, () => talk({ pose: "pense", say: IDEA_LABEL, more: IDEA, replies: [[BACK_PREP, tale]] })]] });
+  tale();
+}
+function drawPrep() {
+  const total = STEPS.reduce((t, s) => t + s.min, 0);
+  put($("#desk"), `<div class="plan">${STEPS.map(s => `<button type="button" class="stepc ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}">
+      <span class="sn"><i>${s.n}</i>${s.min} min${done.has(s.n) ? ` · ${DONE_MARK}` : ""}</span><h3>${s.title}</h3><p>${s.found}</p></button>`).join("")}</div>
+    <p class="total">${PLAN_SUB}</p>
+    <div class="prep">
+      <div class="mat paper"><h3>${BEFORE_TITLE}</h3><ul>${BEFORE_MAT.map(([b, t]) => `<li><b>${b}</b>&nbsp;: ${t}</li>`).join("")}</ul></div>
+      <div class="side">
+        <div class="thumbs"><button type="button" class="thumb paper" data-act="setup"><img src="${SETUP_IMG}" alt="">${BTN.setup}</button>
+          <button type="button" class="thumb paper" data-act="calcSteps"><img src="${CALC_IMG}" alt="">${BTN.calcSteps}</button></div>
+        <div class="pdfs"><a class="tool" href="${MATERIAL_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.material}</a><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.guide}</a></div>
+        <aside class="card-consigne"><span class="lab">${CONSIGNE_LABEL}</span><p>${BEFORE_SAY}</p></aside>
+      </div></div>`);
+  const main = () => talk({ pose: "pointe", say: PREP_Q, more: BEFORE_NOTE,
+    replies: [[PREP_NEXT, () => go(stepAt(1)), true], [SETUP_CHIP, setup], [SHORT_TITLE, short], [WORDS_TITLE, words]] });
+  const setup = () => { sawIntro("setup"); talk({ pose: "pointe", say: SETUP_CHIP, keep: SETUP_LEG.map(([n, who, what]) => `<span>${n ? `${n} · ` : ""}<b>${who}</b>&nbsp;: ${what}</span>`), more: SETUP_NOTE, replies: [[BTN.setup, () => openLb(SETUP_IMG, SETUP_ALT)], [BACK_PREP, main]] }); };
+  const short = () => talk({ pose: "pense", say: SHORT_TITLE, keep: SHORT.map(([t, d]) => `<span><b>${t}</b>&nbsp;: ${d}</span>`), more: `<p>${SHORT_INTRO}</p><p>${LONG}</p>`, replies: [[BACK_PREP, main]] });
+  const words = () => talk({ pose: "pointe", say: WORDS_TITLE, more: `<p><b>${ME_LBL.useT}&nbsp;:</b> ${WORDS_USE}</p><p><b>${ME_LBL.avoidT}&nbsp;:</b> ${WORDS_AVOID}</p><p><b>${LINK_LABEL}&nbsp;:</b> ${LINK_TEXT}</p>`, replies: [[BACK_PREP, main]] });
+  main();
+}
+function drawEnd(table) {
+  if (table) {
+    sawIntro("simp");
+    put($("#desk"), `<h2 class="dt">${SIMP_TITLE}</h2><div class="scroll"><table class="simp"><thead><tr><th>${SIMP_HEAD[0]}</th><th>${SIMP_HEAD[1]}</th><th class="ai">${SIMP_HEAD[2]}</th></tr></thead>
+      <tbody>${SIMP.map(s => `<tr><td>${s.game}<span class="st">${s.step}</span></td><td>${s.why}</td><td class="ai">${s.ai}</td></tr>`).join("")}</tbody></table></div><p class="after">${SIMP_AFTER}</p>`);
+  } else {
+    const SAYS = { 1: SAY1.author.say, 2: SAY2.start.say, 3: SAY3.start.say, 4: SAY4.lead.say };   // each step's first line to the class
+    const total = STEPS.reduce((t, s) => t + s.min, 0);
+    put($("#desk"), `<article class="lesson paper">
+      <header class="ls-head"><h2>${SHEET_HEAD}</h2><span>${SHEET_META(total)}</span></header>
+      <ol class="ls-steps">${STEPS.map(s => `<li><button type="button" class="ls-step ${done.has(s.n) ? "done" : ""}" data-goto="${stepAt(s.n)}" title="${OPEN_STEP}">
+        <i>${done.has(s.n) ? "✓" : s.n}</i><span class="ls-body"><b>${s.title}</b><small>${s.min}&nbsp;min</small><span class="ls-found">${s.found}</span>
+        ${SAYS[s.n] ? `<span class="ls-say"><em>${CONSIGNE_LABEL}</em> ${SAYS[s.n]}</span>` : ""}</span></button></li>`).join("")}</ol>
+      <aside class="ls-mat"><h3>${MATERIAL}</h3>
+        <button type="button" class="ls-sheet" data-act="setup"><img src="${SETUP_IMG}" alt="">${BTN.setup}</button>
+        <a class="tool" href="${MATERIAL_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.material}</a><a class="tool" href="${GUIDE_PDF}" target="_blank" rel="noopener">${icon("pdf")}${BTN.guide}</a></aside>
+    </article>`);
+  }
+  talk({ pose: "ouvre", say: END_TITLE, keep: (TAKEAWAY.length ? TAKEAWAY : KEEP_END).map(t => `<span>${t}</span>`),
+    replies: [[BACK_TO_Q, BACK_URL, true], table ? [SIMP_BACK, () => drawEnd(false)] : [SIMP_BTN, () => drawEnd(true)], [BTN.again, again]] });
+}
+
+/* ---------- A picture, large (the printed sheets, the classroom) ---------- */
+let lbOpener = null;
+function openLb(src, alt, btn) { lbOpener = btn || document.activeElement; $("#lb-img").src = src; $("#lb-img").alt = nb(alt); $("#lightbox").hidden = false; setTimeout(() => $("#lb-close").focus({ preventScroll: true }), 30); }
+function closeLb(refocus = true) { if ($("#lightbox").hidden) return; $("#lightbox").hidden = true; if (refocus && lbOpener && document.contains(lbOpener)) lbOpener.focus({ preventScroll: true }); }
+
+/* ---------- Clicks ---------- */
+function again() {
+  resetS1(); resetS2(); resetS3(); resetS4(); clearHist();
+  qDone.clear(); for (const k in qText) delete qText[k];
+  done.clear(); seen.clear();
+  go(0);
+}
+const ACT = {
+  again, setup: b => openLb(SETUP_IMG, SETUP_ALT, b), calcSteps: b => openLb(CALC_IMG, CALC_ALT, b), zoom: b => openLb(b.dataset.src, b.dataset.alt, b),
+  s1calc: () => { S1.phase = "calc"; render(); },
+  s1draw: () => {   // the place, then the object: each from the sheet of the word just before
+    if (!S1.place) S1.place = drawFrom(S1.who); else if (!S1.obj) S1.obj = drawFrom(S1.place.c);
+    render();
+  },
+  s1next: () => { S1.next = true; render(); },
+  s3next: () => { if (S3.phase === "bee") S3.bnext = true; else S3.next = true; render(); },
+  comp: b => toggleComp(b.dataset.m), compMore: () => openMe("moment"),
+  s1writer: () => { S1.phase = "writer"; rec("histoire_1", [S1.who, S1.place.c, S1.obj.c].map(bare).join(", ")); finishStep(1); render(); },
+  s2reveal: () => { S2.pick = mostCopies(S2.who); rec("plus_souvent", "réponse montrée"); finishStep(2); render(); },
+  s2draw: () => {
+    const place = drawFrom(S2.who);
+    S2.rounds.push({ place, obj: drawFrom(place.c) });
+    if (S2.rounds.length >= ROUNDS) rec("tirages_hasard", S2.rounds.map(r => `${bare(r.place.c)}, ${bare(r.obj.c)}`).join(" | "));
+    render();
+  },
+  s3draw: () => {
+    if (S3.phase === "bee") {
+      if (!S3.bplace) S3.bplace = drawFrom(LIKE);
+      else if (!S3.bobj) { S3.bobj = drawFrom(S3.bplace.c); rec("abeille_histoire", [NO_SHEET, S3.bplace.c, S3.bobj.c].map(bare).join(", ")); }
+    } else if (!S3.place) S3.place = drawFrom(RARE); else if (!S3.obj) S3.obj = drawFrom(S3.place.c);
+    render();
+  },
+  s3bee: () => { S3.phase = "bee"; render(); },
+  s3yes: () => vote3("oui"), s3no: () => vote3("pas vraiment"),
+  s3deck: () => { S3.phase = "deck"; render(); },
+  s3often: () => { S3.phase = "often"; render(); },
+  s3missing: () => { S3.phase = "deckok"; rec("biais_manque", "observé"); render(); },
+  s4sort: () => { S4.phase = "sort"; render(); },
+  write: () => writeLine(),
+  oqok: b => answer(b.dataset.q, false), oqskip: b => answer(b.dataset.q, true),
+  undo: () => undo()
+};
+$("#desk").addEventListener("click", e => {
+  const n0 = SCREENS[cur].step, a0 = e.target.closest("[data-act]");
+  if (!n0 || (a0 && ["undo", "setup", "calcSteps", "zoom", "again"].includes(a0.dataset.act))) return onClick(e);
+  const before = snap(n0), b = sig(before);
+  onClick(e);
+  if (SCREENS[cur].step === n0 && sig(snap(n0)) !== b) { HIST[n0].push(before); render(); }
+});
+function onClick(e) {
+  const a = e.target.closest("[data-act]");
+  if (a && !a.disabled) { if (!["zoom", "setup", "calcSteps"].includes(a.dataset.act)) me = null; return ACT[a.dataset.act](a); }
+  const g = e.target.closest("[data-goto]"); if (g && !g.disabled) return go(+g.dataset.goto);
+  const n = SCREENS[cur].step; if (!n) return;
+  if (e.target.closest("[data-author], [data-place], [data-vote]")) me = null;
+  if (n === 1) s1click(e); else if (n === 3) s3click(e); else if (n === 4) s4click(e); else if (n === 2) s2click(e);
+}
+$("#lb-close").addEventListener("click", () => closeLb());
+$("#lightbox").addEventListener("click", e => { if (e.target.id === "lightbox") closeLb(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeLb(); });
+
+/* Coming back: where the teacher was (completed: the last screen), as in Module 1 */
+{ const saved = parseInt(scorm.get("cmi.core.lesson_location"), 10), lastScr = SCREENS.length - 1;
+  go(scorm.get("cmi.core.lesson_status") === "completed" ? lastScr : saved >= 0 && saved <= lastScr ? saved : 0); }
+</script>
+<script src="../../config.js" defer></script>
+<script src="../../relecture.js" defer></script>
+</body>
+</html>
